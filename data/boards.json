@@ -1,0 +1,28 @@
+{
+  "boards": {
+    "board_4u": {
+      "title": "語り場4U掲示板",
+      "body": "語り場4Uの営業情報、イベント、コミュニティのお知らせはこちらから確認できます。\nはじめての人も、まずは雰囲気を覗いてみてください。",
+      "linkLabel": "4U情報を見る",
+      "linkUrl": "https://katariba4u.com/"
+    },
+    "board_kusanone": {
+      "title": "くさのね劇場掲示板",
+      "body": "くさのね劇場の店舗情報、イベント利用、カラオケや貸切の案内はこちら。",
+      "linkLabel": "くさのね情報を見る",
+      "linkUrl": "https://kusanone-gekijyo.foodre.jp/"
+    },
+    "board_branch": {
+      "title": "ブランチカフェ掲示板",
+      "body": "ブランチカフェの最新情報や雰囲気はこちらから確認できます。",
+      "linkLabel": "カフェ情報を見る",
+      "linkUrl": "https://www.instagram.com/branch_cafe/"
+    },
+    "board_town_news": {
+      "title": "街の掲示板",
+      "body": "語り場周辺のニュース、イベント、活動紹介をまとめて確認できます。ニュースサイトURLは後から設定します。",
+      "linkLabel": "ニュースを見る",
+      "linkUrl": ""
+    }
+  }
+}

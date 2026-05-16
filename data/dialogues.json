@@ -1,0 +1,101 @@
+{
+  "dialogues": {
+    "talk_4u_inside_01": {
+      "speaker": "4U店内の人",
+      "text": "いらっしゃい。ここは語り場4U。初めての人も、ふらっと来た人も、ゆるく話せる場所だよ。",
+      "options": [
+        { "label": "話す", "type": "dialogue", "targetId": "talk_4u_inside_talk" },
+        { "label": "メニューを見る", "type": "menu", "targetId": "menu_4u" },
+        { "label": "掲示板を見る", "type": "board", "targetId": "board_4u" }
+      ]
+    },
+    "talk_4u_inside_talk": {
+      "speaker": "4U店内の人",
+      "text": "今日はどんな一日だった？ここでは、うまく話そうとしなくても大丈夫。ちょっとした一言から会話が始まるからね。",
+      "options": [{ "label": "閉じる", "type": "close" }]
+    },
+    "talk_4u_outside_01": {
+      "speaker": "4U前の人",
+      "text": "ここが語り場4U。初めてでも入りやすいけど、中に入るとだいたい誰かが話しかけてくれるよ。",
+      "options": [{ "label": "ありがとう", "type": "close" }]
+    },
+    "talk_kusanone_inside_01": {
+      "speaker": "くさのね店内の人",
+      "text": "ようこそ、くさのね劇場へ。ここは食べたり飲んだりしながら、歌やイベントも楽しめる空間だよ。",
+      "options": [
+        { "label": "話す", "type": "dialogue", "targetId": "talk_kusanone_inside_talk" },
+        { "label": "メニューを見る", "type": "menu", "targetId": "menu_kusanone" },
+        { "label": "掲示板を見る", "type": "board", "targetId": "board_kusanone" }
+      ]
+    },
+    "talk_kusanone_inside_talk": {
+      "speaker": "くさのね店内の人",
+      "text": "ステージがあると、ただの食事の場じゃなくて、少しだけ非日常になるんだよね。今日は何か表現したくなる日かも。",
+      "options": [{ "label": "閉じる", "type": "close" }]
+    },
+    "talk_kusanone_outside_01": {
+      "speaker": "くさのね前の人",
+      "text": "くさのね劇場は、食事やお酒だけじゃなくて、歌やイベントの空気も楽しめる場所だよ。",
+      "options": [{ "label": "ありがとう", "type": "close" }]
+    },
+    "talk_branch_inside_01": {
+      "speaker": "ブランチカフェ店内の人",
+      "text": "いらっしゃいませ。ここは少し落ち着いて、ゆっくり過ごせるカフェです。ひと息ついていきますか？",
+      "options": [
+        { "label": "話す", "type": "dialogue", "targetId": "talk_branch_inside_talk" },
+        { "label": "メニューを見る", "type": "menu", "targetId": "menu_branch" },
+        { "label": "掲示板を見る", "type": "board", "targetId": "board_branch" }
+      ]
+    },
+    "talk_branch_inside_talk": {
+      "speaker": "ブランチカフェ店内の人",
+      "text": "朝や昼の時間に人と話すと、夜とはまた違った言葉が出てくる気がします。今日はどんな気分ですか？",
+      "options": [{ "label": "閉じる", "type": "close" }]
+    },
+    "talk_branch_outside_01": {
+      "speaker": "ブランチカフェ前の人",
+      "text": "ブランチカフェは、少し落ち着いて話したいときにちょうどいい場所。まずはメニューだけ見てみるのもいいかも。",
+      "options": [{ "label": "ありがとう", "type": "close" }]
+    },
+    "talk_town_01": {
+      "speaker": "街の人A",
+      "text": "このあたりは、いろんな人の活動がゆるく重なってるんだ。お店に入ると、その人たちの空気も少し見えてくるよ。",
+      "options": [{ "label": "立ち去る", "type": "close" }]
+    },
+    "talk_town_02": {
+      "speaker": "街の人B",
+      "text": "掲示板を見ると、今どんなイベントやお知らせがあるか分かるよ。迷ったらまず掲示板だね。",
+      "options": [{ "label": "立ち去る", "type": "close" }]
+    },
+    "talk_town_03": {
+      "speaker": "街の人C",
+      "text": "曜日によって、街の空気も少し変わるらしいよ。今はまだ準備中だけど、そのうち隠れた出会いも増えるかも。",
+      "options": [{ "label": "へえ", "type": "close" }]
+    },
+    "sign_to_kusanone": {
+      "speaker": "看板",
+      "text": "↓ くさのね劇場へ\nこのまま下へ進むと、くさのね劇場付近へ移動します。",
+      "options": [{ "label": "閉じる", "type": "close" }]
+    },
+    "sign_to_branch": {
+      "speaker": "看板",
+      "text": "→ ブランチカフェへ\nこのまま右へ進むと、ブランチカフェ付近へ移動します。",
+      "options": [{ "label": "閉じる", "type": "close" }]
+    },
+    "sign_to_4u_from_kusanone": {
+      "speaker": "看板",
+      "text": "↑ 語り場4Uへ\nこのまま上へ進むと、語り場4U付近へ戻ります。",
+      "options": [{ "label": "閉じる", "type": "close" }]
+    },
+    "sign_to_4u_from_branch": {
+      "speaker": "看板",
+      "text": "← 語り場4Uへ\nこのまま左へ進むと、語り場4U付近へ戻ります。",
+      "options": [{ "label": "閉じる", "type": "close" }]
+    }
+  },
+  "confirms": {
+    "enter_4u": { "title": "語り場4U", "text": "語り場4Uに入りますか？", "yesLabel": "入る", "noLabel": "やめる" },
+    "enter_kusanone": { "title": "くさのね劇場", "text": "くさのね劇場に入りますか？", "yesLabel": "入る", "noLabel": "やめる" },
+    "enter_branch": { "title": "ブランチカフェ", "text": "ブランチカフェに入りますか？", "yesLabel": "入る", "noLabel": "やめる" }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "canvasSize": 1000,
+  "initialMapId": "outside_4u",
+  "maps": {
+    "outside_4u": {
+      "id": "outside_4u",
+      "name": "語り場4U付近",
+      "type": "outside",
+      "image": "assets/maps/outside_4u.png",
+      "start": { "x": 50, "y": 72, "dir": "back" },
+      "walkZones": [{ "x": 0, "y": 0, "w": 100, "h": 100 }],
+      "transitions": [
+        { "id": "to_branch", "edge": "right", "range": [36, 64], "targetMapId": "outside_branch", "spawn": { "x": 4, "y": 52, "dir": "right" } },
+        { "id": "to_kusanone", "edge": "bottom", "range": [36, 62], "targetMapId": "outside_kusanone", "spawn": { "x": 64, "y": 4, "dir": "front" } }
+      ],
+      "interactables": [
+        { "id": "door_4u", "type": "door", "label": "語り場4Uに入る", "x": 44, "y": 30, "w": 12, "h": 11, "confirmId": "enter_4u", "targetMapId": "room_4u", "spawn": { "x": 50, "y": 86, "dir": "back" } },
+        { "id": "board_4u_outside", "type": "board", "label": "語り場4U掲示板", "x": 57, "y": 35, "w": 12, "h": 10, "boardId": "board_4u" },
+        { "id": "sign_to_branch", "type": "sign", "label": "ブランチカフェへの看板", "x": 83, "y": 38, "w": 17, "h": 12, "signId": "sign_to_branch" },
+        { "id": "sign_to_kusanone", "type": "sign", "label": "くさのね劇場への看板", "x": 34, "y": 88, "w": 28, "h": 10, "signId": "sign_to_kusanone" }
+      ]
+    },
+    "outside_kusanone": {
+      "id": "outside_kusanone",
+      "name": "くさのね劇場付近",
+      "type": "outside",
+      "image": "assets/maps/outside_kusanone.png",
+      "start": { "x": 64, "y": 8, "dir": "front" },
+      "walkZones": [{ "x": 0, "y": 0, "w": 100, "h": 100 }],
+      "transitions": [
+        { "id": "to_4u", "edge": "top", "range": [50, 74], "targetMapId": "outside_4u", "spawn": { "x": 48, "y": 96, "dir": "back" } }
+      ],
+      "interactables": [
+        { "id": "door_kusanone", "type": "door", "label": "くさのね劇場に入る", "x": 42, "y": 68, "w": 15, "h": 12, "confirmId": "enter_kusanone", "targetMapId": "room_kusanone", "spawn": { "x": 50, "y": 86, "dir": "back" } },
+        { "id": "board_kusanone_outside", "type": "board", "label": "くさのね劇場掲示板", "x": 58, "y": 72, "w": 13, "h": 10, "boardId": "board_kusanone" },
+        { "id": "sign_to_4u_from_kusanone", "type": "sign", "label": "語り場4Uへの看板", "x": 39, "y": 2, "w": 28, "h": 9, "signId": "sign_to_4u_from_kusanone" }
+      ]
+    },
+    "outside_branch": {
+      "id": "outside_branch",
+      "name": "ブランチカフェ付近",
+      "type": "outside",
+      "image": "assets/maps/outside_branch.png",
+      "start": { "x": 6, "y": 52, "dir": "right" },
+      "walkZones": [{ "x": 0, "y": 0, "w": 100, "h": 100 }],
+      "transitions": [
+        { "id": "to_4u", "edge": "left", "range": [40, 62], "targetMapId": "outside_4u", "spawn": { "x": 96, "y": 49, "dir": "left" } }
+      ],
+      "interactables": [
+        { "id": "door_branch", "type": "door", "label": "ブランチカフェに入る", "x": 50, "y": 30, "w": 14, "h": 11, "confirmId": "enter_branch", "targetMapId": "room_branch", "spawn": { "x": 50, "y": 86, "dir": "back" } },
+        { "id": "board_branch_outside", "type": "board", "label": "ブランチカフェ掲示板", "x": 70, "y": 39, "w": 12, "h": 10, "boardId": "board_branch" },
+        { "id": "sign_to_4u_from_branch", "type": "sign", "label": "語り場4Uへの看板", "x": 2, "y": 37, "w": 22, "h": 11, "signId": "sign_to_4u_from_branch" }
+      ]
+    },
+    "room_4u": {
+      "id": "room_4u",
+      "name": "語り場4U 店内",
+      "type": "room",
+      "shopId": "4u",
+      "image": "assets/maps/room_4u.png",
+      "start": { "x": 50, "y": 86, "dir": "back" },
+      "walkZones": [{ "x": 5, "y": 36, "w": 90, "h": 58 }],
+      "interactables": [
+        { "id": "exit_4u", "type": "exit", "label": "外へ出る", "x": 43, "y": 83, "w": 14, "h": 12, "targetMapId": "outside_4u", "spawn": { "x": 50, "y": 42, "dir": "front" } },
+        { "id": "board_4u_inside", "type": "board", "label": "語り場4U掲示板", "x": 70, "y": 42, "w": 22, "h": 17, "boardId": "board_4u" },
+        { "id": "menu_4u", "type": "menu", "label": "4Uメニュー表", "x": 9, "y": 39, "w": 14, "h": 14, "menuId": "menu_4u" }
+      ]
+    },
+    "room_kusanone": {
+      "id": "room_kusanone",
+      "name": "くさのね劇場 店内",
+      "type": "room",
+      "shopId": "kusanone",
+      "image": "assets/maps/room_kusanone.png",
+      "start": { "x": 50, "y": 86, "dir": "back" },
+      "walkZones": [{ "x": 5, "y": 30, "w": 90, "h": 64 }],
+      "interactables": [
+        { "id": "exit_kusanone", "type": "exit", "label": "外へ出る", "x": 43, "y": 84, "w": 14, "h": 11, "targetMapId": "outside_kusanone", "spawn": { "x": 49, "y": 76, "dir": "front" } },
+        { "id": "board_kusanone_inside", "type": "board", "label": "くさのね劇場掲示板", "x": 7, "y": 47, "w": 16, "h": 12, "boardId": "board_kusanone" },
+        { "id": "menu_kusanone", "type": "menu", "label": "くさのねメニュー", "x": 78, "y": 56, "w": 12, "h": 10, "menuId": "menu_kusanone" }
+      ]
+    },
+    "room_branch": {
+      "id": "room_branch",
+      "name": "ブランチカフェ 店内",
+      "type": "room",
+      "shopId": "branch",
+      "image": "assets/maps/room_branch.png",
+      "start": { "x": 50, "y": 86, "dir": "back" },
+      "walkZones": [{ "x": 5, "y": 34, "w": 90, "h": 60 }],
+      "interactables": [
+        { "id": "exit_branch", "type": "exit", "label": "外へ出る", "x": 43, "y": 84, "w": 14, "h": 11, "targetMapId": "outside_branch", "spawn": { "x": 55, "y": 42, "dir": "front" } },
+        { "id": "board_branch_inside", "type": "board", "label": "ブランチカフェ掲示板", "x": 72, "y": 18, "w": 13, "h": 10, "boardId": "board_branch" },
+        { "id": "menu_branch", "type": "menu", "label": "ブランチカフェメニュー", "x": 53, "y": 18, "w": 14, "h": 10, "menuId": "menu_branch" }
+      ]
+    }
+  }
+}
