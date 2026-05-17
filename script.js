@@ -116,10 +116,14 @@ async function boot() {
   await Promise.all([...imagePaths].map(loadImage));
 
   state.ready = true;
-  loading.classList.add('hidden');
+
+  // v005 fix: currentMapId が未設定の状態で render() が走ると、
+  // マップ画像を参照できず黒画面になるため、先に初期マップをセットする。
+  setMap(state.data.initialMapId);
   setDay(state.todayIndex);
   dayButton.textContent = '曜日切替';
-  setMap(state.data.initialMapId);
+  loading.classList.add('hidden');
+
   requestAnimationFrame(loop);
 }
 
@@ -140,14 +144,19 @@ function resetGame() {
   closeModal();
 }
 
-function currentMap() { return state.data.maps[state.currentMapId]; }
+function currentMap() {
+  if (!state.data || !state.currentMapId) return null;
+  return state.data.maps[state.currentMapId] || null;
+}
 function isVisibleByDay(entity) {
   const visibleDays = entity.visibleDays;
   if (!visibleDays || visibleDays.length === 0 || visibleDays.includes('all')) return true;
   return visibleDays.includes(state.today.key);
 }
 function currentInteractables() {
-  return (currentMap().interactables || []).filter(isVisibleByDay);
+  const map = currentMap();
+  if (!map) return [];
+  return (map.interactables || []).filter(isVisibleByDay);
 }
 function currentNpcs() {
   return state.data.npcs.filter(npc => npc.mapId === state.currentMapId && isVisibleByDay(npc));
@@ -155,12 +164,15 @@ function currentNpcs() {
 
 function isWalkable(x, y) {
   const map = currentMap();
+  if (!map) return false;
   if (!map.walkZones || map.walkZones.length === 0) return x >= 0 && x <= 100 && y >= 0 && y <= 100;
   return map.walkZones.some(z => pointInRect({ x, y }, z, 0));
 }
 
 function tryTransition(x, y) {
-  const transitions = currentMap().transitions || [];
+  const map = currentMap();
+  if (!map) return false;
+  const transitions = map.transitions || [];
   for (const t of transitions) {
     const range = t.range || [0, 100];
     if (t.edge === 'right' && x > 100 && y >= range[0] && y <= range[1]) { setMap(t.targetMapId, t.spawn); return true; }
@@ -319,8 +331,18 @@ function handleChoice(choice) {
 
 function drawMap() {
   const map = currentMap();
+  if (!map) {
+    ctx.fillStyle = '#0f0d0a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    return;
+  }
   const img = state.images.get(map.image);
-  if (img) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  if (img) {
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  } else {
+    ctx.fillStyle = '#0f0d0a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
 }
 
 function drawSprite(src, xPct, yPct, widthPx = 52, heightPx = 68) {
@@ -366,6 +388,7 @@ function drawNearestMarker() {
 function drawDebugOverlay() {
   if (!state.debug) return;
   const map = currentMap();
+  if (!map) return;
   ctx.save();
   ctx.lineWidth = 3;
 
@@ -420,7 +443,7 @@ function drawDebugOverlay() {
 }
 
 function render() {
-  if (!state.ready) return;
+  if (!state.ready || !state.currentMapId) return;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawMap();
 
