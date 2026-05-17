@@ -28,7 +28,7 @@ const modalBody = document.getElementById('modalBody');
 const modalChoices = document.getElementById('modalChoices');
 const modalXButton = document.getElementById('modalXButton');
 
-// v013: 配置エディタとスプレッドシート移行準備を追加。ゲーム本体はv012の動作を維持。
+// v015: 配置エディタで保存した下書きをゲーム確認用に反映できるように変更。
 const DATA_URLS = {
   maps: 'data/maps.json',
   npcs: 'data/npcs.json',
@@ -42,6 +42,9 @@ const DATA_URLS = {
 };
 
 // v004: 背景画像に人物が描き込まれているため、NPCスプライトは重ねず、近づいた時の！マーカーで会話可能地点を示す。
+const EDITOR_DRAFT_KEY = 'vc4u_editor_draft_v015';
+const EDITOR_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v015';
+
 const SHOW_NPC_SPRITES = false;
 
 const DAY_INFO = [
@@ -67,6 +70,7 @@ const state = {
   lastPointer: null,
   todayIndex: new Date().getDay(),
   today: DAY_INFO[new Date().getDay()],
+  usingEditorDraft: false,
   experience: createEmptyExperience()
 };
 
@@ -200,11 +204,34 @@ function loadImage(src) {
   });
 }
 
+function loadEditorPreviewDraft() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const wantsPreview = params.get('preview') === '1' || localStorage.getItem(EDITOR_PREVIEW_FLAG_KEY) === '1';
+    if (!wantsPreview) return null;
+    const raw = localStorage.getItem(EDITOR_DRAFT_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (_) {
+    return null;
+  }
+}
+
 async function boot() {
-  const [mapsData, npcsData, dialoguesData, boardsData, menusData, actionsData, achievementsData, hiddenData, linkBoardsData] = await Promise.all([
+  let [mapsData, npcsData, dialoguesData, boardsData, menusData, actionsData, achievementsData, hiddenData, linkBoardsData] = await Promise.all([
     loadJson(DATA_URLS.maps), loadJson(DATA_URLS.npcs), loadJson(DATA_URLS.dialogues), loadJson(DATA_URLS.boards), loadJson(DATA_URLS.menus), loadJson(DATA_URLS.actions),
     loadJson(DATA_URLS.achievements), loadJson(DATA_URLS.hidden), loadJson(DATA_URLS.linkBoards)
   ]);
+
+  const previewDraft = loadEditorPreviewDraft();
+  if (previewDraft) {
+    state.usingEditorDraft = true;
+    mapsData = previewDraft.mapsData || mapsData;
+    npcsData = previewDraft.npcsData || npcsData;
+    hiddenData = previewDraft.hiddenData || hiddenData;
+    const previewStamp = previewDraft.savedAt ? new Date(previewDraft.savedAt).toLocaleString('ja-JP') : '';
+    if (hintText) hintText.textContent = `配置エディタの下書きを反映中です。${previewStamp ? '保存日時：' + previewStamp : ''}`;
+  }
 
   state.data = {
     maps: mapsData.maps,
@@ -248,7 +275,7 @@ function setMap(mapId, spawn = null) {
   state.player.x = start.x;
   state.player.y = start.y;
   state.player.dir = start.dir || state.player.dir || 'front';
-  areaName.textContent = map.name;
+  areaName.textContent = state.usingEditorDraft ? `${map.name}（編集プレビュー）` : map.name;
   recordMapVisit(mapId);
   updateHint(true);
 }

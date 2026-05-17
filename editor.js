@@ -9,6 +9,7 @@ const outputBox = document.getElementById('outputBox');
 const selectedEmpty = document.getElementById('selectedEmpty');
 const editForm = document.getElementById('editForm');
 const helpText = document.getElementById('helpText');
+const validationBox = document.getElementById('validationBox');
 
 const fields = {
   id: document.getElementById('fieldId'),
@@ -21,6 +22,12 @@ const fields = {
 };
 
 const buttons = {
+  undo: document.getElementById('undoButton'),
+  redo: document.getElementById('redoButton'),
+  saveDraft: document.getElementById('saveDraftButton'),
+  loadDraft: document.getElementById('loadDraftButton'),
+  clearDraft: document.getElementById('clearDraftButton'),
+  preview: document.getElementById('previewButton'),
   copySelected: document.getElementById('copySelectedButton'),
   downloadMaps: document.getElementById('downloadMapsButton'),
   downloadNpcs: document.getElementById('downloadNpcsButton'),
@@ -35,7 +42,10 @@ const state = {
   mapId: '',
   layer: 'interactables',
   selectedKey: '',
-  drag: null
+  drag: null,
+  history: [],
+  future: [],
+  formHistoryArmed: false
 };
 
 const HANDLE_SIZE_PCT = 2.2;
@@ -50,6 +60,117 @@ const RESIZE_CURSORS = {
   e: 'ew-resize',
   w: 'ew-resize'
 };
+
+const DRAFT_KEY = 'vc4u_editor_draft_v015';
+const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v015';
+const HISTORY_LIMIT = 60;
+
+function deepClone(obj) {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+function snapshotData() {
+  return {
+    mapsData: deepClone(state.mapsData),
+    npcsData: deepClone(state.npcsData),
+    hiddenData: deepClone(state.hiddenData),
+    mapId: state.mapId,
+    layer: state.layer,
+    selectedKey: state.selectedKey
+  };
+}
+
+function restoreSnapshot(snap) {
+  if (!snap) return;
+  state.mapsData = deepClone(snap.mapsData);
+  state.npcsData = deepClone(snap.npcsData);
+  state.hiddenData = deepClone(snap.hiddenData);
+  state.mapId = snap.mapId || state.mapId;
+  state.layer = snap.layer || state.layer;
+  state.selectedKey = snap.selectedKey || '';
+  mapSelect.value = state.mapId;
+  layerSelect.value = state.layer;
+  renderAll();
+  updateHistoryButtons();
+}
+
+function pushHistory() {
+  if (!state.mapsData || !state.npcsData || !state.hiddenData) return;
+  state.history.push(snapshotData());
+  if (state.history.length > HISTORY_LIMIT) state.history.shift();
+  state.future = [];
+  updateHistoryButtons();
+}
+
+function undo() {
+  if (!state.history.length) return;
+  state.future.push(snapshotData());
+  const snap = state.history.pop();
+  restoreSnapshot(snap);
+  helpText.textContent = '1つ前の状態に戻しました。';
+}
+
+function redo() {
+  if (!state.future.length) return;
+  state.history.push(snapshotData());
+  const snap = state.future.pop();
+  restoreSnapshot(snap);
+  helpText.textContent = 'やり直しました。';
+}
+
+function updateHistoryButtons() {
+  if (buttons.undo) buttons.undo.disabled = !state.history.length;
+  if (buttons.redo) buttons.redo.disabled = !state.future.length;
+}
+
+function makeDraft() {
+  return {
+    version: 'v015',
+    savedAt: new Date().toISOString(),
+    mapsData: state.mapsData,
+    npcsData: state.npcsData,
+    hiddenData: state.hiddenData
+  };
+}
+
+function saveDraft() {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(makeDraft()));
+    helpText.textContent = '下書きをこのブラウザに保存しました。「ゲームで確認」でこの配置を反映できます。';
+  } catch (err) {
+    helpText.textContent = '下書き保存に失敗しました。ブラウザ容量やプライベートモードを確認してください。';
+  }
+}
+
+function loadDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) { helpText.textContent = '保存済みの下書きがありません。'; return; }
+    pushHistory();
+    const draft = JSON.parse(raw);
+    state.mapsData = draft.mapsData || state.mapsData;
+    state.npcsData = draft.npcsData || state.npcsData;
+    state.hiddenData = draft.hiddenData || state.hiddenData;
+    state.selectedKey = '';
+    renderAll();
+    helpText.textContent = '保存済みの下書きを読み込みました。';
+  } catch (err) {
+    helpText.textContent = '下書きの読み込みに失敗しました。';
+  }
+}
+
+function clearDraft() {
+  localStorage.removeItem(DRAFT_KEY);
+  localStorage.removeItem(PREVIEW_FLAG_KEY);
+  helpText.textContent = '下書きとゲーム確認用フラグを削除しました。';
+}
+
+function previewGame() {
+  saveDraft();
+  localStorage.setItem(PREVIEW_FLAG_KEY, '1');
+  window.location.href = 'index.html?preview=1';
+}
+
 
 function pctToPx(v) { return (v / 100) * canvas.width; }
 function pxToPct(v) { return (v / canvas.width) * 100; }
@@ -92,6 +213,9 @@ async function boot() {
 
   state.mapId = mapsData.initialMapId;
   mapSelect.value = state.mapId;
+  updateHistoryButtons();
+  const hasDraft = !!localStorage.getItem(DRAFT_KEY);
+  if (hasDraft) helpText.textContent = '保存済みの下書きがあります。必要なら「下書き読込」を押してください。';
   renderAll();
 }
 
@@ -273,11 +397,36 @@ function renderForm() {
   outputBox.value = JSON.stringify(item, null, 2);
 }
 
+function validateCurrentMap() {
+  if (!validationBox) return;
+  const warnings = [];
+  for (const e of entities()) {
+    const item = e.ref;
+    const name = item.label || item.name || e.key;
+    if (e.shape === 'point') {
+      if (item.x < 0 || item.x > 100 || item.y < 0 || item.y > 100) warnings.push(`${name}: 座標がマップ外です。`);
+      if ((Number(item.range) || 0) <= 0) warnings.push(`${name}: 反応範囲が0です。`);
+    } else {
+      if (item.x < 0 || item.y < 0 || item.x + item.w > 100 || item.y + item.h > 100) warnings.push(`${name}: 判定範囲がマップ外にはみ出しています。`);
+      if ((Number(item.w) || 0) < 1 || (Number(item.h) || 0) < 1) warnings.push(`${name}: 範囲が小さすぎます。`);
+    }
+  }
+  if (!warnings.length) {
+    validationBox.className = 'validation-box ok';
+    validationBox.textContent = 'このマップ・レイヤーの座標に大きな問題はありません。';
+  } else {
+    validationBox.className = 'validation-box warn';
+    validationBox.innerHTML = warnings.map(w => `<div>⚠ ${w}</div>`).join('');
+  }
+}
+
+
 function renderAll() {
   drawMap();
   drawAllOverlays();
   renderList();
   renderForm();
+  validateCurrentMap();
 }
 
 function selectEntity(key) {
@@ -359,6 +508,7 @@ canvas.addEventListener('pointerdown', ev => {
   const activeHandle = handleAt(p);
 
   if (activeHandle) {
+    pushHistory();
     const e = selectedEntity();
     const item = e.ref;
     state.drag = {
@@ -390,6 +540,7 @@ canvas.addEventListener('pointerdown', ev => {
 
   const e = selectedEntity();
   if (!e) return;
+  pushHistory();
   const item = e.ref;
   state.drag = {
     mode: 'move',
@@ -451,17 +602,29 @@ function applyFieldChanges() {
   renderAll();
 }
 
-Object.values(fields).forEach(input => input.addEventListener('input', applyFieldChanges));
+
+Object.values(fields).forEach(input => {
+  input.addEventListener('focus', () => {
+    if (!state.formHistoryArmed) {
+      pushHistory();
+      state.formHistoryArmed = true;
+    }
+  });
+  input.addEventListener('blur', () => { state.formHistoryArmed = false; });
+  input.addEventListener('input', applyFieldChanges);
+});
 
 mapSelect.addEventListener('change', () => {
   state.mapId = mapSelect.value;
   state.selectedKey = '';
+  state.formHistoryArmed = false;
   renderAll();
 });
 
 layerSelect.addEventListener('change', () => {
   state.layer = layerSelect.value;
   state.selectedKey = '';
+  state.formHistoryArmed = false;
   renderAll();
 });
 
@@ -475,6 +638,12 @@ function downloadJson(filename, obj) {
   URL.revokeObjectURL(url);
 }
 
+buttons.undo?.addEventListener('click', undo);
+buttons.redo?.addEventListener('click', redo);
+buttons.saveDraft?.addEventListener('click', saveDraft);
+buttons.loadDraft?.addEventListener('click', loadDraft);
+buttons.clearDraft?.addEventListener('click', clearDraft);
+buttons.preview?.addEventListener('click', previewGame);
 buttons.downloadMaps.addEventListener('click', () => downloadJson('maps.json', state.mapsData));
 buttons.downloadNpcs.addEventListener('click', () => downloadJson('npcs.json', state.npcsData));
 buttons.downloadHidden.addEventListener('click', () => downloadJson('hidden.json', state.hiddenData));
