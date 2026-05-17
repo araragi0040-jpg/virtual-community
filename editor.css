@@ -48,3 +48,6 @@ select, input, textarea { width: 100%; border: 2px solid var(--border); border-r
   .editor-grid { grid-template-columns: 1fr; }
   .side-panel { max-height: none; }
 }
+
+/* v014: resize handles for rectangle hit areas */
+#editorCanvas { cursor: default; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }

@@ -38,6 +38,19 @@ const state = {
   drag: null
 };
 
+const HANDLE_SIZE_PCT = 2.2;
+const MIN_RECT_SIZE_PCT = 1.0;
+const RESIZE_CURSORS = {
+  nw: 'nwse-resize',
+  se: 'nwse-resize',
+  ne: 'nesw-resize',
+  sw: 'nesw-resize',
+  n: 'ns-resize',
+  s: 'ns-resize',
+  e: 'ew-resize',
+  w: 'ew-resize'
+};
+
 function pctToPx(v) { return (v / 100) * canvas.width; }
 function pxToPct(v) { return (v / canvas.width) * 100; }
 function clamp(v, min = 0, max = 100) { return Math.max(min, Math.min(max, Number(v) || 0)); }
@@ -112,6 +125,52 @@ function colorFor(type) {
   }[type] || '#ffffff';
 }
 
+function rectHandles(item) {
+  const x = Number(item.x) || 0;
+  const y = Number(item.y) || 0;
+  const w = Number(item.w) || 0;
+  const h = Number(item.h) || 0;
+  const cx = x + w / 2;
+  const cy = y + h / 2;
+  return [
+    { name: 'nw', x, y },
+    { name: 'n', x: cx, y },
+    { name: 'ne', x: x + w, y },
+    { name: 'e', x: x + w, y: cy },
+    { name: 'se', x: x + w, y: y + h },
+    { name: 's', x: cx, y: y + h },
+    { name: 'sw', x, y: y + h },
+    { name: 'w', x, y: cy }
+  ];
+}
+
+function handleAt(p, e = selectedEntity()) {
+  if (!e || e.shape === 'point') return null;
+  const item = e.ref;
+  const half = HANDLE_SIZE_PCT / 2;
+  return rectHandles(item).find(h => (
+    p.x >= h.x - half && p.x <= h.x + half &&
+    p.y >= h.y - half && p.y <= h.y + half
+  )) || null;
+}
+
+function drawResizeHandles(e) {
+  if (!e || e.shape === 'point') return;
+  const item = e.ref;
+  ctx.save();
+  const size = pctToPx(HANDLE_SIZE_PCT);
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#1a120b';
+  ctx.fillStyle = '#ffffff';
+  for (const h of rectHandles(item)) {
+    const px = pctToPx(h.x) - size / 2;
+    const py = pctToPx(h.y) - size / 2;
+    ctx.fillRect(px, py, size, size);
+    ctx.strokeRect(px, py, size, size);
+  }
+  ctx.restore();
+}
+
 function drawMap() {
   const map = currentMap();
   const img = state.images.get(map.image);
@@ -156,6 +215,7 @@ function drawAllOverlays() {
       ctx.fillRect(pctToPx(item.x), pctToPx(item.y), pctToPx(item.w), pctToPx(item.h));
       ctx.strokeRect(pctToPx(item.x), pctToPx(item.y), pctToPx(item.w), pctToPx(item.h));
       drawLabel(e.key, item.x, item.y - 1, selected);
+      if (selected) drawResizeHandles(e);
     }
   }
   ctx.restore();
@@ -247,32 +307,116 @@ function pointerPct(ev) {
   };
 }
 
+function updateCanvasCursor(p) {
+  const h = handleAt(p);
+  if (h) {
+    canvas.style.cursor = RESIZE_CURSORS[h.name] || 'crosshair';
+    return;
+  }
+  const found = findEntityAt(p);
+  canvas.style.cursor = found ? 'grab' : 'default';
+}
+
+function resizeRectFromDrag(item, p, drag) {
+  const dx = p.x - drag.startX;
+  const dy = p.y - drag.startY;
+  const x0 = drag.orig.x;
+  const y0 = drag.orig.y;
+  const w0 = drag.orig.w;
+  const h0 = drag.orig.h;
+  const right0 = x0 + w0;
+  const bottom0 = y0 + h0;
+  let x = x0;
+  let y = y0;
+  let w = w0;
+  let h = h0;
+
+  if (drag.handle.includes('w')) {
+    x = clamp(x0 + dx, 0, right0 - MIN_RECT_SIZE_PCT);
+    w = right0 - x;
+  }
+  if (drag.handle.includes('e')) {
+    w = clamp(w0 + dx, MIN_RECT_SIZE_PCT, 100 - x0);
+  }
+  if (drag.handle.includes('n')) {
+    y = clamp(y0 + dy, 0, bottom0 - MIN_RECT_SIZE_PCT);
+    h = bottom0 - y;
+  }
+  if (drag.handle.includes('s')) {
+    h = clamp(h0 + dy, MIN_RECT_SIZE_PCT, 100 - y0);
+  }
+
+  item.x = Number(x.toFixed(1));
+  item.y = Number(y.toFixed(1));
+  item.w = Number(w.toFixed(1));
+  item.h = Number(h.toFixed(1));
+}
+
 canvas.addEventListener('pointerdown', ev => {
   ev.preventDefault();
   canvas.setPointerCapture?.(ev.pointerId);
   const p = pointerPct(ev);
+  const activeHandle = handleAt(p);
+
+  if (activeHandle) {
+    const e = selectedEntity();
+    const item = e.ref;
+    state.drag = {
+      mode: 'resize',
+      pointerId: ev.pointerId,
+      key: e.key,
+      handle: activeHandle.name,
+      startX: p.x,
+      startY: p.y,
+      orig: {
+        x: Number(item.x) || 0,
+        y: Number(item.y) || 0,
+        w: Number(item.w) || 0,
+        h: Number(item.h) || 0
+      }
+    };
+    canvas.style.cursor = RESIZE_CURSORS[activeHandle.name] || 'crosshair';
+    return;
+  }
+
   const found = findEntityAt(p);
-  if (found) selectEntity(found.key);
+  if (found) {
+    selectEntity(found.key);
+  } else {
+    state.selectedKey = '';
+    renderAll();
+    return;
+  }
+
   const e = selectedEntity();
   if (!e) return;
   const item = e.ref;
   state.drag = {
+    mode: 'move',
     pointerId: ev.pointerId,
     key: e.key,
     shape: e.shape,
-    offsetX: e.shape === 'point' ? p.x - item.x : p.x - item.x,
-    offsetY: e.shape === 'point' ? p.y - item.y : p.y - item.y
+    offsetX: p.x - item.x,
+    offsetY: p.y - item.y
   };
+  canvas.style.cursor = 'grabbing';
 });
 
 canvas.addEventListener('pointermove', ev => {
-  if (!state.drag || state.drag.pointerId !== ev.pointerId) return;
+  const p = pointerPct(ev);
+  if (!state.drag) {
+    updateCanvasCursor(p);
+    return;
+  }
+  if (state.drag.pointerId !== ev.pointerId) return;
   ev.preventDefault();
   const e = selectedEntity();
   if (!e || e.key !== state.drag.key) return;
   const item = e.ref;
-  const p = pointerPct(ev);
-  if (e.shape === 'point') {
+
+  if (state.drag.mode === 'resize' && e.shape !== 'point') {
+    resizeRectFromDrag(item, p, state.drag);
+  } else if (e.shape === 'point') {
     item.x = Number(clamp(p.x - state.drag.offsetX).toFixed(1));
     item.y = Number(clamp(p.y - state.drag.offsetY).toFixed(1));
   } else {
@@ -282,7 +426,12 @@ canvas.addEventListener('pointermove', ev => {
   renderAll();
 });
 
-['pointerup','pointercancel','lostpointercapture'].forEach(type => canvas.addEventListener(type, () => { state.drag = null; }));
+['pointerup','pointercancel','lostpointercapture'].forEach(type => canvas.addEventListener(type, ev => {
+  if (!state.drag || !ev || state.drag.pointerId === ev.pointerId || type === 'lostpointercapture') {
+    state.drag = null;
+    canvas.style.cursor = 'default';
+  }
+}));
 
 function applyFieldChanges() {
   const e = selectedEntity();
