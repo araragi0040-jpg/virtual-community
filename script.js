@@ -6,6 +6,8 @@ const titleScreen = document.getElementById('titleScreen');
 const gameScreen = document.getElementById('gameScreen');
 const startButton = document.getElementById('startButton');
 const resetButton = document.getElementById('resetButton');
+const menuButton = document.getElementById('menuButton');
+const topActions = document.getElementById('topActions');
 const memoButton = document.getElementById('memoButton');
 const achievementButton = document.getElementById('achievementButton');
 const dayButton = document.getElementById('dayButton');
@@ -23,7 +25,7 @@ const modalTitle = document.getElementById('modalTitle');
 const modalBody = document.getElementById('modalBody');
 const modalChoices = document.getElementById('modalChoices');
 
-// v008: 実績画面のスクロールとスマホ上部メニューの表示崩れを調整。
+// v009: スマホメニューをオーバーレイ化し、実績画面のスクロールを再調整。
 const DATA_URLS = {
   maps: 'data/maps.json',
   npcs: 'data/npcs.json',
@@ -212,6 +214,7 @@ function setMap(mapId, spawn = null) {
 }
 
 function resetGame() {
+  closeActionDrawer();
   setMap(state.data.initialMapId);
   closeModal();
 }
@@ -431,8 +434,10 @@ function doAction() {
   if (action.kind === 'exit') return setMap(item.targetMapId, item.spawn);
 }
 
-function showModal(title, body, choices = []) {
+function showModal(title, body, choices = [], options = {}) {
   state.modalOpen = true;
+  modal.classList.toggle('long-modal', !!options.long);
+  closeActionDrawer();
   modalTitle.textContent = title;
   modalBody.textContent = body;
   modalBody.scrollTop = 0;
@@ -549,7 +554,7 @@ function openAchievements() {
   showModal('称号・実績', body, [
     { label: '体験メモを見る', type: 'memo', className: 'link' },
     { label: '閉じる', type: 'close', className: 'secondary' }
-  ]);
+  ], { long: true });
 }
 
 function openMemo() {
@@ -770,6 +775,17 @@ function setupControls() {
   dayButton.addEventListener('click', cycleDay);
   debugButton.addEventListener('click', toggleDebug);
   actionButton.addEventListener('click', doAction);
+  if (menuButton) menuButton.addEventListener('click', (e) => { e.stopPropagation(); toggleActionDrawer(); });
+  if (topActions) {
+    topActions.addEventListener('click', (e) => {
+      if (e.target && e.target.tagName === 'BUTTON') closeActionDrawer();
+    });
+  }
+  document.addEventListener('pointerdown', (e) => {
+    if (!topActions || !menuButton) return;
+    if (topActions.contains(e.target) || menuButton.contains(e.target)) return;
+    closeActionDrawer();
+  });
 
   // v008: モーダル背景タップでも閉じられるようにする。
   modal.addEventListener('click', (e) => {
@@ -809,7 +825,7 @@ function setupControls() {
     const keyMap = { ArrowUp: 'up', w: 'up', W: 'up', ArrowDown: 'down', s: 'down', S: 'down', ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right' };
     if (keyMap[e.key]) { e.preventDefault(); state.pressed.add(keyMap[e.key]); }
     if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); doAction(); }
-    if (e.key === 'Escape' && state.modalOpen) closeModal();
+    if (e.key === 'Escape') { if (state.modalOpen) closeModal(); else closeActionDrawer(); }
     if (e.key === '`' || e.key === 'Tab') { e.preventDefault(); toggleDebug(); }
     if (e.key === 'y' || e.key === 'Y') { e.preventDefault(); cycleDay(); }
     if (e.key === 'm' || e.key === 'M') { e.preventDefault(); openMemo(); }

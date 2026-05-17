@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>歩ける語り場 v008</title>
+  <title>歩ける語り場 v009</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -12,7 +12,7 @@
       <div class="title-card">
         <p class="eyebrow">Virtual Community Map</p>
         <h1>歩ける語り場</h1>
-        <p class="lead">v008では、体験メモから「称号・実績・隠し要素」が開放されるサンプルを体験できます。</p>
+        <p class="lead">v009では、スマホ表示と称号・実績画面のスクロールを再調整しています。</p>
         <button id="startButton" class="primary-button">スタート</button>
         <p class="small-note">操作：十字キー / WASD / 画面下の移動ボタン。近くで「調べる」。</p>
       </div>
@@ -20,14 +20,19 @@
 
     <section id="gameScreen" class="game-screen hidden" aria-label="ゲーム画面">
       <header class="top-bar">
-        <div>
-          <p class="caption">現在地</p>
-          <h2 id="areaName">語り場4U付近</h2>
-          <p id="dayBadge" class="day-badge">今日</p>
-          <p id="experienceBadge" class="experience-badge">体験 0</p>
-          <p id="achievementBadge" class="achievement-badge">実績 0/0</p>
+        <div class="status-row">
+          <div class="status-main">
+            <p class="caption">現在地</p>
+            <h2 id="areaName">語り場4U付近</h2>
+            <div class="badge-row">
+              <span id="dayBadge" class="day-badge">今日</span>
+              <span id="experienceBadge" class="experience-badge">体験 0</span>
+              <span id="achievementBadge" class="achievement-badge">実績 0/0</span>
+            </div>
+          </div>
+          <button id="menuButton" class="ghost-button menu-button" aria-expanded="false" aria-controls="topActions">メニュー</button>
         </div>
-        <div class="top-actions">
+        <div id="topActions" class="top-actions action-drawer" aria-label="メニュー">
           <button id="dayButton" class="ghost-button">曜日切替</button>
           <button id="debugButton" class="ghost-button">座標OFF</button>
           <button id="memoButton" class="ghost-button">メモ</button>
