@@ -1,0 +1,132 @@
+{
+  "actions": {
+    "act_4u_drink": {
+      "title": "おすすめドリンク",
+      "category": "drink",
+      "resultTitle": "一杯、頼んでみた",
+      "resultText": "カウンターにグラスが置かれた。\n少しだけ肩の力が抜けて、隣の人とも話しやすくなった気がする。",
+      "log": "語り場4Uでおすすめドリンクを頼んだ",
+      "stats": {
+        "drink": 1,
+        "talk": 1
+      }
+    },
+    "act_4u_food": {
+      "title": "ちょっとしたおつまみ",
+      "category": "food",
+      "resultTitle": "おつまみをつまんだ",
+      "resultText": "軽く食べながら話していると、会話の間が自然になっていく。\nこういう何でもない時間が、4Uらしいのかもしれない。",
+      "log": "語り場4Uでおつまみをつまんだ",
+      "stats": {
+        "food": 1,
+        "talk": 1
+      }
+    },
+    "act_4u_karaoke": {
+      "title": "カラオケする",
+      "category": "karaoke",
+      "resultTitle": "一曲、歌ってみた",
+      "resultText": "完璧じゃなくても、誰かが聴いてくれる。\n拍手が起きて、店内の空気が少しあたたかくなった。",
+      "log": "語り場4Uでカラオケをした",
+      "stats": {
+        "karaoke": 1,
+        "talk": 1
+      }
+    },
+    "act_4u_talk": {
+      "title": "その場の会話に混ざる",
+      "category": "talk",
+      "resultTitle": "会話に混ざった",
+      "resultText": "誰かの何気ない一言から、思ったより深い話になっていく。\n語り場という名前の意味が、少しだけ分かった気がする。",
+      "log": "語り場4Uでその場の会話に混ざった",
+      "stats": {
+        "talk": 2
+      }
+    },
+    "act_kusanone_drink": {
+      "title": "ドリンクを頼む",
+      "category": "drink",
+      "resultTitle": "ドリンクを片手に眺めた",
+      "resultText": "ステージのある空間で飲む一杯は、少しだけイベント前のような気分にしてくれる。",
+      "log": "くさのね劇場でドリンクを頼んだ",
+      "stats": {
+        "drink": 1
+      }
+    },
+    "act_kusanone_food": {
+      "title": "フードを頼む",
+      "category": "food",
+      "resultTitle": "食事を楽しんだ",
+      "resultText": "テーブルにフードが並ぶと、自然と人が集まりやすくなる。\n食べることも、場づくりの一部なのかもしれない。",
+      "log": "くさのね劇場でフードを楽しんだ",
+      "stats": {
+        "food": 1,
+        "talk": 1
+      }
+    },
+    "act_kusanone_karaoke": {
+      "title": "カラオケする",
+      "category": "karaoke",
+      "resultTitle": "ステージで歌ってみた",
+      "resultText": "マイクを持つと、少しだけ背筋が伸びる。\n歌い終わるころには、さっきより空間が近く感じられた。",
+      "log": "くさのね劇場でカラオケをした",
+      "stats": {
+        "karaoke": 1
+      }
+    },
+    "act_kusanone_stage": {
+      "title": "ステージを眺める",
+      "category": "event",
+      "resultTitle": "ステージを眺めた",
+      "resultText": "まだ何も始まっていないステージにも、何かが起こりそうな気配がある。\nいつかここで誰かの表現が生まれるのかもしれない。",
+      "log": "くさのね劇場でステージを眺めた",
+      "stats": {
+        "event": 1
+      }
+    },
+    "act_branch_coffee": {
+      "title": "コーヒーを頼む",
+      "category": "drink",
+      "resultTitle": "コーヒーでひと息",
+      "resultText": "湯気の向こうで、街の音が少し遠くなる。\n急がなくてもいい時間が、ここにはある。",
+      "log": "ブランチカフェでコーヒーを頼んだ",
+      "stats": {
+        "drink": 1,
+        "relax": 1
+      }
+    },
+    "act_branch_lightmeal": {
+      "title": "軽食を頼む",
+      "category": "food",
+      "resultTitle": "軽食を楽しんだ",
+      "resultText": "軽く食べながら、次にどこへ行こうか考える。\n街歩きの途中に、ちょうどいい休憩になった。",
+      "log": "ブランチカフェで軽食を楽しんだ",
+      "stats": {
+        "food": 1,
+        "relax": 1
+      }
+    },
+    "act_branch_lunch": {
+      "title": "ランチする",
+      "category": "food",
+      "resultTitle": "ランチを楽しんだ",
+      "resultText": "昼の光の中で食べる時間は、夜の語り場とはまた違う穏やかさがある。",
+      "log": "ブランチカフェでランチを楽しんだ",
+      "stats": {
+        "food": 2,
+        "relax": 1
+      }
+    },
+    "act_branch_relax": {
+      "title": "ゆっくり話せる席に座る",
+      "category": "relax",
+      "resultTitle": "席でゆっくりした",
+      "resultText": "少し座っているだけで、言葉がゆっくり整っていく。\nここでは、急がない会話が似合う。",
+      "log": "ブランチカフェでゆっくり過ごした",
+      "stats": {
+        "relax": 2,
+        "talk": 1
+      }
+    }
+  }
+}

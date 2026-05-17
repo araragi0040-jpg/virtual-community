@@ -143,3 +143,22 @@ h2 { margin: 0; font-size: 1.1rem; }
   .top-actions .ghost-button { padding: 6px 8px; font-size: 0.74rem; }
   .day-badge { font-size: 0.7rem; }
 }
+
+/* v006 additions: 店内アクション・体験メモ */
+.experience-badge {
+  display: inline-flex;
+  align-items: center;
+  margin: 4px 0 0;
+  padding: 3px 8px;
+  border: 2px solid rgba(134, 211, 106, 0.58);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.18);
+  color: #dff4d2;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+@media (max-width: 460px) {
+  .experience-badge { font-size: 0.68rem; padding: 2px 7px; }
+  .top-actions { max-width: 178px; }
+}

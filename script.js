@@ -6,11 +6,13 @@ const titleScreen = document.getElementById('titleScreen');
 const gameScreen = document.getElementById('gameScreen');
 const startButton = document.getElementById('startButton');
 const resetButton = document.getElementById('resetButton');
+const memoButton = document.getElementById('memoButton');
 const dayButton = document.getElementById('dayButton');
 const debugButton = document.getElementById('debugButton');
 const actionButton = document.getElementById('actionButton');
 const areaName = document.getElementById('areaName');
 const dayBadge = document.getElementById('dayBadge');
+const experienceBadge = document.getElementById('experienceBadge');
 const hintText = document.getElementById('hintText');
 const debugText = document.getElementById('debugText');
 const loading = document.getElementById('loading');
@@ -24,7 +26,8 @@ const DATA_URLS = {
   npcs: 'data/npcs.json',
   dialogues: 'data/dialogues.json',
   boards: 'data/boards.json',
-  menus: 'data/menus.json'
+  menus: 'data/menus.json',
+  actions: 'data/actions.json'
 };
 
 // v004: 背景画像に人物が描き込まれているため、NPCスプライトは重ねず、近づいた時の！マーカーで会話可能地点を示す。
@@ -52,7 +55,11 @@ const state = {
   lastHintId: '',
   lastPointer: null,
   todayIndex: new Date().getDay(),
-  today: DAY_INFO[new Date().getDay()]
+  today: DAY_INFO[new Date().getDay()],
+  experience: {
+    stats: { talk: 0, drink: 0, food: 0, karaoke: 0, event: 0, relax: 0 },
+    log: []
+  }
 };
 
 const DIRS = {
@@ -78,6 +85,37 @@ function pointInRect(p, r, margin = 0) {
 function rectCenter(r) { return { x: r.x + r.w / 2, y: r.y + r.h / 2 }; }
 function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
+function loadExperience() {
+  try {
+    const raw = localStorage.getItem('vc4u_experience_v006');
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    state.experience.stats = { ...state.experience.stats, ...(saved.stats || {}) };
+    state.experience.log = Array.isArray(saved.log) ? saved.log.slice(0, 30) : [];
+  } catch (_) {}
+}
+
+function saveExperience() {
+  try {
+    localStorage.setItem('vc4u_experience_v006', JSON.stringify(state.experience));
+  } catch (_) {}
+}
+
+function totalExperienceCount() {
+  return Object.values(state.experience.stats).reduce((sum, value) => sum + (Number(value) || 0), 0);
+}
+
+function updateExperienceBadge() {
+  if (!experienceBadge) return;
+  experienceBadge.textContent = `体験 ${totalExperienceCount()}`;
+}
+
+function resetExperience() {
+  state.experience = { stats: { talk: 0, drink: 0, food: 0, karaoke: 0, event: 0, relax: 0 }, log: [] };
+  saveExperience();
+  updateExperienceBadge();
+}
+
 async function loadJson(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${url} を読み込めませんでした`);
@@ -95,8 +133,8 @@ function loadImage(src) {
 }
 
 async function boot() {
-  const [mapsData, npcsData, dialoguesData, boardsData, menusData] = await Promise.all([
-    loadJson(DATA_URLS.maps), loadJson(DATA_URLS.npcs), loadJson(DATA_URLS.dialogues), loadJson(DATA_URLS.boards), loadJson(DATA_URLS.menus)
+  const [mapsData, npcsData, dialoguesData, boardsData, menusData, actionsData] = await Promise.all([
+    loadJson(DATA_URLS.maps), loadJson(DATA_URLS.npcs), loadJson(DATA_URLS.dialogues), loadJson(DATA_URLS.boards), loadJson(DATA_URLS.menus), loadJson(DATA_URLS.actions)
   ]);
 
   state.data = {
@@ -106,7 +144,8 @@ async function boot() {
     dialogues: dialoguesData.dialogues,
     confirms: dialoguesData.confirms,
     boards: boardsData.boards,
-    menus: menusData.menus
+    menus: menusData.menus,
+    actions: actionsData.actions
   };
 
   const imagePaths = new Set();
@@ -116,6 +155,8 @@ async function boot() {
   await Promise.all([...imagePaths].map(loadImage));
 
   state.ready = true;
+  loadExperience();
+  updateExperienceBadge();
 
   // v005 fix: currentMapId が未設定の状態で render() が走ると、
   // マップ画像を参照できず黒画面になるため、先に初期マップをセットする。
@@ -307,8 +348,46 @@ function openMenu(menuId) {
   const dayKey = state.today.key;
   const note = (menu.noteByDay && menu.noteByDay[dayKey]) || menu.note;
   const items = (menu.itemsByDay && menu.itemsByDay[dayKey]) || menu.items || [];
-  const body = `${note}\n\n${items.map(item => `・${item}`).join('\n')}`;
-  showModal(menu.title, body, [{ label: '閉じる', type: 'close' }]);
+  const actionNote = menu.actionNote ? `\n\n${menu.actionNote}` : '';
+  const body = `${note}\n\n${items.map(item => `・${item}`).join('\n')}${actionNote}`;
+  const choices = [];
+  (menu.actionIds || []).forEach(actionId => {
+    const action = state.data.actions[actionId];
+    if (action) choices.push({ label: `▶ ${action.title}`, type: 'action', targetId: actionId, className: 'link' });
+  });
+  choices.push({ label: '閉じる', type: 'close', className: 'secondary' });
+  showModal(menu.title, body, choices);
+}
+
+function openAction(actionId) {
+  const action = state.data.actions[actionId];
+  if (!action) return showMessage('アクション', 'アクションデータが見つかりません。', [{ label: '閉じる', type: 'close' }]);
+  Object.entries(action.stats || {}).forEach(([key, value]) => {
+    state.experience.stats[key] = (state.experience.stats[key] || 0) + Number(value || 0);
+  });
+  const now = new Date();
+  const stamp = `${state.today.label} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  state.experience.log.unshift({ text: action.log || action.title, stamp, mapId: state.currentMapId });
+  state.experience.log = state.experience.log.slice(0, 30);
+  saveExperience();
+  updateExperienceBadge();
+  showModal(action.resultTitle || action.title, action.resultText || '少しだけ、この場所の空気を味わった。', [
+    { label: '体験メモを見る', type: 'memo', className: 'link' },
+    { label: '閉じる', type: 'close', className: 'secondary' }
+  ]);
+}
+
+function openMemo() {
+  const s = state.experience.stats;
+  const total = totalExperienceCount();
+  const logLines = state.experience.log.length
+    ? state.experience.log.slice(0, 8).map(item => `・${item.stamp}　${item.text}`).join('\n')
+    : 'まだ体験メモはありません。店内メニューから行動を選んでみてください。';
+  const body = `合計体験値：${total}\n\n会話：${s.talk || 0}\nドリンク：${s.drink || 0}\nフード：${s.food || 0}\nカラオケ：${s.karaoke || 0}\nイベント気配：${s.event || 0}\n休憩：${s.relax || 0}\n\n最近の体験\n${logLines}`;
+  showModal('体験メモ', body, [
+    { label: 'メモをリセット', type: 'resetExperience', className: 'secondary' },
+    { label: '閉じる', type: 'close' }
+  ]);
 }
 
 function openConfirm(confirmId, item) {
@@ -324,6 +403,9 @@ function handleChoice(choice) {
   if (choice.type === 'dialogue') return openDialogue(choice.targetId);
   if (choice.type === 'board') return openBoard(choice.targetId);
   if (choice.type === 'menu') return openMenu(choice.targetId);
+  if (choice.type === 'action') return openAction(choice.targetId);
+  if (choice.type === 'memo') return openMemo();
+  if (choice.type === 'resetExperience') { resetExperience(); return openMemo(); }
   if (choice.type === 'map') { closeModal(); setMap(choice.targetMapId, choice.spawn); return; }
   if (choice.type === 'link') { window.open(choice.url, '_blank', 'noopener,noreferrer'); return; }
   closeModal();
@@ -505,6 +587,7 @@ function setupControls() {
     updateHint(true);
   });
   resetButton.addEventListener('click', resetGame);
+  memoButton.addEventListener('click', openMemo);
   dayButton.addEventListener('click', cycleDay);
   debugButton.addEventListener('click', toggleDebug);
   actionButton.addEventListener('click', doAction);
@@ -544,6 +627,7 @@ function setupControls() {
     if (e.key === 'Escape' && state.modalOpen) closeModal();
     if (e.key === '`' || e.key === 'Tab') { e.preventDefault(); toggleDebug(); }
     if (e.key === 'y' || e.key === 'Y') { e.preventDefault(); cycleDay(); }
+    if (e.key === 'm' || e.key === 'M') { e.preventDefault(); openMemo(); }
   });
 
   window.addEventListener('keyup', (e) => {

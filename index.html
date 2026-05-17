@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>歩ける語り場 v005</title>
+  <title>歩ける語り場 v006</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -12,7 +12,7 @@
       <div class="title-card">
         <p class="eyebrow">Virtual Community Map</p>
         <h1>歩ける語り場</h1>
-        <p class="lead">v004の黒画面不具合を修正したv005デモです。曜日変化も確認できます。</p>
+        <p class="lead">v006では、店内メニューから「飲む・食べる・歌う・休む」などの簡易アクションを体験できます。</p>
         <button id="startButton" class="primary-button">スタート</button>
         <p class="small-note">操作：十字キー / WASD / 画面下の移動ボタン。近くで「調べる」。</p>
       </div>
@@ -24,10 +24,12 @@
           <p class="caption">現在地</p>
           <h2 id="areaName">語り場4U付近</h2>
           <p id="dayBadge" class="day-badge">今日</p>
+          <p id="experienceBadge" class="experience-badge">体験 0</p>
         </div>
         <div class="top-actions">
           <button id="dayButton" class="ghost-button">曜日切替</button>
           <button id="debugButton" class="ghost-button">座標OFF</button>
+          <button id="memoButton" class="ghost-button">メモ</button>
           <button id="resetButton" class="ghost-button">最初から</button>
         </div>
       </header>

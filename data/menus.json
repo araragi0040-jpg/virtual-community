@@ -26,7 +26,14 @@
           "イベント後の雑談",
           "拍手と余韻"
         ]
-      }
+      },
+      "actionIds": [
+        "act_4u_drink",
+        "act_4u_food",
+        "act_4u_karaoke",
+        "act_4u_talk"
+      ],
+      "actionNote": "気になるものを選ぶと、簡単な店内演出が表示されます。"
     },
     "menu_kusanone": {
       "title": "くさのね劇場 メニュー",
@@ -48,7 +55,14 @@
           "イベント利用の相談",
           "小さなステージの気配"
         ]
-      }
+      },
+      "actionIds": [
+        "act_kusanone_drink",
+        "act_kusanone_food",
+        "act_kusanone_karaoke",
+        "act_kusanone_stage"
+      ],
+      "actionNote": "食べる・飲む・歌うなど、くさのね劇場らしい過ごし方を試せます。"
     },
     "menu_branch": {
       "title": "ブランチカフェ メニュー",
@@ -70,7 +84,14 @@
           "窓際でひと息",
           "ゆっくり話せる席"
         ]
-      }
+      },
+      "actionIds": [
+        "act_branch_coffee",
+        "act_branch_lightmeal",
+        "act_branch_lunch",
+        "act_branch_relax"
+      ],
+      "actionNote": "カフェらしい過ごし方を選んで、雰囲気を確認できます。"
     }
   }
 }
