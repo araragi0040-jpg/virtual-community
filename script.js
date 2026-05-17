@@ -26,6 +26,9 @@ const DATA_URLS = {
   menus: 'data/menus.json'
 };
 
+// v003: 背景画像に人物が描き込まれているため、NPCスプライトは重ねず、近づいた時の！マーカーで会話可能地点を示す。
+const SHOW_NPC_SPRITES = false;
+
 const DAY_INFO = [
   { key: 'sun', label: '日曜', mood: '少し特別な空気' },
   { key: 'mon', label: '月曜', mood: 'ゆっくり始まる日' },
@@ -107,7 +110,7 @@ async function boot() {
   const imagePaths = new Set();
   Object.values(state.data.maps).forEach(map => imagePaths.add(map.image));
   Object.values(PLAYER_SPRITES).forEach(src => imagePaths.add(src));
-  state.data.npcs.forEach(npc => imagePaths.add(npc.sprite));
+  if (SHOW_NPC_SPRITES) state.data.npcs.forEach(npc => imagePaths.add(npc.sprite));
   await Promise.all([...imagePaths].map(loadImage));
 
   state.ready = true;
@@ -406,8 +409,10 @@ function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawMap();
 
-  const sprites = currentNpcs().slice().sort((a, b) => a.y - b.y);
-  sprites.forEach(npc => drawSprite(npc.sprite, npc.x, npc.y, 48, 64));
+  if (SHOW_NPC_SPRITES) {
+    const sprites = currentNpcs().slice().sort((a, b) => a.y - b.y);
+    sprites.forEach(npc => drawSprite(npc.sprite, npc.x, npc.y, 48, 64));
+  }
 
   drawSprite(PLAYER_SPRITES[state.player.dir] || PLAYER_SPRITES.front, state.player.x, state.player.y, 50, 66);
   drawNearestMarker();
@@ -454,13 +459,31 @@ function setupControls() {
 
   document.querySelectorAll('[data-dir]').forEach(btn => {
     const dir = btn.dataset.dir;
-    const press = (e) => { e.preventDefault(); state.pressed.add(dir); };
-    const release = (e) => { e.preventDefault(); state.pressed.delete(dir); };
+    const press = (e) => {
+      e.preventDefault();
+      if (btn.setPointerCapture && e.pointerId != null) {
+        try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+      }
+      state.pressed.add(dir);
+    };
+    const release = (e) => {
+      if (e) e.preventDefault();
+      state.pressed.delete(dir);
+    };
     btn.addEventListener('pointerdown', press);
     btn.addEventListener('pointerup', release);
     btn.addEventListener('pointercancel', release);
     btn.addEventListener('pointerleave', release);
+    btn.addEventListener('lostpointercapture', release);
   });
+
+  // 長押し時の文字選択・コンテキストメニューを抑止
+  const preventSelection = (e) => e.preventDefault();
+  document.querySelector('.controls').addEventListener('contextmenu', preventSelection);
+  document.querySelector('.controls').addEventListener('selectstart', preventSelection);
+  document.querySelector('.canvas-wrap').addEventListener('contextmenu', preventSelection);
+  window.addEventListener('pointerup', () => state.pressed.clear());
+  window.addEventListener('blur', () => state.pressed.clear());
 
   window.addEventListener('keydown', (e) => {
     const keyMap = { ArrowUp: 'up', w: 'up', W: 'up', ArrowDown: 'down', s: 'down', S: 'down', ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right' };
