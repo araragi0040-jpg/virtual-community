@@ -1,0 +1,73 @@
+{
+  "achievements": [
+    {
+      "id": "ach_first_step",
+      "title": "はじめの一歩",
+      "kind": "achievement",
+      "description": "はじめて何かを体験した。",
+      "lockedHint": "店内メニューから何かを1回体験すると開放。",
+      "condition": { "type": "totalAtLeast", "value": 1 },
+      "rewardText": "この街での最初の体験が記録されました。"
+    },
+    {
+      "id": "ach_katariba_seed",
+      "title": "語りの芽",
+      "kind": "title",
+      "description": "会話を重ね、少し場になじんできた。",
+      "lockedHint": "会話ポイントを3以上にする。",
+      "condition": { "type": "statAtLeast", "stat": "talk", "value": 3 },
+      "rewardText": "称号『語りの芽』を獲得しました。"
+    },
+    {
+      "id": "ach_first_song",
+      "title": "一曲入魂",
+      "kind": "achievement",
+      "description": "はじめてカラオケを体験した。",
+      "lockedHint": "カラオケを1回体験する。",
+      "condition": { "type": "statAtLeast", "stat": "karaoke", "value": 1 },
+      "rewardText": "歌うことで、場との距離が少し近づきました。"
+    },
+    {
+      "id": "ach_cafe_rest",
+      "title": "ひと息の達人",
+      "kind": "title",
+      "description": "カフェでゆっくり過ごす感覚をつかんだ。",
+      "lockedHint": "休憩ポイントを3以上にする。",
+      "condition": { "type": "statAtLeast", "stat": "relax", "value": 3 },
+      "rewardText": "称号『ひと息の達人』を獲得しました。"
+    },
+    {
+      "id": "ach_three_shops",
+      "title": "三店舗めぐり",
+      "kind": "achievement",
+      "description": "3つの店内をすべて訪れた。",
+      "lockedHint": "語り場4U・くさのね劇場・ブランチカフェの店内に入る。",
+      "condition": {
+        "all": [
+          { "type": "visitedMap", "mapId": "room_4u" },
+          { "type": "visitedMap", "mapId": "room_kusanone" },
+          { "type": "visitedMap", "mapId": "room_branch" }
+        ]
+      },
+      "rewardText": "街の輪郭が少し見えてきました。"
+    },
+    {
+      "id": "ach_hidden_first",
+      "title": "小さな発見者",
+      "kind": "achievement",
+      "description": "はじめて隠し要素を見つけた。",
+      "lockedHint": "条件を満たすと出現する隠し要素を調べる。",
+      "condition": { "type": "hiddenCountAtLeast", "value": 1 },
+      "rewardText": "何気ない場所にも、見つける楽しさがあるようです。"
+    },
+    {
+      "id": "ach_all_hidden_sample",
+      "title": "街の気配を読む人",
+      "kind": "title",
+      "description": "v007サンプルの隠し要素をすべて見つけた。",
+      "lockedHint": "v007サンプルの隠し要素を3つ見つける。",
+      "condition": { "type": "hiddenCountAtLeast", "value": 3 },
+      "rewardText": "称号『街の気配を読む人』を獲得しました。"
+    }
+  ]
+}

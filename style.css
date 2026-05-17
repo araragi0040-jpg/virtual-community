@@ -162,3 +162,28 @@ h2 { margin: 0; font-size: 1.1rem; }
   .experience-badge { font-size: 0.68rem; padding: 2px 7px; }
   .top-actions { max-width: 178px; }
 }
+
+
+/* v007 additions: 称号・実績・隠し要素 */
+.achievement-badge {
+  display: inline-flex;
+  align-items: center;
+  margin: 4px 0 0;
+  padding: 3px 8px;
+  border: 2px solid rgba(243, 198, 90, 0.58);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.18);
+  color: #ffe9a6;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.modal-choices .achievement {
+  background: #f3c65a;
+  color: #24160a;
+}
+
+@media (max-width: 460px) {
+  .achievement-badge { font-size: 0.68rem; padding: 2px 7px; }
+  .top-actions { max-width: 210px; }
+}
