@@ -49,7 +49,7 @@ select, input, textarea { width: 100%; border: 2px solid var(--border); border-r
   .side-panel { max-height: none; }
 }
 
-/* v014: resize handles for rectangle hit areas */
+/* v015: resize handles for rectangle hit areas */
 #editorCanvas { cursor: default; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 
 /* v015: editor utility panels */
@@ -94,5 +94,68 @@ button:disabled {
     width: 100%;
     padding: 9px 8px;
     font-size: .9rem;
+  }
+}
+
+/* v016: always-visible save/history control panel */
+.action-panel {
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 3px solid var(--border);
+  border-radius: 16px;
+  background: #24180f;
+  box-shadow: 0 10px 28px var(--shadow);
+}
+.action-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.action-panel-head h2 {
+  margin: 0;
+}
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+.action-grid button {
+  width: 100%;
+  min-height: 42px;
+  white-space: normal;
+  line-height: 1.2;
+}
+.primary-toolbar {
+  grid-template-columns: 1fr 1fr;
+}
+@media (max-width: 860px) {
+  .action-panel {
+    position: relative;
+    z-index: 2;
+    padding: 10px;
+  }
+  .action-panel-head {
+    display: block;
+  }
+  .action-panel-head .small-note {
+    margin: 6px 0 0;
+  }
+  .action-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .action-grid button {
+    min-height: 40px;
+    padding: 8px 6px;
+    font-size: .86rem;
+  }
+  .toolbar.primary-toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .toolbar.primary-toolbar label {
+    grid-column: auto;
   }
 }

@@ -61,8 +61,8 @@ const RESIZE_CURSORS = {
   w: 'ew-resize'
 };
 
-const DRAFT_KEY = 'vc4u_editor_draft_v015';
-const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v015';
+const DRAFT_KEY = 'vc4u_editor_draft_v016';
+const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v016';
 const HISTORY_LIMIT = 60;
 
 function deepClone(obj) {
@@ -125,7 +125,7 @@ function updateHistoryButtons() {
 
 function makeDraft() {
   return {
-    version: 'v015',
+    version: 'v016',
     savedAt: new Date().toISOString(),
     mapsData: state.mapsData,
     npcsData: state.npcsData,
@@ -214,6 +214,11 @@ async function boot() {
   state.mapId = mapsData.initialMapId;
   mapSelect.value = state.mapId;
   updateHistoryButtons();
+  const missingButtons = Object.entries(buttons).filter(([, el]) => !el).map(([key]) => key);
+  if (missingButtons.length) {
+    helpText.textContent = `編集ボタンの読み込みに失敗しました: ${missingButtons.join(', ')}`;
+    console.warn('Missing editor buttons:', missingButtons);
+  }
   const hasDraft = !!localStorage.getItem(DRAFT_KEY);
   if (hasDraft) helpText.textContent = '保存済みの下書きがあります。必要なら「下書き読込」を押してください。';
   renderAll();

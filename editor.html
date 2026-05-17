@@ -3,21 +3,21 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>歩ける語り場 v015｜配置エディタ</title>
-  <link rel="stylesheet" href="editor.css" />
+  <title>歩ける語り場 v016｜配置エディタ</title>
+  <link rel="stylesheet" href="editor.css?v=016" />
 </head>
 <body>
   <main class="editor-shell">
     <header class="editor-header">
       <div>
         <p class="eyebrow">Prototype Map Editor</p>
-        <h1>配置エディタ v015</h1>
-        <p class="lead">NPC・掲示板・入口・隠し要素の座標をドラッグで仮調整するための編集デモです。四角い範囲は角・辺をドラッグしてサイズ調整できます。v015では下書き保存・ゲーム反映プレビュー・Undo/Redoを追加しています。</p>
+        <h1>配置エディタ v016</h1>
+        <p class="lead">NPC・掲示板・入口・隠し要素の座標をドラッグで仮調整するための編集デモです。四角い範囲は角・辺をドラッグしてサイズ調整できます。v016では保存・履歴操作を独立パネル化し、スマホでもボタンが必ず見えるようにしています。</p>
       </div>
       <a class="back-link" href="index.html">ゲームへ戻る</a>
     </header>
 
-    <section class="toolbar" aria-label="編集メニュー">
+    <section class="toolbar primary-toolbar" aria-label="マップ選択メニュー">
       <label>
         マップ
         <select id="mapSelect"></select>
@@ -30,16 +30,28 @@
           <option value="hidden">隠し要素</option>
         </select>
       </label>
-      <button id="undoButton" type="button">戻す</button>
-      <button id="redoButton" type="button">やり直す</button>
-      <button id="saveDraftButton" type="button">下書き保存</button>
-      <button id="loadDraftButton" type="button">下書き読込</button>
-      <button id="clearDraftButton" type="button">下書き削除</button>
-      <button id="previewButton" type="button">ゲームで確認</button>
-      <button id="copySelectedButton" type="button">選択中をコピー</button>
-      <button id="downloadMapsButton" type="button">maps.json保存</button>
-      <button id="downloadNpcsButton" type="button">npcs.json保存</button>
-      <button id="downloadHiddenButton" type="button">hidden.json保存</button>
+    </section>
+
+    <section class="action-panel" aria-label="保存と履歴操作">
+      <div class="action-panel-head">
+        <div>
+          <p class="eyebrow">Editor Actions</p>
+          <h2>保存・履歴操作</h2>
+        </div>
+        <p class="small-note">v016：ここにUndo / Redo・下書き保存系ボタンを常時表示します。</p>
+      </div>
+      <div class="action-grid">
+        <button id="undoButton" type="button">戻す</button>
+        <button id="redoButton" type="button">やり直す</button>
+        <button id="saveDraftButton" type="button">下書き保存</button>
+        <button id="loadDraftButton" type="button">下書き読込</button>
+        <button id="clearDraftButton" type="button">下書き削除</button>
+        <button id="previewButton" type="button">ゲームで確認</button>
+        <button id="copySelectedButton" type="button">選択中をコピー</button>
+        <button id="downloadMapsButton" type="button">maps.json保存</button>
+        <button id="downloadNpcsButton" type="button">npcs.json保存</button>
+        <button id="downloadHiddenButton" type="button">hidden.json保存</button>
+      </div>
     </section>
 
     <section class="editor-grid">
@@ -80,6 +92,6 @@
     </section>
   </main>
 
-  <script src="editor.js"></script>
+  <script src="editor.js?v=016"></script>
 </body>
 </html>

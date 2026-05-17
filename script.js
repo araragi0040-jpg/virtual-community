@@ -42,8 +42,8 @@ const DATA_URLS = {
 };
 
 // v004: 背景画像に人物が描き込まれているため、NPCスプライトは重ねず、近づいた時の！マーカーで会話可能地点を示す。
-const EDITOR_DRAFT_KEY = 'vc4u_editor_draft_v015';
-const EDITOR_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v015';
+const EDITOR_DRAFT_KEY = 'vc4u_editor_draft_v016';
+const EDITOR_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v016';
 
 const SHOW_NPC_SPRITES = false;
 
@@ -899,7 +899,7 @@ function setupControls() {
   bindTap(memoButton, openMemo);
   bindTap(achievementButton, openAchievements);
   bindTap(linkHubButton, () => openLinkBoard('community_hub'));
-  bindTap(editorButton, () => { closeActionDrawer(); window.location.href = 'editor.html'; });
+  bindTap(editorButton, () => { closeActionDrawer(); window.location.href = 'editor.html?v=016'; });
   bindTap(dayButton, () => { cycleDay(); closeActionDrawer(); });
   bindTap(debugButton, () => { toggleDebug(); closeActionDrawer(); });
   bindTap(actionButton, doAction);
