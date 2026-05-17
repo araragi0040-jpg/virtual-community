@@ -1,0 +1,102 @@
+{
+  "linkBoards": {
+    "community_hub": {
+      "title": "街のリンク案内所",
+      "body": "語り場周辺の情報に移動できる入口です。\n実際のニュースサイトURLや人物活動リンクは、あとから data/linkBoards.json を編集して追加できます。",
+      "links": [
+        {
+          "label": "語り場4U 公式サイト",
+          "url": "https://katariba4u.com/",
+          "note": "語り場4Uの情報を見る",
+          "enabled": true
+        },
+        {
+          "label": "くさのね劇場 店舗情報",
+          "url": "https://kusanone-gekijyo.foodre.jp/",
+          "note": "くさのね劇場の店舗情報を見る",
+          "enabled": true
+        },
+        {
+          "label": "ブランチカフェ Instagram",
+          "url": "https://www.instagram.com/branch_cafe/",
+          "note": "ブランチカフェの雰囲気を見る",
+          "enabled": true
+        },
+        {
+          "label": "コミュニティニュース",
+          "url": "",
+          "note": "作成中のニュースサイトURLをここに入れる",
+          "enabled": false
+        },
+        {
+          "label": "みんなの活動リンク",
+          "type": "linkBoard",
+          "targetId": "member_activities",
+          "note": "人物・仕事・活動のリンク集サンプル",
+          "enabled": true
+        },
+        {
+          "label": "語り場ガチャ",
+          "url": "",
+          "note": "後で語り場ガチャURLを設定",
+          "enabled": false
+        }
+      ]
+    },
+    "shops": {
+      "title": "3店舗リンク集",
+      "body": "v001〜v012で登場している3店舗のリンクです。",
+      "links": [
+        {
+          "label": "語り場4U",
+          "url": "https://katariba4u.com/",
+          "note": "中心拠点",
+          "enabled": true
+        },
+        {
+          "label": "くさのね劇場",
+          "url": "https://kusanone-gekijyo.foodre.jp/",
+          "note": "表現・イベントの空間",
+          "enabled": true
+        },
+        {
+          "label": "ブランチカフェ",
+          "url": "https://www.instagram.com/branch_cafe/",
+          "note": "カフェ・交流の空間",
+          "enabled": true
+        }
+      ]
+    },
+    "member_activities": {
+      "title": "みんなの活動リンク｜サンプル",
+      "body": "ここには、実際の人物の仕事・活動・SNS・イベントページへの導線を追加していきます。\n今はサンプルとして、後で差し替えやすい形だけ用意しています。",
+      "links": [
+        {
+          "label": "活動サンプルA：イベント主催",
+          "url": "",
+          "note": "例：LIFE ARTS LIVE / 企画ページなど",
+          "enabled": false
+        },
+        {
+          "label": "活動サンプルB：制作・デザイン",
+          "url": "",
+          "note": "例：ポートフォリオ / Instagramなど",
+          "enabled": false
+        },
+        {
+          "label": "活動サンプルC：仕事・サービス",
+          "url": "",
+          "note": "例：HP / 予約フォームなど",
+          "enabled": false
+        },
+        {
+          "label": "3店舗リンクへ戻る",
+          "type": "linkBoard",
+          "targetId": "shops",
+          "note": "店舗リンク一覧を開く",
+          "enabled": true
+        }
+      ]
+    }
+  }
+}

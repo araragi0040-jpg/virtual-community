@@ -6,7 +6,10 @@
       "kind": "achievement",
       "description": "はじめて何かを体験した。",
       "lockedHint": "店内メニューから何かを1回体験すると開放。",
-      "condition": { "type": "totalAtLeast", "value": 1 },
+      "condition": {
+        "type": "totalAtLeast",
+        "value": 1
+      },
       "rewardText": "この街での最初の体験が記録されました。"
     },
     {
@@ -15,7 +18,11 @@
       "kind": "title",
       "description": "会話を重ね、少し場になじんできた。",
       "lockedHint": "会話ポイントを3以上にする。",
-      "condition": { "type": "statAtLeast", "stat": "talk", "value": 3 },
+      "condition": {
+        "type": "statAtLeast",
+        "stat": "talk",
+        "value": 3
+      },
       "rewardText": "称号『語りの芽』を獲得しました。"
     },
     {
@@ -24,7 +31,11 @@
       "kind": "achievement",
       "description": "はじめてカラオケを体験した。",
       "lockedHint": "カラオケを1回体験する。",
-      "condition": { "type": "statAtLeast", "stat": "karaoke", "value": 1 },
+      "condition": {
+        "type": "statAtLeast",
+        "stat": "karaoke",
+        "value": 1
+      },
       "rewardText": "歌うことで、場との距離が少し近づきました。"
     },
     {
@@ -33,7 +44,11 @@
       "kind": "title",
       "description": "カフェでゆっくり過ごす感覚をつかんだ。",
       "lockedHint": "休憩ポイントを3以上にする。",
-      "condition": { "type": "statAtLeast", "stat": "relax", "value": 3 },
+      "condition": {
+        "type": "statAtLeast",
+        "stat": "relax",
+        "value": 3
+      },
       "rewardText": "称号『ひと息の達人』を獲得しました。"
     },
     {
@@ -44,9 +59,18 @@
       "lockedHint": "語り場4U・くさのね劇場・ブランチカフェの店内に入る。",
       "condition": {
         "all": [
-          { "type": "visitedMap", "mapId": "room_4u" },
-          { "type": "visitedMap", "mapId": "room_kusanone" },
-          { "type": "visitedMap", "mapId": "room_branch" }
+          {
+            "type": "visitedMap",
+            "mapId": "room_4u"
+          },
+          {
+            "type": "visitedMap",
+            "mapId": "room_kusanone"
+          },
+          {
+            "type": "visitedMap",
+            "mapId": "room_branch"
+          }
         ]
       },
       "rewardText": "街の輪郭が少し見えてきました。"
@@ -57,7 +81,10 @@
       "kind": "achievement",
       "description": "はじめて隠し要素を見つけた。",
       "lockedHint": "条件を満たすと出現する隠し要素を調べる。",
-      "condition": { "type": "hiddenCountAtLeast", "value": 1 },
+      "condition": {
+        "type": "hiddenCountAtLeast",
+        "value": 1
+      },
       "rewardText": "何気ない場所にも、見つける楽しさがあるようです。"
     },
     {
@@ -66,8 +93,62 @@
       "kind": "title",
       "description": "v007サンプルの隠し要素をすべて見つけた。",
       "lockedHint": "v007サンプルの隠し要素を3つ見つける。",
-      "condition": { "type": "hiddenCountAtLeast", "value": 3 },
+      "condition": {
+        "type": "hiddenCountAtLeast",
+        "value": 3
+      },
       "rewardText": "称号『街の気配を読む人』を獲得しました。"
+    },
+    {
+      "id": "ach_board_reader",
+      "title": "掲示板をのぞく人",
+      "kind": "achievement",
+      "description": "はじめて掲示板を確認した。",
+      "lockedHint": "どこかの掲示板を1回見る。",
+      "condition": {
+        "type": "statAtLeast",
+        "stat": "board",
+        "value": 1
+      },
+      "rewardText": "街の情報に触れる入口を見つけました。"
+    },
+    {
+      "id": "ach_link_visitor",
+      "title": "リンクの向こう側へ",
+      "kind": "achievement",
+      "description": "はじめて外部リンクを開いた。",
+      "lockedHint": "掲示板やリンク案内所から外部リンクを1回開く。",
+      "condition": {
+        "type": "statAtLeast",
+        "stat": "link",
+        "value": 1
+      },
+      "rewardText": "仮想マップから、実際の活動へ一歩つながりました。"
+    },
+    {
+      "id": "ach_info_seeker",
+      "title": "情報の旅人",
+      "kind": "title",
+      "description": "複数の掲示板やリンク案内に触れ、街の情報を集めた。",
+      "lockedHint": "掲示板ポイントとリンクポイントの合計を5以上にする。",
+      "condition": {
+        "all": [
+          {
+            "type": "statAtLeast",
+            "stat": "board",
+            "value": 3
+          },
+          {
+            "type": "totalSpecificAtLeast",
+            "stats": [
+              "board",
+              "link"
+            ],
+            "value": 5
+          }
+        ]
+      },
+      "rewardText": "称号『情報の旅人』を獲得しました。"
     }
   ]
 }

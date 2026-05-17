@@ -10,6 +10,7 @@ const menuButton = document.getElementById('menuButton');
 const topActions = document.getElementById('topActions');
 const memoButton = document.getElementById('memoButton');
 const achievementButton = document.getElementById('achievementButton');
+const linkHubButton = document.getElementById('linkHubButton');
 const dayButton = document.getElementById('dayButton');
 const debugButton = document.getElementById('debugButton');
 const actionButton = document.getElementById('actionButton');
@@ -26,7 +27,7 @@ const modalBody = document.getElementById('modalBody');
 const modalChoices = document.getElementById('modalChoices');
 const modalXButton = document.getElementById('modalXButton');
 
-// v011: メニュー開閉関数の不足による操作停止を修正し、タップ処理も安定化。
+// v012: 掲示板・リンク集導線を追加し、後からURLや人物活動リンクを編集できる形に拡張。
 const DATA_URLS = {
   maps: 'data/maps.json',
   npcs: 'data/npcs.json',
@@ -35,7 +36,8 @@ const DATA_URLS = {
   menus: 'data/menus.json',
   actions: 'data/actions.json',
   achievements: 'data/achievements.json',
-  hidden: 'data/hidden.json'
+  hidden: 'data/hidden.json',
+  linkBoards: 'data/linkBoards.json'
 };
 
 // v004: 背景画像に人物が描き込まれているため、NPCスプライトは重ねず、近づいた時の！マーカーで会話可能地点を示す。
@@ -84,7 +86,7 @@ const PLAYER_SPRITES = {
 
 function createEmptyExperience() {
   return {
-    stats: { talk: 0, drink: 0, food: 0, karaoke: 0, event: 0, relax: 0 },
+    stats: { talk: 0, drink: 0, food: 0, karaoke: 0, event: 0, relax: 0, board: 0, link: 0 },
     actionCounts: {},
     visitedMaps: {},
     hiddenFound: {},
@@ -126,6 +128,17 @@ function saveExperience() {
 
 function totalExperienceCount() {
   return Object.values(state.experience.stats).reduce((sum, value) => sum + (Number(value) || 0), 0);
+}
+
+function addExperienceStat(key, amount = 1, logText = '') {
+  state.experience.stats[key] = (state.experience.stats[key] || 0) + Number(amount || 0);
+  if (logText) {
+    state.experience.log.unshift({ text: logText, stamp: makeStamp(), mapId: state.currentMapId });
+    state.experience.log = state.experience.log.slice(0, 40);
+  }
+  saveExperience();
+  updateExperienceBadge();
+  return evaluateAchievements();
 }
 
 function updateExperienceBadge() {
@@ -187,9 +200,9 @@ function loadImage(src) {
 }
 
 async function boot() {
-  const [mapsData, npcsData, dialoguesData, boardsData, menusData, actionsData, achievementsData, hiddenData] = await Promise.all([
+  const [mapsData, npcsData, dialoguesData, boardsData, menusData, actionsData, achievementsData, hiddenData, linkBoardsData] = await Promise.all([
     loadJson(DATA_URLS.maps), loadJson(DATA_URLS.npcs), loadJson(DATA_URLS.dialogues), loadJson(DATA_URLS.boards), loadJson(DATA_URLS.menus), loadJson(DATA_URLS.actions),
-    loadJson(DATA_URLS.achievements), loadJson(DATA_URLS.hidden)
+    loadJson(DATA_URLS.achievements), loadJson(DATA_URLS.hidden), loadJson(DATA_URLS.linkBoards)
   ]);
 
   state.data = {
@@ -202,7 +215,8 @@ async function boot() {
     menus: menusData.menus,
     actions: actionsData.actions,
     achievements: achievementsData.achievements || [],
-    hiddenSpots: hiddenData.hiddenSpots || []
+    hiddenSpots: hiddenData.hiddenSpots || [],
+    linkBoards: linkBoardsData.linkBoards || {}
   };
 
   const imagePaths = new Set();
@@ -295,6 +309,8 @@ function evaluateCondition(condition) {
       return !!hiddenFound[condition.hiddenId];
     case 'hiddenCountAtLeast':
       return Object.values(hiddenFound).filter(Boolean).length >= Number(condition.value || 0);
+    case 'totalSpecificAtLeast':
+      return (condition.stats || []).reduce((sum, key) => sum + (Number(stats[key]) || 0), 0) >= Number(condition.value || 0);
     case 'achievementUnlocked':
       return (exp.achievements || []).includes(condition.achievementId);
     case 'dayIs':
@@ -499,14 +515,34 @@ function openDialogue(dialogueId) {
 function openBoard(boardId) {
   const board = state.data.boards[boardId];
   if (!board) return showMessage('掲示板', '掲示板データが見つかりません。', [{ label: '閉じる', type: 'close' }]);
+  addExperienceStat('board', 1, `掲示板を確認：${board.title}`);
   const dayKey = state.today.key;
   const body = (board.bodyByDay && board.bodyByDay[dayKey]) || board.body;
   const linkLabel = (board.linkLabelByDay && board.linkLabelByDay[dayKey]) || board.linkLabel || 'リンクを開く';
   const linkUrl = (board.linkUrlByDay && board.linkUrlByDay[dayKey]) || board.linkUrl;
   const choices = [];
+  if (board.linkBoardId) choices.push({ label: board.extraLinkLabel || linkLabel || 'リンク一覧を見る', type: 'linkBoard', targetId: board.linkBoardId, className: 'link' });
   if (linkUrl) choices.push({ label: linkLabel, type: 'link', url: linkUrl, className: 'link' });
   choices.push({ label: '閉じる', type: 'close', className: 'secondary' });
   showModal(board.title, body, choices);
+}
+
+function openLinkBoard(linkBoardId) {
+  const linkBoard = state.data.linkBoards && state.data.linkBoards[linkBoardId];
+  if (!linkBoard) return showMessage('リンク案内', 'リンク集データが見つかりません。', [{ label: '閉じる', type: 'close' }]);
+  addExperienceStat('board', 1, `リンク案内を確認：${linkBoard.title}`);
+  const lines = (linkBoard.links || []).map(link => {
+    const status = link.enabled === false ? '準備中' : (link.type === 'linkBoard' ? '一覧' : '外部');
+    return `・${link.label}｜${status}\n  ${link.note || ''}`;
+  }).join('\n');
+  const body = `${linkBoard.body || ''}${lines ? '\n\n' + lines : ''}`;
+  const choices = (linkBoard.links || []).map(link => {
+    const enabled = link.enabled !== false;
+    if (link.type === 'linkBoard') return { label: `▶ ${link.label}`, type: enabled ? 'linkBoard' : 'info', targetId: link.targetId, message: link.note, className: enabled ? 'link' : 'secondary' };
+    return { label: enabled ? `開く：${link.label}` : `準備中：${link.label}`, type: enabled && link.url ? 'link' : 'info', url: link.url, message: link.note || 'URLは後から設定します。', className: enabled && link.url ? 'link' : 'secondary' };
+  });
+  choices.push({ label: '閉じる', type: 'close', className: 'secondary' });
+  showModal(linkBoard.title || 'リンク案内', body, choices, { long: true });
 }
 
 function openMenu(menuId) {
@@ -594,7 +630,7 @@ function openMemo() {
   const logLines = state.experience.log.length
     ? state.experience.log.slice(0, 8).map(item => `・${item.stamp}　${item.text}`).join('\n')
     : 'まだ体験メモはありません。店内メニューから行動を選んでみてください。';
-  const body = `合計体験値：${total}\n\n会話：${s.talk || 0}\nドリンク：${s.drink || 0}\nフード：${s.food || 0}\nカラオケ：${s.karaoke || 0}\nイベント気配：${s.event || 0}\n休憩：${s.relax || 0}\n\n最近の体験\n${logLines}`;
+  const body = `合計体験値：${total}\n\n会話：${s.talk || 0}\nドリンク：${s.drink || 0}\nフード：${s.food || 0}\nカラオケ：${s.karaoke || 0}\nイベント気配：${s.event || 0}\n休憩：${s.relax || 0}\n掲示板：${s.board || 0}\nリンク：${s.link || 0}\n\n最近の体験\n${logLines}`;
   showModal('体験メモ', body, [
     { label: '称号・実績を見る', type: 'achievements', className: 'achievement' },
     { label: 'メモをリセット', type: 'resetExperience', className: 'secondary' },
@@ -618,9 +654,11 @@ function handleChoice(choice) {
   if (choice.type === 'action') return openAction(choice.targetId);
   if (choice.type === 'memo') return openMemo();
   if (choice.type === 'achievements') return openAchievements();
+  if (choice.type === 'linkBoard') return openLinkBoard(choice.targetId);
+  if (choice.type === 'info') return showMessage('準備中', choice.message || 'このリンクは後から設定します。', [{ label: '閉じる', type: 'close', className: 'secondary' }]);
   if (choice.type === 'resetExperience') { resetExperience(); return openMemo(); }
   if (choice.type === 'map') { closeModal(); setMap(choice.targetMapId, choice.spawn); return; }
-  if (choice.type === 'link') { const url = choice.url; closeModal(); if (url) window.open(url, '_blank', 'noopener,noreferrer'); return; }
+  if (choice.type === 'link') { const url = choice.url; addExperienceStat('link', 1, `外部リンクを開いた：${choice.label.replace(/^開く：/, '')}`); closeModal(); if (url) window.open(url, '_blank', 'noopener,noreferrer'); return; }
   closeModal();
 }
 
@@ -832,6 +870,7 @@ function setupControls() {
   bindTap(resetButton, resetGame);
   bindTap(memoButton, openMemo);
   bindTap(achievementButton, openAchievements);
+  bindTap(linkHubButton, () => openLinkBoard('community_hub'));
   bindTap(dayButton, () => { cycleDay(); closeActionDrawer(); });
   bindTap(debugButton, () => { toggleDebug(); closeActionDrawer(); });
   bindTap(actionButton, doAction);
