@@ -58,3 +58,40 @@ h2 { margin: 0; font-size: 1.1rem; }
   .app-shell { padding: 18px; }
   .controls { justify-content: center; gap: 72px; }
 }
+
+/* v002 additions */
+.day-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 5px 0 0;
+  padding: 3px 8px;
+  border: 2px solid rgba(243, 198, 90, 0.55);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.debug-text {
+  margin: -4px 0 0;
+  padding: 8px 10px;
+  border: 2px dashed rgba(243, 198, 90, 0.6);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  color: #f9e6a4;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.76rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 420px) {
+  .top-bar { align-items: flex-start; gap: 10px; }
+  .top-actions { flex-direction: column; align-items: stretch; gap: 6px; }
+  .ghost-button { padding: 7px 9px; font-size: 0.78rem; }
+}

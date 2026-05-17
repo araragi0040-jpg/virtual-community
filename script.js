@@ -6,9 +6,12 @@ const titleScreen = document.getElementById('titleScreen');
 const gameScreen = document.getElementById('gameScreen');
 const startButton = document.getElementById('startButton');
 const resetButton = document.getElementById('resetButton');
+const debugButton = document.getElementById('debugButton');
 const actionButton = document.getElementById('actionButton');
 const areaName = document.getElementById('areaName');
+const dayBadge = document.getElementById('dayBadge');
 const hintText = document.getElementById('hintText');
+const debugText = document.getElementById('debugText');
 const loading = document.getElementById('loading');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modalTitle');
@@ -23,6 +26,16 @@ const DATA_URLS = {
   menus: 'data/menus.json'
 };
 
+const DAY_INFO = [
+  { key: 'sun', label: '日曜', mood: '少し特別な空気' },
+  { key: 'mon', label: '月曜', mood: 'ゆっくり始まる日' },
+  { key: 'tue', label: '火曜', mood: 'いつもの街' },
+  { key: 'wed', label: '水曜', mood: '折り返しの雑談日' },
+  { key: 'thu', label: '木曜', mood: '週末前の静けさ' },
+  { key: 'fri', label: '金曜', mood: '少しにぎやか' },
+  { key: 'sat', label: '土曜', mood: 'イベントの予感' }
+];
+
 const state = {
   data: null,
   images: new Map(),
@@ -31,7 +44,10 @@ const state = {
   pressed: new Set(),
   modalOpen: false,
   ready: false,
-  lastHintId: ''
+  debug: false,
+  lastHintId: '',
+  lastPointer: null,
+  today: DAY_INFO[new Date().getDay()]
 };
 
 const DIRS = {
@@ -49,11 +65,13 @@ const PLAYER_SPRITES = {
 };
 
 function pctToPx(v) { return (v / 100) * canvas.width; }
+function pxToPct(v) { return (v / canvas.width) * 100; }
 function distance(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 function pointInRect(p, r, margin = 0) {
   return p.x >= r.x - margin && p.x <= r.x + r.w + margin && p.y >= r.y - margin && p.y <= r.y + r.h + margin;
 }
 function rectCenter(r) { return { x: r.x + r.w / 2, y: r.y + r.h / 2 }; }
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
 async function loadJson(url) {
   const res = await fetch(url);
@@ -94,6 +112,7 @@ async function boot() {
 
   state.ready = true;
   loading.classList.add('hidden');
+  dayBadge.textContent = `${state.today.label}｜${state.today.mood}`;
   setMap(state.data.initialMapId);
   requestAnimationFrame(loop);
 }
@@ -107,7 +126,7 @@ function setMap(mapId, spawn = null) {
   state.player.y = start.y;
   state.player.dir = start.dir || state.player.dir || 'front';
   areaName.textContent = map.name;
-  updateHint();
+  updateHint(true);
 }
 
 function resetGame() {
@@ -116,7 +135,14 @@ function resetGame() {
 }
 
 function currentMap() { return state.data.maps[state.currentMapId]; }
-function currentNpcs() { return state.data.npcs.filter(npc => npc.mapId === state.currentMapId); }
+function currentNpcs() {
+  const dayKey = state.today.key;
+  return state.data.npcs.filter(npc => {
+    if (npc.mapId !== state.currentMapId) return false;
+    if (!npc.visibleDays || npc.visibleDays.length === 0 || npc.visibleDays.includes('all')) return true;
+    return npc.visibleDays.includes(dayKey);
+  });
+}
 
 function isWalkable(x, y) {
   const map = currentMap();
@@ -143,8 +169,8 @@ function movePlayer(dx, dy, dir) {
 
   if (tryTransition(next.x, next.y)) return;
 
-  next.x = Math.max(0, Math.min(100, next.x));
-  next.y = Math.max(0, Math.min(100, next.y));
+  next.x = clamp(next.x, 0, 100);
+  next.y = clamp(next.y, 0, 100);
 
   if (isWalkable(next.x, next.y)) {
     state.player.x = next.x;
@@ -153,20 +179,25 @@ function movePlayer(dx, dy, dir) {
   updateHint();
 }
 
+function getNpcDialogueId(npc) {
+  if (!npc.dialogueByDay) return npc.dialogueId;
+  return npc.dialogueByDay[state.today.key] || npc.dialogueByDay.default || npc.dialogueId;
+}
+
 function nearestAction() {
   const p = { x: state.player.x, y: state.player.y };
   const candidates = [];
 
   for (const npc of currentNpcs()) {
     const d = distance(p, npc);
-    if (d <= 14) candidates.push({ kind: 'npc', data: npc, distance: d, label: `${npc.name}と話す` });
+    if (d <= (npc.range || 14)) candidates.push({ kind: 'npc', data: npc, distance: d, label: `${npc.name}と話す` });
   }
 
   for (const item of currentMap().interactables || []) {
     const c = rectCenter(item);
     const d = distance(p, c);
     const margin = item.type === 'door' || item.type === 'exit' ? 5 : 6;
-    if (pointInRect(p, item, margin) || d <= 10) {
+    if (pointInRect(p, item, margin) || d <= (item.range || 10)) {
       candidates.push({ kind: item.type, data: item, distance: d, label: item.label });
     }
   }
@@ -175,14 +206,23 @@ function nearestAction() {
   return candidates[0] || null;
 }
 
-function updateHint() {
+function updateHint(force = false) {
   if (!state.ready || state.modalOpen) return;
   const action = nearestAction();
   const text = action ? `調べる：${action.label}` : '近くの人・看板・扉・掲示板の前で「調べる」を押してください。';
-  if (text !== state.lastHintId) {
+  if (force || text !== state.lastHintId) {
     hintText.textContent = text;
     state.lastHintId = text;
   }
+  updateDebugText();
+}
+
+function updateDebugText() {
+  if (!debugText) return;
+  if (!state.debug) return;
+  const action = nearestAction();
+  const pointer = state.lastPointer ? ` / tap x=${state.lastPointer.x.toFixed(1)} y=${state.lastPointer.y.toFixed(1)}` : '';
+  debugText.textContent = `map=${state.currentMapId} / player x=${state.player.x.toFixed(1)} y=${state.player.y.toFixed(1)} / action=${action ? action.label : 'なし'}${pointer}`;
 }
 
 function doAction() {
@@ -194,7 +234,7 @@ function doAction() {
   }
 
   const item = action.data;
-  if (action.kind === 'npc') return openDialogue(item.dialogueId);
+  if (action.kind === 'npc') return openDialogue(getNpcDialogueId(item));
   if (action.kind === 'sign') return openDialogue(item.signId);
   if (action.kind === 'board') return openBoard(item.boardId);
   if (action.kind === 'menu') return openMenu(item.menuId);
@@ -218,7 +258,7 @@ function showModal(title, body, choices = []) {
 }
 
 function showMessage(title, body, choices) { showModal(title, body, choices); }
-function closeModal() { state.modalOpen = false; modal.classList.add('hidden'); updateHint(); }
+function closeModal() { state.modalOpen = false; modal.classList.add('hidden'); updateHint(true); }
 
 function openDialogue(dialogueId) {
   const dialogue = state.data.dialogues[dialogueId];
@@ -279,20 +319,85 @@ function drawSprite(src, xPct, yPct, widthPx = 52, heightPx = 68) {
   ctx.restore();
 }
 
-function drawDebugAction() {
+function drawMarker(xPct, yPct, text = '!') {
+  const x = pctToPx(xPct);
+  const y = pctToPx(yPct);
+  ctx.save();
+  ctx.fillStyle = 'rgba(20, 12, 5, 0.78)';
+  ctx.strokeStyle = '#f4d15f';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(x, y - 56, 15, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#fff8d8';
+  ctx.font = 'bold 22px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x, y - 57);
+  ctx.restore();
+}
+
+function drawNearestMarker() {
   const action = nearestAction();
   if (!action) return;
-  const d = action.data;
+  if (action.kind === 'npc') return drawMarker(action.data.x, action.data.y, '!');
+  const c = rectCenter(action.data);
+  drawMarker(c.x, c.y + 5, '!');
+}
+
+function drawDebugOverlay() {
+  if (!state.debug) return;
+  const map = currentMap();
   ctx.save();
-  ctx.strokeStyle = 'rgba(255, 230, 100, 0.85)';
-  ctx.lineWidth = 4;
-  if (action.kind === 'npc') {
+  ctx.lineWidth = 3;
+
+  // walk zones
+  ctx.strokeStyle = 'rgba(120, 255, 120, 0.6)';
+  (map.walkZones || []).forEach(z => ctx.strokeRect(pctToPx(z.x), pctToPx(z.y), pctToPx(z.w), pctToPx(z.h)));
+
+  // interactables
+  (map.interactables || []).forEach(item => {
+    const colors = {
+      door: 'rgba(80, 180, 255, 0.9)',
+      exit: 'rgba(80, 180, 255, 0.9)',
+      npc: 'rgba(255, 255, 120, 0.9)',
+      board: 'rgba(120, 255, 220, 0.9)',
+      sign: 'rgba(255, 180, 90, 0.9)',
+      menu: 'rgba(220, 150, 255, 0.9)'
+    };
+    ctx.strokeStyle = colors[item.type] || 'rgba(255,255,255,0.9)';
+    ctx.strokeRect(pctToPx(item.x), pctToPx(item.y), pctToPx(item.w), pctToPx(item.h));
+    ctx.font = 'bold 15px system-ui, sans-serif';
+    ctx.fillStyle = colors[item.type] || '#fff';
+    ctx.fillText(item.id, pctToPx(item.x), pctToPx(item.y) - 4);
+  });
+
+  // npcs
+  currentNpcs().forEach(npc => {
+    ctx.strokeStyle = 'rgba(255, 255, 100, 0.9)';
     ctx.beginPath();
-    ctx.arc(pctToPx(d.x), pctToPx(d.y) - 34, 28, 0, Math.PI * 2);
+    ctx.arc(pctToPx(npc.x), pctToPx(npc.y), pctToPx((npc.range || 14) / 2), 0, Math.PI * 2);
     ctx.stroke();
-  } else {
-    ctx.strokeRect(pctToPx(d.x), pctToPx(d.y), pctToPx(d.w), pctToPx(d.h));
-  }
+    ctx.fillStyle = 'rgba(255, 255, 100, 0.95)';
+    ctx.font = 'bold 15px system-ui, sans-serif';
+    ctx.fillText(npc.id, pctToPx(npc.x) + 8, pctToPx(npc.y) - 8);
+  });
+
+  // transitions
+  (map.transitions || []).forEach(t => {
+    const [a, b] = t.range || [0, 100];
+    ctx.fillStyle = 'rgba(255, 100, 100, 0.24)';
+    if (t.edge === 'right') ctx.fillRect(pctToPx(96), pctToPx(a), pctToPx(4), pctToPx(b - a));
+    if (t.edge === 'left') ctx.fillRect(0, pctToPx(a), pctToPx(4), pctToPx(b - a));
+    if (t.edge === 'bottom') ctx.fillRect(pctToPx(a), pctToPx(96), pctToPx(b - a), pctToPx(4));
+    if (t.edge === 'top') ctx.fillRect(pctToPx(a), 0, pctToPx(b - a), pctToPx(4));
+  });
+
+  // player coordinate crosshair
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 16px system-ui, sans-serif';
+  ctx.fillText(`P ${state.player.x.toFixed(1)},${state.player.y.toFixed(1)}`, pctToPx(state.player.x) + 10, pctToPx(state.player.y) + 10);
   ctx.restore();
 }
 
@@ -305,7 +410,8 @@ function render() {
   sprites.forEach(npc => drawSprite(npc.sprite, npc.x, npc.y, 48, 64));
 
   drawSprite(PLAYER_SPRITES[state.player.dir] || PLAYER_SPRITES.front, state.player.x, state.player.y, 50, 66);
-  drawDebugAction();
+  drawNearestMarker();
+  drawDebugOverlay();
 }
 
 function loop() {
@@ -321,13 +427,29 @@ function loop() {
   requestAnimationFrame(loop);
 }
 
+function toggleDebug() {
+  state.debug = !state.debug;
+  debugButton.textContent = state.debug ? '座標ON' : '座標OFF';
+  debugText.classList.toggle('hidden', !state.debug);
+  updateDebugText();
+}
+
+function canvasPointToPct(e) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: clamp(((e.clientX - rect.left) / rect.width) * 100, 0, 100),
+    y: clamp(((e.clientY - rect.top) / rect.height) * 100, 0, 100)
+  };
+}
+
 function setupControls() {
   startButton.addEventListener('click', () => {
     titleScreen.classList.add('hidden');
     gameScreen.classList.remove('hidden');
-    updateHint();
+    updateHint(true);
   });
   resetButton.addEventListener('click', resetGame);
+  debugButton.addEventListener('click', toggleDebug);
   actionButton.addEventListener('click', doAction);
 
   document.querySelectorAll('[data-dir]').forEach(btn => {
@@ -344,7 +466,8 @@ function setupControls() {
     const keyMap = { ArrowUp: 'up', w: 'up', W: 'up', ArrowDown: 'down', s: 'down', S: 'down', ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right' };
     if (keyMap[e.key]) { e.preventDefault(); state.pressed.add(keyMap[e.key]); }
     if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); doAction(); }
-    if (e.key === 'Escape') closeModal();
+    if (e.key === 'Escape' && state.modalOpen) closeModal();
+    if (e.key === '`' || e.key === 'Tab') { e.preventDefault(); toggleDebug(); }
   });
 
   window.addEventListener('keyup', (e) => {
@@ -352,6 +475,10 @@ function setupControls() {
     if (keyMap[e.key]) state.pressed.delete(keyMap[e.key]);
   });
 
+  canvas.addEventListener('pointerdown', (e) => {
+    state.lastPointer = canvasPointToPct(e);
+    updateDebugText();
+  });
   canvas.addEventListener('click', () => doAction());
 }
 

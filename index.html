@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>語り場4U 仮想コミュニティ v001</title>
+  <title>歩ける語り場 v002</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -12,7 +12,7 @@
       <div class="title-card">
         <p class="eyebrow">Virtual Community Map</p>
         <h1>歩ける語り場</h1>
-        <p class="lead">語り場4Uを中心に、くさのね劇場・ブランチカフェへ歩いて向かうv001デモです。</p>
+        <p class="lead">語り場4Uを中心に、くさのね劇場・ブランチカフェへ歩いて向かうv002デモです。</p>
         <button id="startButton" class="primary-button">スタート</button>
         <p class="small-note">操作：十字キー / WASD / 画面下の移動ボタン。近くで「調べる」。</p>
       </div>
@@ -23,8 +23,12 @@
         <div>
           <p class="caption">現在地</p>
           <h2 id="areaName">語り場4U付近</h2>
+          <p id="dayBadge" class="day-badge">今日</p>
         </div>
-        <button id="resetButton" class="ghost-button">最初から</button>
+        <div class="top-actions">
+          <button id="debugButton" class="ghost-button">座標OFF</button>
+          <button id="resetButton" class="ghost-button">最初から</button>
+        </div>
       </header>
 
       <div class="canvas-wrap">
@@ -33,6 +37,7 @@
       </div>
 
       <p id="hintText" class="hint-text">近くの人や看板、扉の前で「調べる」を押してください。</p>
+      <p id="debugText" class="debug-text hidden">x=0 / y=0</p>
 
       <div class="controls" aria-label="操作ボタン">
         <div class="dpad" aria-label="移動パッド">

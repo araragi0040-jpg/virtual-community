@@ -1,13 +1,135 @@
 {
   "npcs": [
-    { "id": "npc_4u_inside", "name": "4U店内の人", "mapId": "room_4u", "x": 49, "y": 25, "sprite": "assets/characters/npc_4u_inside.png", "dialogueId": "talk_4u_inside_01" },
-    { "id": "npc_4u_outside", "name": "4U前の人", "mapId": "outside_4u", "x": 50, "y": 43, "sprite": "assets/characters/npc_4u_outside.png", "dialogueId": "talk_4u_outside_01" },
-    { "id": "npc_kusanone_inside", "name": "くさのね店内の人", "mapId": "room_kusanone", "x": 83, "y": 41, "sprite": "assets/characters/npc_kusanone_inside.png", "dialogueId": "talk_kusanone_inside_01" },
-    { "id": "npc_kusanone_outside", "name": "くさのね前の人", "mapId": "outside_kusanone", "x": 37, "y": 77, "sprite": "assets/characters/npc_kusanone_outside.png", "dialogueId": "talk_kusanone_outside_01" },
-    { "id": "npc_branch_inside", "name": "ブランチカフェ店内の人", "mapId": "room_branch", "x": 34, "y": 26, "sprite": "assets/characters/npc_branch_inside.png", "dialogueId": "talk_branch_inside_01" },
-    { "id": "npc_branch_outside", "name": "ブランチカフェ前の人", "mapId": "outside_branch", "x": 63, "y": 38, "sprite": "assets/characters/npc_branch_outside.png", "dialogueId": "talk_branch_outside_01" },
-    { "id": "npc_town_01", "name": "街の人A", "mapId": "outside_4u", "x": 56, "y": 68, "sprite": "assets/characters/npc_town_01.png", "dialogueId": "talk_town_01" },
-    { "id": "npc_town_02", "name": "街の人B", "mapId": "outside_kusanone", "x": 64, "y": 34, "sprite": "assets/characters/npc_town_02.png", "dialogueId": "talk_town_02" },
-    { "id": "npc_town_03", "name": "街の人C", "mapId": "outside_branch", "x": 62, "y": 60, "sprite": "assets/characters/npc_town_03.png", "dialogueId": "talk_town_03" }
+    {
+      "id": "npc_4u_inside",
+      "name": "4U店内の人",
+      "mapId": "room_4u",
+      "x": 49,
+      "y": 25,
+      "sprite": "assets/characters/npc_4u_inside.png",
+      "dialogueId": "talk_4u_inside_01",
+      "visibleDays": [
+        "all"
+      ],
+      "range": 14
+    },
+    {
+      "id": "npc_4u_outside",
+      "name": "4U前の人",
+      "mapId": "outside_4u",
+      "x": 50,
+      "y": 43,
+      "sprite": "assets/characters/npc_4u_outside.png",
+      "dialogueId": "talk_4u_outside_01",
+      "visibleDays": [
+        "all"
+      ],
+      "range": 14
+    },
+    {
+      "id": "npc_kusanone_inside",
+      "name": "くさのね店内の人",
+      "mapId": "room_kusanone",
+      "x": 83,
+      "y": 41,
+      "sprite": "assets/characters/npc_kusanone_inside.png",
+      "dialogueId": "talk_kusanone_inside_01",
+      "visibleDays": [
+        "all"
+      ],
+      "range": 14
+    },
+    {
+      "id": "npc_kusanone_outside",
+      "name": "くさのね前の人",
+      "mapId": "outside_kusanone",
+      "x": 37,
+      "y": 77,
+      "sprite": "assets/characters/npc_kusanone_outside.png",
+      "dialogueId": "talk_kusanone_outside_01",
+      "visibleDays": [
+        "all"
+      ],
+      "range": 14
+    },
+    {
+      "id": "npc_branch_inside",
+      "name": "ブランチカフェ店内の人",
+      "mapId": "room_branch",
+      "x": 34,
+      "y": 26,
+      "sprite": "assets/characters/npc_branch_inside.png",
+      "dialogueId": "talk_branch_inside_01",
+      "visibleDays": [
+        "all"
+      ],
+      "range": 14
+    },
+    {
+      "id": "npc_branch_outside",
+      "name": "ブランチカフェ前の人",
+      "mapId": "outside_branch",
+      "x": 63,
+      "y": 38,
+      "sprite": "assets/characters/npc_branch_outside.png",
+      "dialogueId": "talk_branch_outside_01",
+      "visibleDays": [
+        "all"
+      ],
+      "range": 14
+    },
+    {
+      "id": "npc_town_01",
+      "name": "街の人A",
+      "mapId": "outside_4u",
+      "x": 56,
+      "y": 68,
+      "sprite": "assets/characters/npc_town_01.png",
+      "dialogueId": "talk_town_01",
+      "visibleDays": [
+        "all"
+      ],
+      "range": 14,
+      "dialogueByDay": {
+        "fri": "talk_town_01_fri",
+        "sat": "talk_town_01_sat",
+        "default": "talk_town_01"
+      }
+    },
+    {
+      "id": "npc_town_02",
+      "name": "街の人B",
+      "mapId": "outside_kusanone",
+      "x": 64,
+      "y": 34,
+      "sprite": "assets/characters/npc_town_02.png",
+      "dialogueId": "talk_town_02",
+      "visibleDays": [
+        "all"
+      ],
+      "range": 14,
+      "dialogueByDay": {
+        "sat": "talk_town_02_sat",
+        "sun": "talk_town_02_sun",
+        "default": "talk_town_02"
+      }
+    },
+    {
+      "id": "npc_town_03",
+      "name": "街の人C",
+      "mapId": "outside_branch",
+      "x": 62,
+      "y": 60,
+      "sprite": "assets/characters/npc_town_03.png",
+      "dialogueId": "talk_town_03",
+      "visibleDays": [
+        "all"
+      ],
+      "range": 14,
+      "dialogueByDay": {
+        "sun": "talk_town_03_sun",
+        "default": "talk_town_03"
+      }
+    }
   ]
 }
