@@ -618,3 +618,77 @@ html, body {
   .dpad { width: 88px; height: 88px; }
   .action-button { height: 44px; width: 86px; }
 }
+
+
+/* v010 touch/pointer fix: 非表示要素のタップ遮断とモーダル閉じるボタン */
+.hidden {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+.top-actions:not(.open) {
+  pointer-events: none !important;
+}
+
+.top-actions.open {
+  pointer-events: auto !important;
+}
+
+button,
+.dpad-btn,
+.action-button,
+.ghost-button,
+.modal-choices button,
+.modal-x-button,
+canvas {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.modal-panel {
+  position: relative;
+}
+
+.modal-x-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #1a120b;
+  border-radius: 999px;
+  background: #5d452d;
+  color: var(--text);
+  font-weight: 900;
+  font-size: 1.2rem;
+  line-height: 1;
+  box-shadow: 0 3px 0 #1a120b;
+}
+
+#modalTitle {
+  padding-right: 42px;
+}
+
+.modal,
+.modal-panel,
+.modal-choices,
+.modal-choices button,
+.modal-x-button {
+  touch-action: manipulation;
+}
+
+#modalBody {
+  touch-action: pan-y !important;
+}
+
+.controls,
+.dpad,
+.dpad-btn,
+.action-button {
+  touch-action: none !important;
+}

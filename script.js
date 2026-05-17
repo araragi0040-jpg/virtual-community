@@ -24,8 +24,9 @@ const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modalTitle');
 const modalBody = document.getElementById('modalBody');
 const modalChoices = document.getElementById('modalChoices');
+const modalXButton = document.getElementById('modalXButton');
 
-// v009: スマホメニューをオーバーレイ化し、実績画面のスクロールを再調整。
+// v010: スマホでボタン操作が固まらないよう、tap処理とモーダル操作を再設計。
 const DATA_URLS = {
   maps: 'data/maps.json',
   npcs: 'data/npcs.json',
@@ -446,7 +447,11 @@ function showModal(title, body, choices = [], options = {}) {
     const btn = document.createElement('button');
     btn.textContent = choice.label;
     if (choice.className) btn.classList.add(choice.className);
-    btn.addEventListener('click', () => handleChoice(choice));
+    bindTap(btn, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      handleChoice(choice);
+    });
     modalChoices.appendChild(btn);
   });
   modal.classList.remove('hidden');
@@ -455,6 +460,8 @@ function showModal(title, body, choices = [], options = {}) {
 function showMessage(title, body, choices) { showModal(title, body, choices); }
 function closeModal() {
   state.modalOpen = false;
+  state.pressed.clear();
+  modal.classList.remove('long-modal');
   modal.classList.add('hidden');
   updateHint(true);
 }
@@ -763,54 +770,104 @@ function canvasPointToPct(e) {
   };
 }
 
+function bindTap(el, handler) {
+  if (!el) return;
+  let lastPointerUpAt = 0;
+  let pointerStarted = false;
+
+  const run = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    handler(e);
+  };
+
+  el.addEventListener('pointerdown', (e) => {
+    pointerStarted = true;
+    // ボタン操作がブラウザの選択・長押しメニューに奪われないようにする。
+    e.preventDefault();
+    e.stopPropagation();
+  }, { passive: false });
+
+  el.addEventListener('pointerup', (e) => {
+    if (!pointerStarted) return;
+    pointerStarted = false;
+    lastPointerUpAt = Date.now();
+    run(e);
+  }, { passive: false });
+
+  el.addEventListener('pointercancel', () => { pointerStarted = false; });
+  el.addEventListener('lostpointercapture', () => { pointerStarted = false; });
+
+  // 一部ブラウザのフォールバック。pointerup直後の互換clickは無視する。
+  el.addEventListener('click', (e) => {
+    if (Date.now() - lastPointerUpAt < 450) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    run(e);
+  }, { passive: false });
+}
+
 function setupControls() {
-  startButton.addEventListener('click', () => {
+  bindTap(startButton, () => {
     titleScreen.classList.add('hidden');
     gameScreen.classList.remove('hidden');
     updateHint(true);
   });
-  resetButton.addEventListener('click', resetGame);
-  memoButton.addEventListener('click', openMemo);
-  achievementButton.addEventListener('click', openAchievements);
-  dayButton.addEventListener('click', cycleDay);
-  debugButton.addEventListener('click', toggleDebug);
-  actionButton.addEventListener('click', doAction);
-  if (menuButton) menuButton.addEventListener('click', (e) => { e.stopPropagation(); toggleActionDrawer(); });
-  if (topActions) {
-    topActions.addEventListener('click', (e) => {
-      if (e.target && e.target.tagName === 'BUTTON') closeActionDrawer();
-    });
-  }
+  bindTap(resetButton, resetGame);
+  bindTap(memoButton, openMemo);
+  bindTap(achievementButton, openAchievements);
+  bindTap(dayButton, cycleDay);
+  bindTap(debugButton, toggleDebug);
+  bindTap(actionButton, doAction);
+  bindTap(menuButton, () => toggleActionDrawer());
+  bindTap(modalXButton, closeModal);
+
+  // メニュー外をタップしたら閉じる。ただしモーダル表示中は何もしない。
   document.addEventListener('pointerdown', (e) => {
+    if (state.modalOpen) return;
     if (!topActions || !menuButton) return;
     if (topActions.contains(e.target) || menuButton.contains(e.target)) return;
     closeActionDrawer();
-  });
+  }, { passive: true });
 
-  // v008: モーダル背景タップでも閉じられるようにする。
+  // モーダル背景タップで閉じる。内部操作は止める。
+  const modalPanel = document.querySelector('.modal-panel');
+  ['pointerdown', 'pointerup', 'click'].forEach(type => {
+    modalPanel.addEventListener(type, (e) => e.stopPropagation());
+  });
+  modal.addEventListener('pointerup', (e) => {
+    if (e.target === modal) closeModal();
+  });
   modal.addEventListener('click', (e) => {
     if (e.target === modal) closeModal();
   });
-  document.querySelector('.modal-panel').addEventListener('click', (e) => e.stopPropagation());
 
   document.querySelectorAll('[data-dir]').forEach(btn => {
     const dir = btn.dataset.dir;
     const press = (e) => {
       e.preventDefault();
+      e.stopPropagation();
       if (btn.setPointerCapture && e.pointerId != null) {
         try { btn.setPointerCapture(e.pointerId); } catch (_) {}
       }
       state.pressed.add(dir);
     };
     const release = (e) => {
-      if (e) e.preventDefault();
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
       state.pressed.delete(dir);
     };
-    btn.addEventListener('pointerdown', press);
-    btn.addEventListener('pointerup', release);
-    btn.addEventListener('pointercancel', release);
-    btn.addEventListener('pointerleave', release);
-    btn.addEventListener('lostpointercapture', release);
+    btn.addEventListener('pointerdown', press, { passive: false });
+    btn.addEventListener('pointerup', release, { passive: false });
+    btn.addEventListener('pointercancel', release, { passive: false });
+    btn.addEventListener('pointerleave', release, { passive: false });
+    btn.addEventListener('lostpointercapture', release, { passive: false });
   });
 
   // 長押し時の文字選択・コンテキストメニューを抑止
@@ -841,8 +898,9 @@ function setupControls() {
     state.lastPointer = canvasPointToPct(e);
     updateDebugText();
   });
-  canvas.addEventListener('click', () => doAction());
+  bindTap(canvas, () => doAction());
 }
+
 
 setupControls();
 boot().catch(err => {
