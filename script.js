@@ -26,7 +26,7 @@ const modalBody = document.getElementById('modalBody');
 const modalChoices = document.getElementById('modalChoices');
 const modalXButton = document.getElementById('modalXButton');
 
-// v010: スマホでボタン操作が固まらないよう、tap処理とモーダル操作を再設計。
+// v011: メニュー開閉関数の不足による操作停止を修正し、タップ処理も安定化。
 const DATA_URLS = {
   maps: 'data/maps.json',
   npcs: 'data/npcs.json',
@@ -144,6 +144,30 @@ function resetExperience() {
   state.experience = createEmptyExperience();
   saveExperience();
   updateExperienceBadge();
+}
+
+
+function isActionDrawerOpen() {
+  return !!(topActions && topActions.classList.contains('open'));
+}
+
+function openActionDrawer() {
+  if (!topActions || !menuButton) return;
+  topActions.classList.add('open');
+  menuButton.setAttribute('aria-expanded', 'true');
+  menuButton.textContent = '閉じる';
+}
+
+function closeActionDrawer() {
+  if (!topActions || !menuButton) return;
+  topActions.classList.remove('open');
+  menuButton.setAttribute('aria-expanded', 'false');
+  menuButton.textContent = 'メニュー';
+}
+
+function toggleActionDrawer() {
+  if (isActionDrawerOpen()) closeActionDrawer();
+  else openActionDrawer();
 }
 
 async function loadJson(url) {
@@ -596,7 +620,7 @@ function handleChoice(choice) {
   if (choice.type === 'achievements') return openAchievements();
   if (choice.type === 'resetExperience') { resetExperience(); return openMemo(); }
   if (choice.type === 'map') { closeModal(); setMap(choice.targetMapId, choice.spawn); return; }
-  if (choice.type === 'link') { window.open(choice.url, '_blank', 'noopener,noreferrer'); return; }
+  if (choice.type === 'link') { const url = choice.url; closeModal(); if (url) window.open(url, '_blank', 'noopener,noreferrer'); return; }
   closeModal();
 }
 
@@ -772,43 +796,31 @@ function canvasPointToPct(e) {
 
 function bindTap(el, handler) {
   if (!el) return;
-  let lastPointerUpAt = 0;
-  let pointerStarted = false;
+  let lastRunAt = 0;
 
   const run = (e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
+    const now = Date.now();
+    if (now - lastRunAt < 220) {
+      if (e && e.cancelable) e.preventDefault();
+      if (e) e.stopPropagation();
+      return;
     }
+    lastRunAt = now;
+    if (e && e.cancelable) e.preventDefault();
+    if (e) e.stopPropagation();
+    state.pressed.clear();
     handler(e);
   };
 
-  el.addEventListener('pointerdown', (e) => {
-    pointerStarted = true;
-    // ボタン操作がブラウザの選択・長押しメニューに奪われないようにする。
-    e.preventDefault();
-    e.stopPropagation();
-  }, { passive: false });
+  // v011: pointerdown で preventDefault しない。
+  // iOS/Androidで pointerup が取りこぼされても click/touchend で復帰できるようにする。
+  el.addEventListener('pointerup', run, { passive: false });
+  el.addEventListener('touchend', run, { passive: false });
+  el.addEventListener('click', run, { passive: false });
 
-  el.addEventListener('pointerup', (e) => {
-    if (!pointerStarted) return;
-    pointerStarted = false;
-    lastPointerUpAt = Date.now();
-    run(e);
-  }, { passive: false });
-
-  el.addEventListener('pointercancel', () => { pointerStarted = false; });
-  el.addEventListener('lostpointercapture', () => { pointerStarted = false; });
-
-  // 一部ブラウザのフォールバック。pointerup直後の互換clickは無視する。
-  el.addEventListener('click', (e) => {
-    if (Date.now() - lastPointerUpAt < 450) {
-      e.preventDefault();
-      e.stopPropagation();
-      return;
-    }
-    run(e);
-  }, { passive: false });
+  el.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') run(e);
+  });
 }
 
 function setupControls() {
@@ -820,8 +832,8 @@ function setupControls() {
   bindTap(resetButton, resetGame);
   bindTap(memoButton, openMemo);
   bindTap(achievementButton, openAchievements);
-  bindTap(dayButton, cycleDay);
-  bindTap(debugButton, toggleDebug);
+  bindTap(dayButton, () => { cycleDay(); closeActionDrawer(); });
+  bindTap(debugButton, () => { toggleDebug(); closeActionDrawer(); });
   bindTap(actionButton, doAction);
   bindTap(menuButton, () => toggleActionDrawer());
   bindTap(modalXButton, closeModal);
