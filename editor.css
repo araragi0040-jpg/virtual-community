@@ -159,3 +159,16 @@ button:disabled {
     grid-column: auto;
   }
 }
+
+
+/* v017: entity create/delete controls */
+.danger-button {
+  background: #ff8a74;
+  color: #2b0e09;
+}
+.danger-button:disabled {
+  background: #7b4b43;
+}
+#fieldType:disabled, #fieldTarget:disabled {
+  opacity: .62;
+}

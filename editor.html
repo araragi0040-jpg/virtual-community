@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>歩ける語り場 v016｜配置エディタ</title>
+  <title>歩ける語り場 v017｜配置エディタ</title>
   <link rel="stylesheet" href="editor.css?v=016" />
 </head>
 <body>
@@ -11,8 +11,8 @@
     <header class="editor-header">
       <div>
         <p class="eyebrow">Prototype Map Editor</p>
-        <h1>配置エディタ v016</h1>
-        <p class="lead">NPC・掲示板・入口・隠し要素の座標をドラッグで仮調整するための編集デモです。四角い範囲は角・辺をドラッグしてサイズ調整できます。v016では保存・履歴操作を独立パネル化し、スマホでもボタンが必ず見えるようにしています。</p>
+        <h1>配置エディタ v017</h1>
+        <p class="lead">NPC・掲示板・入口・隠し要素の座標をドラッグで仮調整するための編集デモです。四角い範囲は角・辺をドラッグしてサイズ調整できます。v017では対象の新規追加・複製・削除にも対応し、配置データをよりノーコード編集に近づけています。</p>
       </div>
       <a class="back-link" href="index.html">ゲームへ戻る</a>
     </header>
@@ -38,7 +38,7 @@
           <p class="eyebrow">Editor Actions</p>
           <h2>保存・履歴操作</h2>
         </div>
-        <p class="small-note">v016：ここにUndo / Redo・下書き保存系ボタンを常時表示します。</p>
+        <p class="small-note">v017：Undo / Redo・下書き保存・対象追加/削除をここから行います。</p>
       </div>
       <div class="action-grid">
         <button id="undoButton" type="button">戻す</button>
@@ -47,6 +47,9 @@
         <button id="loadDraftButton" type="button">下書き読込</button>
         <button id="clearDraftButton" type="button">下書き削除</button>
         <button id="previewButton" type="button">ゲームで確認</button>
+        <button id="addEntityButton" type="button">新規追加</button>
+        <button id="duplicateEntityButton" type="button">複製</button>
+        <button id="deleteEntityButton" type="button" class="danger-button">削除</button>
         <button id="copySelectedButton" type="button">選択中をコピー</button>
         <button id="downloadMapsButton" type="button">maps.json保存</button>
         <button id="downloadNpcsButton" type="button">npcs.json保存</button>
@@ -68,6 +71,17 @@
         <form id="editForm" class="edit-form hidden">
           <label>ID<input id="fieldId" readonly /></label>
           <label>表示名<input id="fieldLabel" /></label>
+          <label>種類<select id="fieldType">
+            <option value="door">入口</option>
+            <option value="exit">出口</option>
+            <option value="board">掲示板</option>
+            <option value="sign">看板</option>
+            <option value="menu">メニュー</option>
+            <option value="event">イベント</option>
+            <option value="npc">NPC</option>
+            <option value="hidden">隠し要素</option>
+          </select></label>
+          <label>リンク/会話ID<input id="fieldTarget" placeholder="boardId / signId / dialogueId など" /></label>
           <div class="form-row">
             <label>X<input id="fieldX" type="number" step="0.1" /></label>
             <label>Y<input id="fieldY" type="number" step="0.1" /></label>
@@ -92,6 +106,6 @@
     </section>
   </main>
 
-  <script src="editor.js?v=016"></script>
+  <script src="editor.js?v=017"></script>
 </body>
 </html>

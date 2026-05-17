@@ -18,7 +18,9 @@ const fields = {
   y: document.getElementById('fieldY'),
   w: document.getElementById('fieldW'),
   h: document.getElementById('fieldH'),
-  range: document.getElementById('fieldRange')
+  range: document.getElementById('fieldRange'),
+  type: document.getElementById('fieldType'),
+  target: document.getElementById('fieldTarget')
 };
 
 const buttons = {
@@ -28,6 +30,9 @@ const buttons = {
   loadDraft: document.getElementById('loadDraftButton'),
   clearDraft: document.getElementById('clearDraftButton'),
   preview: document.getElementById('previewButton'),
+  addEntity: document.getElementById('addEntityButton'),
+  duplicateEntity: document.getElementById('duplicateEntityButton'),
+  deleteEntity: document.getElementById('deleteEntityButton'),
   copySelected: document.getElementById('copySelectedButton'),
   downloadMaps: document.getElementById('downloadMapsButton'),
   downloadNpcs: document.getElementById('downloadNpcsButton'),
@@ -61,8 +66,8 @@ const RESIZE_CURSORS = {
   w: 'ew-resize'
 };
 
-const DRAFT_KEY = 'vc4u_editor_draft_v016';
-const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v016';
+const DRAFT_KEY = 'vc4u_editor_draft_v017';
+const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v017';
 const HISTORY_LIMIT = 60;
 
 function deepClone(obj) {
@@ -121,11 +126,19 @@ function redo() {
 function updateHistoryButtons() {
   if (buttons.undo) buttons.undo.disabled = !state.history.length;
   if (buttons.redo) buttons.redo.disabled = !state.future.length;
+  updateEntityButtons();
+}
+
+function updateEntityButtons() {
+  const hasSelected = !!selectedEntity();
+  if (buttons.duplicateEntity) buttons.duplicateEntity.disabled = !hasSelected;
+  if (buttons.deleteEntity) buttons.deleteEntity.disabled = !hasSelected;
+  if (buttons.copySelected) buttons.copySelected.disabled = !currentMap();
 }
 
 function makeDraft() {
   return {
-    version: 'v016',
+    version: 'v017',
     savedAt: new Date().toISOString(),
     mapsData: state.mapsData,
     npcsData: state.npcsData,
@@ -252,6 +265,189 @@ function colorFor(type) {
     door: '#69b6ff', exit: '#69b6ff', board: '#8fffe7', sign: '#ffb45a',
     menu: '#d995ff', event: '#ff7ac8', npc: '#fff36d', hidden: '#ffe65a'
   }[type] || '#ffffff';
+}
+
+
+function getEntityType(e) {
+  if (!e) return '';
+  if (e.shape === 'point' && e.type === 'npc') return 'npc';
+  if (e.type === 'hidden') return 'hidden';
+  return e.ref.type || e.type || '';
+}
+
+function getEntityTarget(e) {
+  if (!e) return '';
+  const item = e.ref;
+  if (e.type === 'npc') return item.dialogueId || '';
+  if (e.type === 'hidden') return item.title || '';
+  const type = item.type || e.type;
+  if (type === 'board') return item.boardId || '';
+  if (type === 'sign') return item.signId || '';
+  if (type === 'menu') return item.menuId || '';
+  if (type === 'event') return item.dialogueId || '';
+  if (type === 'door') return item.confirmId || '';
+  if (type === 'exit') return item.targetMapId || '';
+  return '';
+}
+
+function setEntityTarget(e, value) {
+  if (!e) return;
+  const item = e.ref;
+  const v = String(value || '').trim();
+  if (e.type === 'npc') {
+    item.dialogueId = v || item.dialogueId || 'talk_town_01';
+    return;
+  }
+  if (e.type === 'hidden') {
+    if (v) item.title = v;
+    return;
+  }
+  const type = item.type || e.type;
+  if (type === 'board') item.boardId = v || 'board_town_news';
+  if (type === 'sign') item.signId = v || 'sign_to_branch';
+  if (type === 'menu') item.menuId = v || 'menu_4u';
+  if (type === 'event') item.dialogueId = v || 'event_4u_friday_lively';
+  if (type === 'door') item.confirmId = v || 'enter_4u';
+  if (type === 'exit') item.targetMapId = v || 'outside_4u';
+}
+
+function uniqueId(prefix, existingIds) {
+  const safe = (prefix || 'item').replace(/[^a-zA-Z0-9_\-]/g, '_');
+  let n = 1;
+  let id = `${safe}_${n}`;
+  while (existingIds.has(id)) {
+    n += 1;
+    id = `${safe}_${n}`;
+  }
+  return id;
+}
+
+function allEntityIds() {
+  const ids = new Set();
+  Object.values(state.mapsData?.maps || {}).forEach(map => (map.interactables || []).forEach(item => ids.add(item.id)));
+  (state.npcsData?.npcs || []).forEach(item => ids.add(item.id));
+  (state.hiddenData?.hiddenSpots || []).forEach(item => ids.add(item.id));
+  return ids;
+}
+
+function makeNewEntityForCurrentLayer() {
+  const ids = allEntityIds();
+  const map = currentMap();
+  if (state.layer === 'interactables') {
+    const type = 'board';
+    return {
+      id: uniqueId(`${type}_${state.mapId}`, ids),
+      type,
+      label: '新しい掲示板',
+      x: 42,
+      y: 58,
+      w: 16,
+      h: 12,
+      boardId: 'board_town_news',
+      range: 13
+    };
+  }
+  if (state.layer === 'npcs') {
+    return {
+      id: uniqueId(`npc_${state.mapId}`, ids),
+      name: '新しいNPC',
+      mapId: state.mapId,
+      x: 50,
+      y: 58,
+      sprite: 'assets/characters/npc_town_01.png',
+      dialogueId: 'talk_town_01',
+      visibleDays: ['all'],
+      range: 14
+    };
+  }
+  if (state.layer === 'hidden') {
+    return {
+      id: uniqueId(`hidden_${state.mapId}`, ids),
+      mapId: state.mapId,
+      label: '新しい隠し要素',
+      x: 42,
+      y: 58,
+      w: 16,
+      h: 12,
+      range: 12,
+      visibleDays: ['all'],
+      visibleWhen: null,
+      title: '新しい隠し要素',
+      text: 'ここに隠し要素の本文を設定します。',
+      foundText: 'もう一度確認しました。',
+      log: '新しい隠し要素を見つけた',
+      stats: { event: 1 }
+    };
+  }
+  return null;
+}
+
+function addEntity() {
+  if (!currentMap()) return;
+  const item = makeNewEntityForCurrentLayer();
+  if (!item) return;
+  pushHistory();
+  if (state.layer === 'interactables') currentMap().interactables = [ ...(currentMap().interactables || []), item ];
+  if (state.layer === 'npcs') state.npcsData.npcs = [ ...(state.npcsData.npcs || []), item ];
+  if (state.layer === 'hidden') state.hiddenData.hiddenSpots = [ ...(state.hiddenData.hiddenSpots || []), item ];
+  state.selectedKey = item.id;
+  helpText.textContent = '新しい対象を追加しました。位置・範囲・種類を調整してください。';
+  renderAll();
+}
+
+function duplicateSelected() {
+  const e = selectedEntity();
+  if (!e) return;
+  pushHistory();
+  const item = deepClone(e.ref);
+  item.id = uniqueId(`${e.key}_copy`, allEntityIds());
+  item.x = Number(clamp((Number(item.x) || 0) + 4, 0, e.shape === 'point' ? 100 : 100 - (Number(item.w) || 0)).toFixed(1));
+  item.y = Number(clamp((Number(item.y) || 0) + 4, 0, e.shape === 'point' ? 100 : 100 - (Number(item.h) || 0)).toFixed(1));
+  if (state.layer === 'interactables') currentMap().interactables.push(item);
+  if (state.layer === 'npcs') state.npcsData.npcs.push(item);
+  if (state.layer === 'hidden') state.hiddenData.hiddenSpots.push(item);
+  state.selectedKey = item.id;
+  helpText.textContent = '選択中の対象を複製しました。';
+  renderAll();
+}
+
+function deleteSelected() {
+  const e = selectedEntity();
+  if (!e) return;
+  const label = e.ref.label || e.ref.name || e.key;
+  if (!window.confirm(`「${label}」を削除しますか？`)) return;
+  pushHistory();
+  if (state.layer === 'interactables') currentMap().interactables = (currentMap().interactables || []).filter(item => item.id !== e.key);
+  if (state.layer === 'npcs') state.npcsData.npcs = (state.npcsData.npcs || []).filter(item => item.id !== e.key);
+  if (state.layer === 'hidden') state.hiddenData.hiddenSpots = (state.hiddenData.hiddenSpots || []).filter(item => item.id !== e.key);
+  state.selectedKey = '';
+  helpText.textContent = '選択中の対象を削除しました。Undoで戻せます。';
+  renderAll();
+}
+
+function applyInteractableTypeDefaults(item, newType) {
+  if (!item || !newType || item.type === newType) return;
+  item.type = newType;
+  delete item.boardId;
+  delete item.signId;
+  delete item.menuId;
+  delete item.dialogueId;
+  delete item.confirmId;
+  delete item.targetMapId;
+  delete item.spawn;
+  if (newType === 'board') item.boardId = 'board_town_news';
+  if (newType === 'sign') item.signId = 'sign_to_branch';
+  if (newType === 'menu') item.menuId = 'menu_4u';
+  if (newType === 'event') item.dialogueId = 'event_4u_friday_lively';
+  if (newType === 'door') {
+    item.confirmId = 'enter_4u';
+    item.targetMapId = 'room_4u';
+    item.spawn = { x: 50, y: 86, dir: 'back' };
+  }
+  if (newType === 'exit') {
+    item.targetMapId = 'outside_4u';
+    item.spawn = { x: 50, y: 72, dir: 'front' };
+  }
 }
 
 function rectHandles(item) {
@@ -397,9 +593,14 @@ function renderForm() {
   fields.w.value = item.w ?? '';
   fields.h.value = item.h ?? '';
   fields.range.value = item.range ?? '';
+  fields.type.value = getEntityType(e);
+  fields.target.value = getEntityTarget(e);
   fields.w.disabled = e.shape === 'point';
   fields.h.disabled = e.shape === 'point';
+  fields.type.disabled = e.type === 'npc' || e.type === 'hidden';
+  fields.target.disabled = e.type === 'hidden';
   outputBox.value = JSON.stringify(item, null, 2);
+  updateEntityButtons();
 }
 
 function validateCurrentMap() {
@@ -432,6 +633,7 @@ function renderAll() {
   renderList();
   renderForm();
   validateCurrentMap();
+  updateEntityButtons();
 }
 
 function selectEntity(key) {
@@ -597,6 +799,8 @@ function applyFieldChanges() {
     if ('label' in item || e.shape !== 'point') item.label = fields.label.value.trim();
     else item.name = fields.label.value.trim();
   }
+  if (state.layer === 'interactables') applyInteractableTypeDefaults(item, fields.type.value);
+  setEntityTarget(e, fields.target.value);
   item.x = Number(clamp(fields.x.value).toFixed(1));
   item.y = Number(clamp(fields.y.value).toFixed(1));
   if (e.shape !== 'point') {
@@ -649,6 +853,9 @@ buttons.saveDraft?.addEventListener('click', saveDraft);
 buttons.loadDraft?.addEventListener('click', loadDraft);
 buttons.clearDraft?.addEventListener('click', clearDraft);
 buttons.preview?.addEventListener('click', previewGame);
+buttons.addEntity?.addEventListener('click', addEntity);
+buttons.duplicateEntity?.addEventListener('click', duplicateSelected);
+buttons.deleteEntity?.addEventListener('click', deleteSelected);
 buttons.downloadMaps.addEventListener('click', () => downloadJson('maps.json', state.mapsData));
 buttons.downloadNpcs.addEventListener('click', () => downloadJson('npcs.json', state.npcsData));
 buttons.downloadHidden.addEventListener('click', () => downloadJson('hidden.json', state.hiddenData));
