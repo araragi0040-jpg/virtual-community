@@ -11,7 +11,13 @@
       "visibleDays": [
         "all"
       ],
-      "range": 14
+      "range": 14,
+      "dialogueByDay": {
+        "fri": "talk_4u_inside_fri",
+        "sat": "talk_4u_inside_sat",
+        "sun": "talk_4u_inside_sun",
+        "default": "talk_4u_inside_01"
+      }
     },
     {
       "id": "npc_4u_outside",
@@ -24,7 +30,11 @@
       "visibleDays": [
         "all"
       ],
-      "range": 14
+      "range": 14,
+      "dialogueByDay": {
+        "fri": "talk_4u_outside_fri",
+        "default": "talk_4u_outside_01"
+      }
     },
     {
       "id": "npc_kusanone_inside",
@@ -37,7 +47,11 @@
       "visibleDays": [
         "all"
       ],
-      "range": 14
+      "range": 14,
+      "dialogueByDay": {
+        "sat": "talk_kusanone_inside_sat",
+        "default": "talk_kusanone_inside_01"
+      }
     },
     {
       "id": "npc_kusanone_outside",
@@ -63,7 +77,11 @@
       "visibleDays": [
         "all"
       ],
-      "range": 14
+      "range": 14,
+      "dialogueByDay": {
+        "sun": "talk_branch_inside_sun",
+        "default": "talk_branch_inside_01"
+      }
     },
     {
       "id": "npc_branch_outside",
@@ -76,7 +94,11 @@
       "visibleDays": [
         "all"
       ],
-      "range": 14
+      "range": 14,
+      "dialogueByDay": {
+        "sun": "talk_branch_outside_sun",
+        "default": "talk_branch_outside_01"
+      }
     },
     {
       "id": "npc_town_01",

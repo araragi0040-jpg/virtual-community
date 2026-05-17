@@ -111,6 +111,20 @@
           "h": 13,
           "boardId": "board_town_news",
           "range": 13
+        },
+        {
+          "id": "event_4u_friday_lively",
+          "type": "event",
+          "label": "金曜のにぎわい",
+          "x": 31,
+          "y": 55,
+          "w": 14,
+          "h": 12,
+          "dialogueId": "event_4u_friday_lively",
+          "range": 14,
+          "visibleDays": [
+            "fri"
+          ]
         }
       ]
     },
@@ -187,6 +201,20 @@
           "h": 9,
           "signId": "sign_to_4u_from_kusanone",
           "range": 13
+        },
+        {
+          "id": "event_kusanone_saturday_stage",
+          "type": "event",
+          "label": "土曜のイベント気配",
+          "x": 48,
+          "y": 45,
+          "w": 15,
+          "h": 12,
+          "dialogueId": "event_kusanone_saturday_stage",
+          "range": 14,
+          "visibleDays": [
+            "sat"
+          ]
         }
       ]
     },
@@ -263,6 +291,20 @@
           "h": 11,
           "signId": "sign_to_4u_from_branch",
           "range": 13
+        },
+        {
+          "id": "event_branch_sunday_cafe",
+          "type": "event",
+          "label": "日曜のカフェ時間",
+          "x": 38,
+          "y": 58,
+          "w": 16,
+          "h": 12,
+          "dialogueId": "event_branch_sunday_cafe",
+          "range": 14,
+          "visibleDays": [
+            "sun"
+          ]
         }
       ]
     },
@@ -323,6 +365,20 @@
           "h": 14,
           "menuId": "menu_4u",
           "range": 13
+        },
+        {
+          "id": "event_4u_sat_karaoke",
+          "type": "event",
+          "label": "土曜のカラオケ気分",
+          "x": 56,
+          "y": 50,
+          "w": 14,
+          "h": 12,
+          "dialogueId": "event_4u_sat_karaoke",
+          "range": 13,
+          "visibleDays": [
+            "sat"
+          ]
         }
       ]
     },
@@ -383,6 +439,20 @@
           "h": 10,
           "menuId": "menu_kusanone",
           "range": 13
+        },
+        {
+          "id": "event_kusanone_fri_rehearsal",
+          "type": "event",
+          "label": "金曜のリハーサル気配",
+          "x": 45,
+          "y": 34,
+          "w": 16,
+          "h": 12,
+          "dialogueId": "event_kusanone_fri_rehearsal",
+          "range": 13,
+          "visibleDays": [
+            "fri"
+          ]
         }
       ]
     },
@@ -443,6 +513,20 @@
           "h": 10,
           "menuId": "menu_branch",
           "range": 13
+        },
+        {
+          "id": "event_branch_sun_window",
+          "type": "event",
+          "label": "日曜の窓際席",
+          "x": 31,
+          "y": 49,
+          "w": 15,
+          "h": 12,
+          "dialogueId": "event_branch_sun_window",
+          "range": 13,
+          "visibleDays": [
+            "sun"
+          ]
         }
       ]
     }

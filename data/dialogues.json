@@ -247,6 +247,200 @@
           "type": "close"
         }
       ]
+    },
+    "talk_4u_inside_fri": {
+      "speaker": "4U店内の人",
+      "text": "金曜の4Uは、いつもより少しにぎやか。誰かの一言から、気づいたら深い話になってることもあるよ。",
+      "options": [
+        {
+          "label": "メニューを見る",
+          "type": "menu",
+          "targetId": "menu_4u"
+        },
+        {
+          "label": "掲示板を見る",
+          "type": "board",
+          "targetId": "board_4u"
+        },
+        {
+          "label": "閉じる",
+          "type": "close"
+        }
+      ]
+    },
+    "talk_4u_inside_sat": {
+      "speaker": "4U店内の人",
+      "text": "土曜はイベント前後の話が生まれやすい日。歌う人、話す人、ふらっと来る人、それぞれの温度が混ざる感じがあるね。",
+      "options": [
+        {
+          "label": "カラオケの気配を見る",
+          "type": "dialogue",
+          "targetId": "event_4u_sat_karaoke"
+        },
+        {
+          "label": "掲示板を見る",
+          "type": "board",
+          "targetId": "board_4u"
+        },
+        {
+          "label": "閉じる",
+          "type": "close"
+        }
+      ]
+    },
+    "talk_4u_inside_sun": {
+      "speaker": "4U店内の人",
+      "text": "日曜は少し静かめ。昨日までの出来事を思い返しながら、ゆっくり言葉にしていく時間もいいね。",
+      "options": [
+        {
+          "label": "話す",
+          "type": "dialogue",
+          "targetId": "talk_4u_inside_talk"
+        },
+        {
+          "label": "閉じる",
+          "type": "close"
+        }
+      ]
+    },
+    "talk_4u_outside_fri": {
+      "speaker": "4U前の人",
+      "text": "金曜は、ここから夜が始まる感じがするね。中に入る前に、街の掲示板も見ておくと良いかも。",
+      "options": [
+        {
+          "label": "掲示板を見る",
+          "type": "board",
+          "targetId": "board_town_news"
+        },
+        {
+          "label": "閉じる",
+          "type": "close"
+        }
+      ]
+    },
+    "talk_kusanone_inside_sat": {
+      "speaker": "くさのね店内の人",
+      "text": "土曜のくさのねは、どこかイベント前みたいな空気。ステージがあるだけで、今日は何か起きそうって思えるよね。",
+      "options": [
+        {
+          "label": "メニューを見る",
+          "type": "menu",
+          "targetId": "menu_kusanone"
+        },
+        {
+          "label": "掲示板を見る",
+          "type": "board",
+          "targetId": "board_kusanone"
+        },
+        {
+          "label": "閉じる",
+          "type": "close"
+        }
+      ]
+    },
+    "talk_branch_inside_sun": {
+      "speaker": "ブランチカフェ店内の人",
+      "text": "日曜のカフェは、少しゆっくり時間が流れる感じがします。予定を詰めすぎず、ぼーっとするのも良いですよ。",
+      "options": [
+        {
+          "label": "メニューを見る",
+          "type": "menu",
+          "targetId": "menu_branch"
+        },
+        {
+          "label": "閉じる",
+          "type": "close"
+        }
+      ]
+    },
+    "talk_branch_outside_sun": {
+      "speaker": "ブランチカフェ前の人",
+      "text": "日曜は、カフェの前を通る人も少し穏やか。語り場の夜とは違う、昼のつながり方もありそうだね。",
+      "options": [
+        {
+          "label": "カフェに入ってみる",
+          "type": "close"
+        },
+        {
+          "label": "閉じる",
+          "type": "close"
+        }
+      ]
+    },
+    "event_4u_friday_lively": {
+      "speaker": "金曜のにぎわい",
+      "text": "店の前に、少しだけにぎやかな空気が漂っている。今日は誰かがふらっと現れそうな予感がする。",
+      "options": [
+        {
+          "label": "掲示板を見る",
+          "type": "board",
+          "targetId": "board_town_news"
+        },
+        {
+          "label": "閉じる",
+          "type": "close"
+        }
+      ]
+    },
+    "event_kusanone_saturday_stage": {
+      "speaker": "土曜のイベント気配",
+      "text": "劇場の周りに、イベント前のようなそわそわした空気がある。ここから何か表現が始まりそうだ。",
+      "options": [
+        {
+          "label": "くさのね情報を見る",
+          "type": "board",
+          "targetId": "board_kusanone"
+        },
+        {
+          "label": "閉じる",
+          "type": "close"
+        }
+      ]
+    },
+    "event_branch_sunday_cafe": {
+      "speaker": "日曜のカフェ時間",
+      "text": "日曜の光がカフェの前に落ちている。少し立ち止まって、今日の予定をゆっくり考えたくなる。",
+      "options": [
+        {
+          "label": "カフェ情報を見る",
+          "type": "board",
+          "targetId": "board_branch"
+        },
+        {
+          "label": "閉じる",
+          "type": "close"
+        }
+      ]
+    },
+    "event_4u_sat_karaoke": {
+      "speaker": "カラオケの気配",
+      "text": "誰かが歌った後のような空気が残っている。v001では演出だけだけど、今後は「歌う」「聴く」「拍手する」選択肢にできそう。",
+      "options": [
+        {
+          "label": "いいね",
+          "type": "close"
+        }
+      ]
+    },
+    "event_kusanone_fri_rehearsal": {
+      "speaker": "リハーサルの気配",
+      "text": "ステージ付近に、準備中のような空気がある。金曜の夜は、週末の表現に向けて少しずつ熱が上がっていく。",
+      "options": [
+        {
+          "label": "閉じる",
+          "type": "close"
+        }
+      ]
+    },
+    "event_branch_sun_window": {
+      "speaker": "窓際席",
+      "text": "窓際に柔らかい光が入っている。日曜だけは、ここで少し長めに休みたくなる。",
+      "options": [
+        {
+          "label": "閉じる",
+          "type": "close"
+        }
+      ]
     }
   },
   "confirms": {

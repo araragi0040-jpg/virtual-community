@@ -4,25 +4,41 @@
       "title": "語り場4U掲示板",
       "body": "語り場4Uの営業情報、イベント、コミュニティのお知らせはこちらから確認できます。\nはじめての人も、まずは雰囲気を覗いてみてください。",
       "linkLabel": "4U情報を見る",
-      "linkUrl": "https://katariba4u.com/"
+      "linkUrl": "https://katariba4u.com/",
+      "bodyByDay": {
+        "fri": "今日は金曜。語り場4Uの夜が少しにぎやかになるかもしれません。営業情報やイベント情報はこちらから確認できます。",
+        "sat": "土曜はイベントやカラオケの気配。4U関連のお知らせ、企画、コミュニティ情報はこちら。",
+        "sun": "日曜は少し静かに。4Uの情報を見ながら、また来たいタイミングを探してみてください。"
+      }
     },
     "board_kusanone": {
       "title": "くさのね劇場掲示板",
       "body": "くさのね劇場の店舗情報、イベント利用、カラオケや貸切の案内はこちら。",
       "linkLabel": "くさのね情報を見る",
-      "linkUrl": "https://kusanone-gekijyo.foodre.jp/"
+      "linkUrl": "https://kusanone-gekijyo.foodre.jp/",
+      "bodyByDay": {
+        "sat": "土曜はイベントや表現の雰囲気が出やすい日。くさのね劇場の店舗情報・イベント利用はこちら。"
+      }
     },
     "board_branch": {
       "title": "ブランチカフェ掲示板",
       "body": "ブランチカフェの最新情報や雰囲気はこちらから確認できます。",
       "linkLabel": "カフェ情報を見る",
-      "linkUrl": "https://www.instagram.com/branch_cafe/"
+      "linkUrl": "https://www.instagram.com/branch_cafe/",
+      "bodyByDay": {
+        "sun": "日曜のカフェ時間。ブランチカフェの雰囲気や最新情報はこちらから確認できます。"
+      }
     },
     "board_town_news": {
       "title": "街の掲示板",
       "body": "語り場周辺のニュース、イベント、活動紹介をまとめて確認できます。ニュースサイトURLは後から設定します。",
       "linkLabel": "ニュースを見る",
-      "linkUrl": ""
+      "linkUrl": "",
+      "bodyByDay": {
+        "fri": "金曜の街は少しにぎやか。語り場4U周辺の営業・イベント・活動情報をここにまとめていく予定です。",
+        "sat": "土曜はイベントや表現の気配が強い日。今後はここに、今日のおすすめ導線や開催情報を出せるようにします。",
+        "sun": "日曜は少しゆっくり振り返る日。来週の予定や、見逃したお知らせを確認できる場所にしていきます。"
+      }
     }
   }
 }

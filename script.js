@@ -6,6 +6,7 @@ const titleScreen = document.getElementById('titleScreen');
 const gameScreen = document.getElementById('gameScreen');
 const startButton = document.getElementById('startButton');
 const resetButton = document.getElementById('resetButton');
+const dayButton = document.getElementById('dayButton');
 const debugButton = document.getElementById('debugButton');
 const actionButton = document.getElementById('actionButton');
 const areaName = document.getElementById('areaName');
@@ -26,7 +27,7 @@ const DATA_URLS = {
   menus: 'data/menus.json'
 };
 
-// v003: 背景画像に人物が描き込まれているため、NPCスプライトは重ねず、近づいた時の！マーカーで会話可能地点を示す。
+// v004: 背景画像に人物が描き込まれているため、NPCスプライトは重ねず、近づいた時の！マーカーで会話可能地点を示す。
 const SHOW_NPC_SPRITES = false;
 
 const DAY_INFO = [
@@ -50,6 +51,7 @@ const state = {
   debug: false,
   lastHintId: '',
   lastPointer: null,
+  todayIndex: new Date().getDay(),
   today: DAY_INFO[new Date().getDay()]
 };
 
@@ -115,7 +117,8 @@ async function boot() {
 
   state.ready = true;
   loading.classList.add('hidden');
-  dayBadge.textContent = `${state.today.label}｜${state.today.mood}`;
+  setDay(state.todayIndex);
+  dayButton.textContent = '曜日切替';
   setMap(state.data.initialMapId);
   requestAnimationFrame(loop);
 }
@@ -138,13 +141,16 @@ function resetGame() {
 }
 
 function currentMap() { return state.data.maps[state.currentMapId]; }
+function isVisibleByDay(entity) {
+  const visibleDays = entity.visibleDays;
+  if (!visibleDays || visibleDays.length === 0 || visibleDays.includes('all')) return true;
+  return visibleDays.includes(state.today.key);
+}
+function currentInteractables() {
+  return (currentMap().interactables || []).filter(isVisibleByDay);
+}
 function currentNpcs() {
-  const dayKey = state.today.key;
-  return state.data.npcs.filter(npc => {
-    if (npc.mapId !== state.currentMapId) return false;
-    if (!npc.visibleDays || npc.visibleDays.length === 0 || npc.visibleDays.includes('all')) return true;
-    return npc.visibleDays.includes(dayKey);
-  });
+  return state.data.npcs.filter(npc => npc.mapId === state.currentMapId && isVisibleByDay(npc));
 }
 
 function isWalkable(x, y) {
@@ -196,7 +202,7 @@ function nearestAction() {
     if (d <= (npc.range || 14)) candidates.push({ kind: 'npc', data: npc, distance: d, label: `${npc.name}と話す` });
   }
 
-  for (const item of currentMap().interactables || []) {
+  for (const item of currentInteractables()) {
     const c = rectCenter(item);
     const d = distance(p, c);
     const margin = item.type === 'door' || item.type === 'exit' ? 5 : 6;
@@ -239,6 +245,7 @@ function doAction() {
   const item = action.data;
   if (action.kind === 'npc') return openDialogue(getNpcDialogueId(item));
   if (action.kind === 'sign') return openDialogue(item.signId);
+  if (action.kind === 'event') return openDialogue(item.dialogueId);
   if (action.kind === 'board') return openBoard(item.boardId);
   if (action.kind === 'menu') return openMenu(item.menuId);
   if (action.kind === 'door') return openConfirm(item.confirmId, item);
@@ -272,16 +279,23 @@ function openDialogue(dialogueId) {
 function openBoard(boardId) {
   const board = state.data.boards[boardId];
   if (!board) return showMessage('掲示板', '掲示板データが見つかりません。', [{ label: '閉じる', type: 'close' }]);
+  const dayKey = state.today.key;
+  const body = (board.bodyByDay && board.bodyByDay[dayKey]) || board.body;
+  const linkLabel = (board.linkLabelByDay && board.linkLabelByDay[dayKey]) || board.linkLabel || 'リンクを開く';
+  const linkUrl = (board.linkUrlByDay && board.linkUrlByDay[dayKey]) || board.linkUrl;
   const choices = [];
-  if (board.linkUrl) choices.push({ label: board.linkLabel || 'リンクを開く', type: 'link', url: board.linkUrl, className: 'link' });
+  if (linkUrl) choices.push({ label: linkLabel, type: 'link', url: linkUrl, className: 'link' });
   choices.push({ label: '閉じる', type: 'close', className: 'secondary' });
-  showModal(board.title, board.body, choices);
+  showModal(board.title, body, choices);
 }
 
 function openMenu(menuId) {
   const menu = state.data.menus[menuId];
   if (!menu) return showMessage('メニュー', 'メニューデータが見つかりません。', [{ label: '閉じる', type: 'close' }]);
-  const body = `${menu.note}\n\n${menu.items.map(item => `・${item}`).join('\n')}`;
+  const dayKey = state.today.key;
+  const note = (menu.noteByDay && menu.noteByDay[dayKey]) || menu.note;
+  const items = (menu.itemsByDay && menu.itemsByDay[dayKey]) || menu.items || [];
+  const body = `${note}\n\n${items.map(item => `・${item}`).join('\n')}`;
   showModal(menu.title, body, [{ label: '閉じる', type: 'close' }]);
 }
 
@@ -360,14 +374,15 @@ function drawDebugOverlay() {
   (map.walkZones || []).forEach(z => ctx.strokeRect(pctToPx(z.x), pctToPx(z.y), pctToPx(z.w), pctToPx(z.h)));
 
   // interactables
-  (map.interactables || []).forEach(item => {
+  currentInteractables().forEach(item => {
     const colors = {
       door: 'rgba(80, 180, 255, 0.9)',
       exit: 'rgba(80, 180, 255, 0.9)',
       npc: 'rgba(255, 255, 120, 0.9)',
       board: 'rgba(120, 255, 220, 0.9)',
       sign: 'rgba(255, 180, 90, 0.9)',
-      menu: 'rgba(220, 150, 255, 0.9)'
+      menu: 'rgba(220, 150, 255, 0.9)',
+      event: 'rgba(255, 120, 200, 0.9)'
     };
     ctx.strokeStyle = colors[item.type] || 'rgba(255,255,255,0.9)';
     ctx.strokeRect(pctToPx(item.x), pctToPx(item.y), pctToPx(item.w), pctToPx(item.h));
@@ -432,6 +447,19 @@ function loop() {
   requestAnimationFrame(loop);
 }
 
+function setDay(index) {
+  state.todayIndex = (index + DAY_INFO.length) % DAY_INFO.length;
+  state.today = DAY_INFO[state.todayIndex];
+  dayBadge.textContent = `${state.today.label}｜${state.today.mood}`;
+  dayButton.textContent = '曜日切替';
+  updateHint(true);
+  render();
+}
+
+function cycleDay() {
+  setDay(state.todayIndex + 1);
+}
+
 function toggleDebug() {
   state.debug = !state.debug;
   debugButton.textContent = state.debug ? '座標ON' : '座標OFF';
@@ -454,6 +482,7 @@ function setupControls() {
     updateHint(true);
   });
   resetButton.addEventListener('click', resetGame);
+  dayButton.addEventListener('click', cycleDay);
   debugButton.addEventListener('click', toggleDebug);
   actionButton.addEventListener('click', doAction);
 
@@ -491,6 +520,7 @@ function setupControls() {
     if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); doAction(); }
     if (e.key === 'Escape' && state.modalOpen) closeModal();
     if (e.key === '`' || e.key === 'Tab') { e.preventDefault(); toggleDebug(); }
+    if (e.key === 'y' || e.key === 'Y') { e.preventDefault(); cycleDay(); }
   });
 
   window.addEventListener('keyup', (e) => {
