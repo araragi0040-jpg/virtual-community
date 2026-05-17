@@ -1,0 +1,14 @@
+﻿linkBoardId,order,label,type,targetId,url,note,enabled
+community_hub,1,語り場4U 公式サイト,url,,https://katariba4u.com/,語り場4Uの情報を見る,True
+community_hub,2,くさのね劇場 店舗情報,url,,https://kusanone-gekijyo.foodre.jp/,くさのね劇場の店舗情報を見る,True
+community_hub,3,ブランチカフェ Instagram,url,,https://www.instagram.com/branch_cafe/,ブランチカフェの雰囲気を見る,True
+community_hub,4,コミュニティニュース,url,,,作成中のニュースサイトURLをここに入れる,False
+community_hub,5,みんなの活動リンク,linkBoard,member_activities,,人物・仕事・活動のリンク集サンプル,True
+community_hub,6,語り場ガチャ,url,,,後で語り場ガチャURLを設定,False
+shops,1,語り場4U,url,,https://katariba4u.com/,中心拠点,True
+shops,2,くさのね劇場,url,,https://kusanone-gekijyo.foodre.jp/,表現・イベントの空間,True
+shops,3,ブランチカフェ,url,,https://www.instagram.com/branch_cafe/,カフェ・交流の空間,True
+member_activities,1,活動サンプルA：イベント主催,url,,,例：LIFE ARTS LIVE / 企画ページなど,False
+member_activities,2,活動サンプルB：制作・デザイン,url,,,例：ポートフォリオ / Instagramなど,False
+member_activities,3,活動サンプルC：仕事・サービス,url,,,例：HP / 予約フォームなど,False
+member_activities,4,3店舗リンクへ戻る,linkBoard,shops,,店舗リンク一覧を開く,True

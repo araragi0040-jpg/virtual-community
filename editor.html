@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>歩ける語り場 v013｜配置エディタ</title>
+  <link rel="stylesheet" href="editor.css" />
+</head>
+<body>
+  <main class="editor-shell">
+    <header class="editor-header">
+      <div>
+        <p class="eyebrow">Prototype Map Editor</p>
+        <h1>配置エディタ v013</h1>
+        <p class="lead">NPC・掲示板・入口・隠し要素の座標をドラッグで仮調整するための編集デモです。</p>
+      </div>
+      <a class="back-link" href="index.html">ゲームへ戻る</a>
+    </header>
+
+    <section class="toolbar" aria-label="編集メニュー">
+      <label>
+        マップ
+        <select id="mapSelect"></select>
+      </label>
+      <label>
+        レイヤー
+        <select id="layerSelect">
+          <option value="interactables">入口・掲示板・看板・メニュー</option>
+          <option value="npcs">NPC</option>
+          <option value="hidden">隠し要素</option>
+        </select>
+      </label>
+      <button id="copySelectedButton" type="button">選択中をコピー</button>
+      <button id="downloadMapsButton" type="button">maps.json保存</button>
+      <button id="downloadNpcsButton" type="button">npcs.json保存</button>
+      <button id="downloadHiddenButton" type="button">hidden.json保存</button>
+    </section>
+
+    <section class="editor-grid">
+      <div class="map-panel">
+        <canvas id="editorCanvas" width="1000" height="1000" aria-label="マップ編集キャンバス"></canvas>
+      </div>
+
+      <aside class="side-panel">
+        <h2>選択中データ</h2>
+        <p id="helpText" class="help-text">マップ上の枠や点をタップすると選択できます。選択後はドラッグで移動できます。</p>
+
+        <div id="selectedEmpty" class="empty-state">まだ何も選択されていません。</div>
+
+        <form id="editForm" class="edit-form hidden">
+          <label>ID<input id="fieldId" readonly /></label>
+          <label>表示名<input id="fieldLabel" /></label>
+          <div class="form-row">
+            <label>X<input id="fieldX" type="number" step="0.1" /></label>
+            <label>Y<input id="fieldY" type="number" step="0.1" /></label>
+          </div>
+          <div class="form-row">
+            <label>W<input id="fieldW" type="number" step="0.1" /></label>
+            <label>H<input id="fieldH" type="number" step="0.1" /></label>
+          </div>
+          <label>反応範囲<input id="fieldRange" type="number" step="0.1" /></label>
+          <p class="small-note">座標は0〜100のパーセント基準です。この形式のまま、後でスプレッドシート管理へ移行できます。</p>
+        </form>
+
+        <h2>このマップの対象</h2>
+        <div id="entityList" class="entity-list"></div>
+
+        <h2>出力プレビュー</h2>
+        <textarea id="outputBox" readonly></textarea>
+      </aside>
+    </section>
+  </main>
+
+  <script src="editor.js"></script>
+</body>
+</html>

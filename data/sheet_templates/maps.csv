@@ -1,0 +1,7 @@
+﻿id,name,type,image,startX,startY,startDir,walkZones
+outside_4u,語り場4U付近,outside,assets/maps/outside_4u.png,50,72,back,"[{""x"": 0, ""y"": 0, ""w"": 100, ""h"": 100}]"
+outside_kusanone,くさのね劇場付近,outside,assets/maps/outside_kusanone.png,64,8,front,"[{""x"": 0, ""y"": 0, ""w"": 100, ""h"": 100}]"
+outside_branch,ブランチカフェ付近,outside,assets/maps/outside_branch.png,6,52,right,"[{""x"": 0, ""y"": 0, ""w"": 100, ""h"": 100}]"
+room_4u,語り場4U 店内,room,assets/maps/room_4u.png,50,86,back,"[{""x"": 5, ""y"": 36, ""w"": 90, ""h"": 58}]"
+room_kusanone,くさのね劇場 店内,room,assets/maps/room_kusanone.png,50,86,back,"[{""x"": 5, ""y"": 30, ""w"": 90, ""h"": 64}]"
+room_branch,ブランチカフェ 店内,room,assets/maps/room_branch.png,50,86,back,"[{""x"": 5, ""y"": 34, ""w"": 90, ""h"": 60}]"

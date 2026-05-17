@@ -1,0 +1,78 @@
+{
+  "version": "v013",
+  "purpose": "Googleスプレッドシート移行と配置エディタ用のデータ設計メモ",
+  "coordinateSystem": {
+    "x": "0-100",
+    "y": "0-100",
+    "w": "0-100",
+    "h": "0-100",
+    "note": "全マップを正方形100x100の割合座標として扱う"
+  },
+  "sheets": [
+    {
+      "name": "maps",
+      "key": "id",
+      "description": "マップ基本情報"
+    },
+    {
+      "name": "interactables",
+      "key": "id",
+      "description": "入口・掲示板・看板・メニューなどの判定エリア"
+    },
+    {
+      "name": "transitions",
+      "key": "id",
+      "description": "マップ端移動の判定"
+    },
+    {
+      "name": "npcs",
+      "key": "id",
+      "description": "NPCの表示位置と会話ID"
+    },
+    {
+      "name": "dialogues",
+      "key": "id",
+      "description": "会話本文"
+    },
+    {
+      "name": "dialogue_options",
+      "key": "dialogueId+order",
+      "description": "会話選択肢"
+    },
+    {
+      "name": "boards",
+      "key": "id",
+      "description": "掲示板本文とリンク"
+    },
+    {
+      "name": "menus",
+      "key": "id",
+      "description": "店舗メニュー"
+    },
+    {
+      "name": "actions",
+      "key": "id",
+      "description": "メニュー行動と結果"
+    },
+    {
+      "name": "achievements",
+      "key": "id",
+      "description": "実績・称号"
+    },
+    {
+      "name": "hidden_spots",
+      "key": "id",
+      "description": "隠し要素"
+    },
+    {
+      "name": "link_boards",
+      "key": "id",
+      "description": "リンク集の見出し"
+    },
+    {
+      "name": "link_items",
+      "key": "linkBoardId+order",
+      "description": "リンク集内の各リンク"
+    }
+  ]
+}

@@ -11,6 +11,7 @@ const topActions = document.getElementById('topActions');
 const memoButton = document.getElementById('memoButton');
 const achievementButton = document.getElementById('achievementButton');
 const linkHubButton = document.getElementById('linkHubButton');
+const editorButton = document.getElementById('editorButton');
 const dayButton = document.getElementById('dayButton');
 const debugButton = document.getElementById('debugButton');
 const actionButton = document.getElementById('actionButton');
@@ -27,7 +28,7 @@ const modalBody = document.getElementById('modalBody');
 const modalChoices = document.getElementById('modalChoices');
 const modalXButton = document.getElementById('modalXButton');
 
-// v012: 掲示板・リンク集導線を追加し、後からURLや人物活動リンクを編集できる形に拡張。
+// v013: 配置エディタとスプレッドシート移行準備を追加。ゲーム本体はv012の動作を維持。
 const DATA_URLS = {
   maps: 'data/maps.json',
   npcs: 'data/npcs.json',
@@ -871,6 +872,7 @@ function setupControls() {
   bindTap(memoButton, openMemo);
   bindTap(achievementButton, openAchievements);
   bindTap(linkHubButton, () => openLinkBoard('community_hub'));
+  bindTap(editorButton, () => { closeActionDrawer(); window.location.href = 'editor.html'; });
   bindTap(dayButton, () => { cycleDay(); closeActionDrawer(); });
   bindTap(debugButton, () => { toggleDebug(); closeActionDrawer(); });
   bindTap(actionButton, doAction);

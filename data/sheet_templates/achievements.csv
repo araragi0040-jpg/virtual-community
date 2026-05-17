@@ -1,0 +1,11 @@
+﻿id,title,kind,description,lockedHint,condition,rewardText
+ach_first_step,はじめの一歩,achievement,はじめて何かを体験した。,店内メニューから何かを1回体験すると開放。,"{""type"": ""totalAtLeast"", ""value"": 1}",この街での最初の体験が記録されました。
+ach_katariba_seed,語りの芽,title,会話を重ね、少し場になじんできた。,会話ポイントを3以上にする。,"{""type"": ""statAtLeast"", ""stat"": ""talk"", ""value"": 3}",称号『語りの芽』を獲得しました。
+ach_first_song,一曲入魂,achievement,はじめてカラオケを体験した。,カラオケを1回体験する。,"{""type"": ""statAtLeast"", ""stat"": ""karaoke"", ""value"": 1}",歌うことで、場との距離が少し近づきました。
+ach_cafe_rest,ひと息の達人,title,カフェでゆっくり過ごす感覚をつかんだ。,休憩ポイントを3以上にする。,"{""type"": ""statAtLeast"", ""stat"": ""relax"", ""value"": 3}",称号『ひと息の達人』を獲得しました。
+ach_three_shops,三店舗めぐり,achievement,3つの店内をすべて訪れた。,語り場4U・くさのね劇場・ブランチカフェの店内に入る。,"{""all"": [{""type"": ""visitedMap"", ""mapId"": ""room_4u""}, {""type"": ""visitedMap"", ""mapId"": ""room_kusanone""}, {""type"": ""visitedMap"", ""mapId"": ""room_branch""}]}",街の輪郭が少し見えてきました。
+ach_hidden_first,小さな発見者,achievement,はじめて隠し要素を見つけた。,条件を満たすと出現する隠し要素を調べる。,"{""type"": ""hiddenCountAtLeast"", ""value"": 1}",何気ない場所にも、見つける楽しさがあるようです。
+ach_all_hidden_sample,街の気配を読む人,title,v007サンプルの隠し要素をすべて見つけた。,v007サンプルの隠し要素を3つ見つける。,"{""type"": ""hiddenCountAtLeast"", ""value"": 3}",称号『街の気配を読む人』を獲得しました。
+ach_board_reader,掲示板をのぞく人,achievement,はじめて掲示板を確認した。,どこかの掲示板を1回見る。,"{""type"": ""statAtLeast"", ""stat"": ""board"", ""value"": 1}",街の情報に触れる入口を見つけました。
+ach_link_visitor,リンクの向こう側へ,achievement,はじめて外部リンクを開いた。,掲示板やリンク案内所から外部リンクを1回開く。,"{""type"": ""statAtLeast"", ""stat"": ""link"", ""value"": 1}",仮想マップから、実際の活動へ一歩つながりました。
+ach_info_seeker,情報の旅人,title,複数の掲示板やリンク案内に触れ、街の情報を集めた。,掲示板ポイントとリンクポイントの合計を5以上にする。,"{""all"": [{""type"": ""statAtLeast"", ""stat"": ""board"", ""value"": 3}, {""type"": ""totalSpecificAtLeast"", ""stats"": [""board"", ""link""], ""value"": 5}]}",称号『情報の旅人』を獲得しました。

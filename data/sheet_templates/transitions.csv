@@ -1,0 +1,5 @@
+﻿mapId,id,edge,rangeStart,rangeEnd,targetMapId,spawnX,spawnY,spawnDir
+outside_4u,to_branch,right,36,64,outside_branch,4,52,right
+outside_4u,to_kusanone,bottom,36,62,outside_kusanone,64,4,front
+outside_kusanone,to_4u,top,50,74,outside_4u,48,96,back
+outside_branch,to_4u,left,40,62,outside_4u,96,49,left
