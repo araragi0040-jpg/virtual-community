@@ -23,6 +23,7 @@ const modalTitle = document.getElementById('modalTitle');
 const modalBody = document.getElementById('modalBody');
 const modalChoices = document.getElementById('modalChoices');
 
+// v008: 実績画面のスクロールとスマホ上部メニューの表示崩れを調整。
 const DATA_URLS = {
   maps: 'data/maps.json',
   npcs: 'data/npcs.json',
@@ -434,6 +435,7 @@ function showModal(title, body, choices = []) {
   state.modalOpen = true;
   modalTitle.textContent = title;
   modalBody.textContent = body;
+  modalBody.scrollTop = 0;
   modalChoices.innerHTML = '';
   choices.forEach(choice => {
     const btn = document.createElement('button');
@@ -446,7 +448,11 @@ function showModal(title, body, choices = []) {
 }
 
 function showMessage(title, body, choices) { showModal(title, body, choices); }
-function closeModal() { state.modalOpen = false; modal.classList.add('hidden'); updateHint(true); }
+function closeModal() {
+  state.modalOpen = false;
+  modal.classList.add('hidden');
+  updateHint(true);
+}
 
 function openDialogue(dialogueId) {
   const dialogue = state.data.dialogues[dialogueId];
@@ -764,6 +770,12 @@ function setupControls() {
   dayButton.addEventListener('click', cycleDay);
   debugButton.addEventListener('click', toggleDebug);
   actionButton.addEventListener('click', doAction);
+
+  // v008: モーダル背景タップでも閉じられるようにする。
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+  document.querySelector('.modal-panel').addEventListener('click', (e) => e.stopPropagation());
 
   document.querySelectorAll('[data-dir]').forEach(btn => {
     const dir = btn.dataset.dir;
