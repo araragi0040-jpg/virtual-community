@@ -126,7 +126,46 @@
             "fri"
           ]
         }
-      ]
+      ],
+      "blocks": [
+        {
+          "id": "block_4u_building",
+          "type": "block",
+          "label": "語り場4U建物",
+          "x": 24,
+          "y": 6,
+          "w": 52,
+          "h": 28
+        },
+        {
+          "id": "block_4u_left_trees",
+          "type": "block",
+          "label": "左側の木々",
+          "x": 0,
+          "y": 0,
+          "w": 18,
+          "h": 34
+        },
+        {
+          "id": "block_4u_right_trees",
+          "type": "block",
+          "label": "右側の木々",
+          "x": 76,
+          "y": 0,
+          "w": 24,
+          "h": 28
+        },
+        {
+          "id": "block_4u_bottom_shrubs",
+          "type": "block",
+          "label": "下側の植え込み",
+          "x": 0,
+          "y": 88,
+          "w": 22,
+          "h": 12
+        }
+      ],
+      "collisionRadius": 1.6
     },
     "outside_kusanone": {
       "id": "outside_kusanone",
@@ -216,7 +255,37 @@
             "sat"
           ]
         }
-      ]
+      ],
+      "blocks": [
+        {
+          "id": "block_kusanone_building_back",
+          "type": "block",
+          "label": "くさのね劇場建物奥",
+          "x": 22,
+          "y": 58,
+          "w": 56,
+          "h": 9
+        },
+        {
+          "id": "block_kusanone_left_trees",
+          "type": "block",
+          "label": "左側の木々",
+          "x": 0,
+          "y": 12,
+          "w": 18,
+          "h": 58
+        },
+        {
+          "id": "block_kusanone_right_trees",
+          "type": "block",
+          "label": "右側の木々",
+          "x": 80,
+          "y": 12,
+          "w": 20,
+          "h": 72
+        }
+      ],
+      "collisionRadius": 1.6
     },
     "outside_branch": {
       "id": "outside_branch",
@@ -306,7 +375,46 @@
             "sun"
           ]
         }
-      ]
+      ],
+      "blocks": [
+        {
+          "id": "block_branch_building",
+          "type": "block",
+          "label": "ブランチカフェ建物",
+          "x": 28,
+          "y": 5,
+          "w": 60,
+          "h": 25
+        },
+        {
+          "id": "block_branch_top_trees",
+          "type": "block",
+          "label": "上側の木々",
+          "x": 0,
+          "y": 0,
+          "w": 25,
+          "h": 28
+        },
+        {
+          "id": "block_branch_bottom_shrubs",
+          "type": "block",
+          "label": "下側の植え込み",
+          "x": 0,
+          "y": 78,
+          "w": 100,
+          "h": 22
+        },
+        {
+          "id": "block_branch_right_trees",
+          "type": "block",
+          "label": "右側の木々",
+          "x": 88,
+          "y": 20,
+          "w": 12,
+          "h": 60
+        }
+      ],
+      "collisionRadius": 1.6
     },
     "room_4u": {
       "id": "room_4u",
@@ -380,7 +488,37 @@
             "sat"
           ]
         }
-      ]
+      ],
+      "blocks": [
+        {
+          "id": "block_4u_counter",
+          "type": "block",
+          "label": "カウンター・酒棚",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 31
+        },
+        {
+          "id": "block_4u_left_table",
+          "type": "block",
+          "label": "左下テーブル",
+          "x": 7,
+          "y": 64,
+          "w": 22,
+          "h": 16
+        },
+        {
+          "id": "block_4u_right_shelf",
+          "type": "block",
+          "label": "右側棚",
+          "x": 76,
+          "y": 62,
+          "w": 18,
+          "h": 18
+        }
+      ],
+      "collisionRadius": 1.6
     },
     "room_kusanone": {
       "id": "room_kusanone",
@@ -454,7 +592,46 @@
             "fri"
           ]
         }
-      ]
+      ],
+      "blocks": [
+        {
+          "id": "block_kusanone_stage",
+          "type": "block",
+          "label": "ステージ",
+          "x": 24,
+          "y": 6,
+          "w": 54,
+          "h": 22
+        },
+        {
+          "id": "block_kusanone_table_left",
+          "type": "block",
+          "label": "左テーブル席",
+          "x": 13,
+          "y": 37,
+          "w": 28,
+          "h": 18
+        },
+        {
+          "id": "block_kusanone_table_right",
+          "type": "block",
+          "label": "右テーブル席",
+          "x": 59,
+          "y": 37,
+          "w": 28,
+          "h": 18
+        },
+        {
+          "id": "block_kusanone_counter",
+          "type": "block",
+          "label": "カウンター",
+          "x": 67,
+          "y": 58,
+          "w": 24,
+          "h": 18
+        }
+      ],
+      "collisionRadius": 1.6
     },
     "room_branch": {
       "id": "room_branch",
@@ -528,7 +705,28 @@
             "sun"
           ]
         }
-      ]
+      ],
+      "blocks": [
+        {
+          "id": "block_branch_counter",
+          "type": "block",
+          "label": "カウンター",
+          "x": 14,
+          "y": 50,
+          "w": 67,
+          "h": 15
+        },
+        {
+          "id": "block_branch_plants",
+          "type": "block",
+          "label": "植物・窓辺",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 12
+        }
+      ],
+      "collisionRadius": 1.6
     }
   }
 }

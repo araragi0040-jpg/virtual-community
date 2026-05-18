@@ -66,8 +66,8 @@ const RESIZE_CURSORS = {
   w: 'ew-resize'
 };
 
-const DRAFT_KEY = 'vc4u_editor_draft_v017';
-const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v017';
+const DRAFT_KEY = 'vc4u_editor_draft_v018';
+const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v018';
 const HISTORY_LIMIT = 60;
 
 function deepClone(obj) {
@@ -138,7 +138,7 @@ function updateEntityButtons() {
 
 function makeDraft() {
   return {
-    version: 'v017',
+    version: 'v018',
     savedAt: new Date().toISOString(),
     mapsData: state.mapsData,
     npcsData: state.npcsData,
@@ -253,6 +253,10 @@ function entities() {
       .filter(spot => spot.mapId === state.mapId)
       .map(item => ({ key: item.id, type: 'hidden', ref: item, shape: 'rect' }));
   }
+  if (state.layer === 'blocks') {
+    return (map.blocks || [])
+      .map(item => ({ key: item.id, type: 'block', ref: item, shape: 'rect' }));
+  }
   return [];
 }
 
@@ -263,7 +267,7 @@ function selectedEntity() {
 function colorFor(type) {
   return {
     door: '#69b6ff', exit: '#69b6ff', board: '#8fffe7', sign: '#ffb45a',
-    menu: '#d995ff', event: '#ff7ac8', npc: '#fff36d', hidden: '#ffe65a'
+    menu: '#d995ff', event: '#ff7ac8', npc: '#fff36d', hidden: '#ffe65a', block: '#ff6464'
   }[type] || '#ffffff';
 }
 
@@ -280,6 +284,7 @@ function getEntityTarget(e) {
   const item = e.ref;
   if (e.type === 'npc') return item.dialogueId || '';
   if (e.type === 'hidden') return item.title || '';
+  if (e.type === 'block') return '';
   const type = item.type || e.type;
   if (type === 'board') return item.boardId || '';
   if (type === 'sign') return item.signId || '';
@@ -302,6 +307,7 @@ function setEntityTarget(e, value) {
     if (v) item.title = v;
     return;
   }
+  if (e.type === 'block') return;
   const type = item.type || e.type;
   if (type === 'board') item.boardId = v || 'board_town_news';
   if (type === 'sign') item.signId = v || 'sign_to_branch';
@@ -324,7 +330,10 @@ function uniqueId(prefix, existingIds) {
 
 function allEntityIds() {
   const ids = new Set();
-  Object.values(state.mapsData?.maps || {}).forEach(map => (map.interactables || []).forEach(item => ids.add(item.id)));
+  Object.values(state.mapsData?.maps || {}).forEach(map => {
+    (map.interactables || []).forEach(item => ids.add(item.id));
+    (map.blocks || []).forEach(item => ids.add(item.id));
+  });
   (state.npcsData?.npcs || []).forEach(item => ids.add(item.id));
   (state.hiddenData?.hiddenSpots || []).forEach(item => ids.add(item.id));
   return ids;
@@ -379,6 +388,17 @@ function makeNewEntityForCurrentLayer() {
       stats: { event: 1 }
     };
   }
+  if (state.layer === 'blocks') {
+    return {
+      id: uniqueId(`block_${state.mapId}`, ids),
+      type: 'block',
+      label: '新しい通行不可ブロック',
+      x: 38,
+      y: 42,
+      w: 18,
+      h: 14
+    };
+  }
   return null;
 }
 
@@ -390,6 +410,7 @@ function addEntity() {
   if (state.layer === 'interactables') currentMap().interactables = [ ...(currentMap().interactables || []), item ];
   if (state.layer === 'npcs') state.npcsData.npcs = [ ...(state.npcsData.npcs || []), item ];
   if (state.layer === 'hidden') state.hiddenData.hiddenSpots = [ ...(state.hiddenData.hiddenSpots || []), item ];
+  if (state.layer === 'blocks') currentMap().blocks = [ ...(currentMap().blocks || []), item ];
   state.selectedKey = item.id;
   helpText.textContent = '新しい対象を追加しました。位置・範囲・種類を調整してください。';
   renderAll();
@@ -406,6 +427,7 @@ function duplicateSelected() {
   if (state.layer === 'interactables') currentMap().interactables.push(item);
   if (state.layer === 'npcs') state.npcsData.npcs.push(item);
   if (state.layer === 'hidden') state.hiddenData.hiddenSpots.push(item);
+  if (state.layer === 'blocks') { currentMap().blocks = currentMap().blocks || []; currentMap().blocks.push(item); }
   state.selectedKey = item.id;
   helpText.textContent = '選択中の対象を複製しました。';
   renderAll();
@@ -420,6 +442,7 @@ function deleteSelected() {
   if (state.layer === 'interactables') currentMap().interactables = (currentMap().interactables || []).filter(item => item.id !== e.key);
   if (state.layer === 'npcs') state.npcsData.npcs = (state.npcsData.npcs || []).filter(item => item.id !== e.key);
   if (state.layer === 'hidden') state.hiddenData.hiddenSpots = (state.hiddenData.hiddenSpots || []).filter(item => item.id !== e.key);
+  if (state.layer === 'blocks') currentMap().blocks = (currentMap().blocks || []).filter(item => item.id !== e.key);
   state.selectedKey = '';
   helpText.textContent = '選択中の対象を削除しました。Undoで戻せます。';
   renderAll();
@@ -507,6 +530,17 @@ function drawAllOverlays() {
   const map = currentMap();
   ctx.save();
   ctx.lineWidth = 3;
+
+  // 通行不可ブロックは、どのレイヤーでも薄い赤で常に表示
+  (map.blocks || []).forEach(block => {
+    const isSelected = state.layer === 'blocks' && block.id === state.selectedKey;
+    ctx.fillStyle = isSelected ? 'rgba(255,100,100,.34)' : 'rgba(255,80,80,.16)';
+    ctx.strokeStyle = isSelected ? 'rgba(255,245,245,.95)' : 'rgba(255,100,100,.48)';
+    ctx.lineWidth = isSelected ? 5 : 2;
+    ctx.fillRect(pctToPx(block.x), pctToPx(block.y), pctToPx(block.w), pctToPx(block.h));
+    ctx.strokeRect(pctToPx(block.x), pctToPx(block.y), pctToPx(block.w), pctToPx(block.h));
+    if (state.layer !== 'blocks') drawLabel(block.label || block.id, block.x, block.y - 1, false);
+  });
 
   // マップ遷移範囲は常に赤で表示
   (map.transitions || []).forEach(t => {
@@ -597,8 +631,9 @@ function renderForm() {
   fields.target.value = getEntityTarget(e);
   fields.w.disabled = e.shape === 'point';
   fields.h.disabled = e.shape === 'point';
-  fields.type.disabled = e.type === 'npc' || e.type === 'hidden';
-  fields.target.disabled = e.type === 'hidden';
+  fields.range.disabled = e.type === 'block';
+  fields.type.disabled = e.type === 'npc' || e.type === 'hidden' || e.type === 'block';
+  fields.target.disabled = e.type === 'hidden' || e.type === 'block';
   outputBox.value = JSON.stringify(item, null, 2);
   updateEntityButtons();
 }
@@ -807,7 +842,7 @@ function applyFieldChanges() {
     item.w = Number(clamp(fields.w.value, 0.1, 100).toFixed(1));
     item.h = Number(clamp(fields.h.value, 0.1, 100).toFixed(1));
   }
-  item.range = Number(clamp(fields.range.value, 0, 100).toFixed(1));
+  if (e.type !== 'block') item.range = Number(clamp(fields.range.value, 0, 100).toFixed(1));
   renderAll();
 }
 

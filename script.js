@@ -42,8 +42,8 @@ const DATA_URLS = {
 };
 
 // v004: 背景画像に人物が描き込まれているため、NPCスプライトは重ねず、近づいた時の！マーカーで会話可能地点を示す。
-const EDITOR_DRAFT_KEY = 'vc4u_editor_draft_v017';
-const EDITOR_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v017';
+const EDITOR_DRAFT_KEY = 'vc4u_editor_draft_v018';
+const EDITOR_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v018';
 
 const SHOW_NPC_SPRITES = false;
 
@@ -400,11 +400,27 @@ function makeStamp() {
   return `${state.today.label} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 }
 
+function currentBlocks() {
+  const map = currentMap();
+  if (!map) return [];
+  return (map.blocks || []).filter(block => block.enabled !== false && isVisibleByDay(block));
+}
+
+function isBlockedByCollision(x, y) {
+  const map = currentMap();
+  if (!map) return false;
+  const radius = Number(map.collisionRadius ?? 1.6);
+  return currentBlocks().some(block => pointInRect({ x, y }, block, radius));
+}
+
 function isWalkable(x, y) {
   const map = currentMap();
   if (!map) return false;
-  if (!map.walkZones || map.walkZones.length === 0) return x >= 0 && x <= 100 && y >= 0 && y <= 100;
-  return map.walkZones.some(z => pointInRect({ x, y }, z, 0));
+  const inWalkZone = (!map.walkZones || map.walkZones.length === 0)
+    ? (x >= 0 && x <= 100 && y >= 0 && y <= 100)
+    : map.walkZones.some(z => pointInRect({ x, y }, z, 0));
+  if (!inWalkZone) return false;
+  return !isBlockedByCollision(x, y);
 }
 
 function tryTransition(x, y) {
@@ -756,6 +772,17 @@ function drawDebugOverlay() {
   // walk zones
   ctx.strokeStyle = 'rgba(120, 255, 120, 0.6)';
   (map.walkZones || []).forEach(z => ctx.strokeRect(pctToPx(z.x), pctToPx(z.y), pctToPx(z.w), pctToPx(z.h)));
+
+  // blocked zones
+  currentBlocks().forEach(block => {
+    ctx.strokeStyle = 'rgba(255, 90, 90, 0.9)';
+    ctx.fillStyle = 'rgba(255, 90, 90, 0.18)';
+    ctx.fillRect(pctToPx(block.x), pctToPx(block.y), pctToPx(block.w), pctToPx(block.h));
+    ctx.strokeRect(pctToPx(block.x), pctToPx(block.y), pctToPx(block.w), pctToPx(block.h));
+    ctx.font = 'bold 15px system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(255, 220, 220, 0.95)';
+    ctx.fillText(block.id, pctToPx(block.x), pctToPx(block.y) - 4);
+  });
 
   // interactables
   currentInteractables().forEach(item => {

@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>歩ける語り場 v017｜配置エディタ</title>
-  <link rel="stylesheet" href="editor.css?v=016" />
+  <title>歩ける語り場 v018｜配置エディタ</title>
+  <link rel="stylesheet" href="editor.css?v=018" />
 </head>
 <body>
   <main class="editor-shell">
     <header class="editor-header">
       <div>
         <p class="eyebrow">Prototype Map Editor</p>
-        <h1>配置エディタ v017</h1>
-        <p class="lead">NPC・掲示板・入口・隠し要素の座標をドラッグで仮調整するための編集デモです。四角い範囲は角・辺をドラッグしてサイズ調整できます。v017では対象の新規追加・複製・削除にも対応し、配置データをよりノーコード編集に近づけています。</p>
+        <h1>配置エディタ v018</h1>
+        <p class="lead">NPC・掲示板・入口・隠し要素・通行不可ブロックの座標をドラッグで仮調整するための編集デモです。四角い範囲は角・辺をドラッグしてサイズ調整できます。v018では通行不可ブロックの追加・削除・リサイズにも対応し、ゲーム側の当たり判定へ反映できます。</p>
       </div>
       <a class="back-link" href="index.html">ゲームへ戻る</a>
     </header>
@@ -28,6 +28,7 @@
           <option value="interactables">入口・掲示板・看板・メニュー</option>
           <option value="npcs">NPC</option>
           <option value="hidden">隠し要素</option>
+          <option value="blocks">通行不可ブロック</option>
         </select>
       </label>
     </section>
@@ -38,7 +39,7 @@
           <p class="eyebrow">Editor Actions</p>
           <h2>保存・履歴操作</h2>
         </div>
-        <p class="small-note">v017：Undo / Redo・下書き保存・対象追加/削除をここから行います。</p>
+        <p class="small-note">v018：Undo / Redo・下書き保存・対象追加/削除・ブロック編集をここから行います。</p>
       </div>
       <div class="action-grid">
         <button id="undoButton" type="button">戻す</button>
@@ -80,6 +81,7 @@
             <option value="event">イベント</option>
             <option value="npc">NPC</option>
             <option value="hidden">隠し要素</option>
+            <option value="block">通行不可</option>
           </select></label>
           <label>リンク/会話ID<input id="fieldTarget" placeholder="boardId / signId / dialogueId など" /></label>
           <div class="form-row">
@@ -106,6 +108,6 @@
     </section>
   </main>
 
-  <script src="editor.js?v=017"></script>
+  <script src="editor.js?v=018"></script>
 </body>
 </html>

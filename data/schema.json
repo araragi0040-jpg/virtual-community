@@ -1,5 +1,5 @@
 {
-  "version": "v015",
+  "version": "v018",
   "purpose": "Googleスプレッドシート移行と配置エディタ用のデータ設計メモ",
   "coordinateSystem": {
     "x": "0-100",
@@ -23,6 +23,11 @@
       "name": "transitions",
       "key": "id",
       "description": "マップ端移動の判定"
+    },
+    {
+      "name": "blocks",
+      "key": "id",
+      "description": "通行不可ブロック・当たり判定エリア"
     },
     {
       "name": "npcs",
