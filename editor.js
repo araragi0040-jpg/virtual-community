@@ -559,20 +559,44 @@ function drawMap() {
 function drawGrid() {
   if (!state.showGrid) return;
   const step = Number(state.gridSize) || 5;
+
+  const drawLineSet = ({ minorColor, majorColor, minorWidth, majorWidth }) => {
+    for (let v = step; v < 100; v += step) {
+      const isMajor = Math.abs(v % 10) < 0.001 || Math.abs((v % 10) - 10) < 0.001;
+      const px = pctToPx(v);
+      ctx.lineWidth = isMajor ? majorWidth : minorWidth;
+      ctx.strokeStyle = isMajor ? majorColor : minorColor;
+
+      ctx.beginPath();
+      ctx.moveTo(px, 0);
+      ctx.lineTo(px, canvas.height);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(0, px);
+      ctx.lineTo(canvas.width, px);
+      ctx.stroke();
+    }
+  };
+
   ctx.save();
-  ctx.lineWidth = 1;
-  ctx.strokeStyle = 'rgba(255,255,255,.20)';
-  for (let v = step; v < 100; v += step) {
-    const px = pctToPx(v);
-    ctx.beginPath();
-    ctx.moveTo(px, 0);
-    ctx.lineTo(px, canvas.height);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(0, px);
-    ctx.lineTo(canvas.width, px);
-    ctx.stroke();
-  }
+  ctx.lineCap = 'butt';
+
+  // v021: グリッドを見やすくするため、暗めの主線＋薄い明線の二重線に変更。
+  // 明るい外マップでも、暗めの店内マップでも見えるようにする。
+  drawLineSet({
+    minorColor: 'rgba(18, 12, 8, .50)',
+    majorColor: 'rgba(18, 12, 8, .68)',
+    minorWidth: 1.25,
+    majorWidth: 2
+  });
+  drawLineSet({
+    minorColor: 'rgba(255, 246, 210, .28)',
+    majorColor: 'rgba(255, 218, 94, .62)',
+    minorWidth: .7,
+    majorWidth: 1.15
+  });
+
   ctx.restore();
 }
 
