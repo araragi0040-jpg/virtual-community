@@ -39,6 +39,17 @@ const buttons = {
   downloadHidden: document.getElementById('downloadHiddenButton')
 };
 
+const editorOptions = {
+  showGrid: document.getElementById('showGridToggle'),
+  snap: document.getElementById('snapToggle'),
+  gridSize: document.getElementById('gridSizeSelect'),
+  showBlocks: document.getElementById('showBlocksToggle'),
+  showInteractables: document.getElementById('showInteractablesToggle'),
+  showNpcs: document.getElementById('showNpcsToggle'),
+  showHidden: document.getElementById('showHiddenToggle'),
+  showTransitions: document.getElementById('showTransitionsToggle')
+};
+
 const state = {
   mapsData: null,
   npcsData: null,
@@ -50,7 +61,11 @@ const state = {
   drag: null,
   history: [],
   future: [],
-  formHistoryArmed: false
+  formHistoryArmed: false,
+  showGrid: true,
+  snapToGrid: false,
+  gridSize: 5,
+  visibility: { blocks: true, interactables: true, npcs: true, hidden: true, transitions: true }
 };
 
 const HANDLE_SIZE_PCT = 2.2;
@@ -138,7 +153,7 @@ function updateEntityButtons() {
 
 function makeDraft() {
   return {
-    version: 'v018',
+    version: 'v020',
     savedAt: new Date().toISOString(),
     mapsData: state.mapsData,
     npcsData: state.npcsData,
@@ -188,6 +203,21 @@ function previewGame() {
 function pctToPx(v) { return (v / 100) * canvas.width; }
 function pxToPct(v) { return (v / canvas.width) * 100; }
 function clamp(v, min = 0, max = 100) { return Math.max(min, Math.min(max, Number(v) || 0)); }
+function snapValue(v) {
+  if (!state.snapToGrid) return Number(v);
+  const step = Number(state.gridSize) || 5;
+  return Math.round(Number(v) / step) * step;
+}
+function snapPoint(p) {
+  return { x: clamp(snapValue(p.x)), y: clamp(snapValue(p.y)) };
+}
+function maybeSnapRect(item) {
+  if (!state.snapToGrid || !item) return;
+  item.x = Number(clamp(snapValue(item.x), 0, 100 - (Number(item.w) || 0)).toFixed(1));
+  item.y = Number(clamp(snapValue(item.y), 0, 100 - (Number(item.h) || 0)).toFixed(1));
+  if ('w' in item) item.w = Number(clamp(snapValue(item.w), MIN_RECT_SIZE_PCT, 100 - item.x).toFixed(1));
+  if ('h' in item) item.h = Number(clamp(snapValue(item.h), MIN_RECT_SIZE_PCT, 100 - item.y).toFixed(1));
+}
 function currentMap() { return state.mapsData.maps[state.mapId]; }
 
 async function loadJson(url) {
@@ -526,13 +556,41 @@ function drawMap() {
   if (img) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 }
 
+function drawGrid() {
+  if (!state.showGrid) return;
+  const step = Number(state.gridSize) || 5;
+  ctx.save();
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(255,255,255,.20)';
+  for (let v = step; v < 100; v += step) {
+    const px = pctToPx(v);
+    ctx.beginPath();
+    ctx.moveTo(px, 0);
+    ctx.lineTo(px, canvas.height);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, px);
+    ctx.lineTo(canvas.width, px);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function isEntityVisible(e) {
+  if (!e) return true;
+  if (e.type === 'block') return state.visibility.blocks;
+  if (e.type === 'npc') return state.visibility.npcs;
+  if (e.type === 'hidden') return state.visibility.hidden;
+  return state.visibility.interactables;
+}
+
 function drawAllOverlays() {
   const map = currentMap();
   ctx.save();
   ctx.lineWidth = 3;
 
-  // 通行不可ブロックは、どのレイヤーでも薄い赤で常に表示
-  (map.blocks || []).forEach(block => {
+  // 通行不可ブロックは、どのレイヤーでも薄い赤で表示可能
+  if (state.visibility.blocks) (map.blocks || []).forEach(block => {
     const isSelected = state.layer === 'blocks' && block.id === state.selectedKey;
     ctx.fillStyle = isSelected ? 'rgba(255,100,100,.34)' : 'rgba(255,80,80,.16)';
     ctx.strokeStyle = isSelected ? 'rgba(255,245,245,.95)' : 'rgba(255,100,100,.48)';
@@ -542,8 +600,8 @@ function drawAllOverlays() {
     if (state.layer !== 'blocks') drawLabel(block.label || block.id, block.x, block.y - 1, false);
   });
 
-  // マップ遷移範囲は常に赤で表示
-  (map.transitions || []).forEach(t => {
+  // マップ遷移範囲
+  if (state.visibility.transitions) (map.transitions || []).forEach(t => {
     const [a, b] = t.range || [0, 100];
     ctx.fillStyle = 'rgba(255, 100, 100, 0.24)';
     if (t.edge === 'right') ctx.fillRect(pctToPx(96), pctToPx(a), pctToPx(4), pctToPx(b - a));
@@ -552,7 +610,7 @@ function drawAllOverlays() {
     if (t.edge === 'top') ctx.fillRect(pctToPx(a), 0, pctToPx(b - a), pctToPx(4));
   });
 
-  for (const e of entities()) {
+  for (const e of entities().filter(isEntityVisible)) {
     const item = e.ref;
     const selected = e.key === state.selectedKey;
     ctx.strokeStyle = colorFor(e.type);
@@ -641,7 +699,7 @@ function renderForm() {
 function validateCurrentMap() {
   if (!validationBox) return;
   const warnings = [];
-  for (const e of entities()) {
+  for (const e of entities().filter(isEntityVisible)) {
     const item = e.ref;
     const name = item.label || item.name || e.key;
     if (e.shape === 'point') {
@@ -664,6 +722,7 @@ function validateCurrentMap() {
 
 function renderAll() {
   drawMap();
+  drawGrid();
   drawAllOverlays();
   renderList();
   renderForm();
@@ -677,7 +736,7 @@ function selectEntity(key) {
 }
 
 function findEntityAt(p) {
-  const list = entities().slice().reverse();
+  const list = entities().filter(isEntityVisible).slice().reverse();
   for (const e of list) {
     const item = e.ref;
     if (e.shape === 'point') {
@@ -741,6 +800,7 @@ function resizeRectFromDrag(item, p, drag) {
   item.y = Number(y.toFixed(1));
   item.w = Number(w.toFixed(1));
   item.h = Number(h.toFixed(1));
+  if (state.snapToGrid) maybeSnapRect(item);
 }
 
 canvas.addEventListener('pointerdown', ev => {
@@ -810,11 +870,15 @@ canvas.addEventListener('pointermove', ev => {
   if (state.drag.mode === 'resize' && e.shape !== 'point') {
     resizeRectFromDrag(item, p, state.drag);
   } else if (e.shape === 'point') {
-    item.x = Number(clamp(p.x - state.drag.offsetX).toFixed(1));
-    item.y = Number(clamp(p.y - state.drag.offsetY).toFixed(1));
+    const nx = state.snapToGrid ? snapValue(p.x - state.drag.offsetX) : p.x - state.drag.offsetX;
+    const ny = state.snapToGrid ? snapValue(p.y - state.drag.offsetY) : p.y - state.drag.offsetY;
+    item.x = Number(clamp(nx).toFixed(1));
+    item.y = Number(clamp(ny).toFixed(1));
   } else {
-    item.x = Number(clamp(p.x - state.drag.offsetX, 0, 100 - (item.w || 0)).toFixed(1));
-    item.y = Number(clamp(p.y - state.drag.offsetY, 0, 100 - (item.h || 0)).toFixed(1));
+    const nx = state.snapToGrid ? snapValue(p.x - state.drag.offsetX) : p.x - state.drag.offsetX;
+    const ny = state.snapToGrid ? snapValue(p.y - state.drag.offsetY) : p.y - state.drag.offsetY;
+    item.x = Number(clamp(nx, 0, 100 - (item.w || 0)).toFixed(1));
+    item.y = Number(clamp(ny, 0, 100 - (item.h || 0)).toFixed(1));
   }
   renderAll();
 });
@@ -843,6 +907,14 @@ function applyFieldChanges() {
     item.h = Number(clamp(fields.h.value, 0.1, 100).toFixed(1));
   }
   if (e.type !== 'block') item.range = Number(clamp(fields.range.value, 0, 100).toFixed(1));
+  if (state.snapToGrid) {
+    if (e.shape === 'point') {
+      item.x = Number(clamp(snapValue(item.x)).toFixed(1));
+      item.y = Number(clamp(snapValue(item.y)).toFixed(1));
+    } else {
+      maybeSnapRect(item);
+    }
+  }
   renderAll();
 }
 
@@ -870,6 +942,23 @@ layerSelect.addEventListener('change', () => {
   state.selectedKey = '';
   state.formHistoryArmed = false;
   renderAll();
+});
+
+
+function syncEditorOptionsFromControls() {
+  state.showGrid = !!editorOptions.showGrid?.checked;
+  state.snapToGrid = !!editorOptions.snap?.checked;
+  state.gridSize = Number(editorOptions.gridSize?.value) || 5;
+  state.visibility.blocks = !!editorOptions.showBlocks?.checked;
+  state.visibility.interactables = !!editorOptions.showInteractables?.checked;
+  state.visibility.npcs = !!editorOptions.showNpcs?.checked;
+  state.visibility.hidden = !!editorOptions.showHidden?.checked;
+  state.visibility.transitions = !!editorOptions.showTransitions?.checked;
+  renderAll();
+}
+
+Object.values(editorOptions).forEach(el => {
+  el?.addEventListener('change', syncEditorOptionsFromControls);
 });
 
 function downloadJson(filename, obj) {

@@ -172,3 +172,38 @@ button:disabled {
 #fieldType:disabled, #fieldTarget:disabled {
   opacity: .62;
 }
+
+/* v020: grid/snap and layer visibility controls */
+.view-toolbar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: center;
+}
+.inline-check {
+  display: flex !important;
+  align-items: center;
+  gap: 8px !important;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  background: #1f160f;
+  color: var(--text) !important;
+}
+.inline-check input {
+  width: auto;
+  accent-color: var(--accent);
+}
+@media (max-width: 860px) {
+  .view-toolbar {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .view-toolbar label {
+    grid-column: auto !important;
+  }
+  .inline-check {
+    font-size: .82rem;
+    padding: 7px 8px;
+  }
+}
