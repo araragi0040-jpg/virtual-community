@@ -103,10 +103,56 @@ function createEmptyExperience() {
 function pctToPx(v) { return (v / 100) * canvas.width; }
 function pxToPct(v) { return (v / canvas.width) * 100; }
 function distance(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
-function pointInRect(p, r, margin = 0) {
-  return p.x >= r.x - margin && p.x <= r.x + r.w + margin && p.y >= r.y - margin && p.y <= r.y + r.h + margin;
+function toNum(v, fallback = 0) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
 }
-function rectCenter(r) { return { x: r.x + r.w / 2, y: r.y + r.h / 2 }; }
+function normalizeRect(r) {
+  const x = toNum(r.x);
+  const y = toNum(r.y);
+  const w = toNum(r.w);
+  const h = toNum(r.h);
+  return {
+    x: w >= 0 ? x : x + w,
+    y: h >= 0 ? y : y + h,
+    w: Math.abs(w),
+    h: Math.abs(h)
+  };
+}
+function pointInRect(p, r, margin = 0) {
+  const rect = normalizeRect(r);
+  const m = toNum(margin);
+  return p.x >= rect.x - m && p.x <= rect.x + rect.w + m && p.y >= rect.y - m && p.y <= rect.y + rect.h + m;
+}
+function rectsIntersect(a, b, margin = 0) {
+  const ra = normalizeRect(a);
+  const rb = normalizeRect(b);
+  const m = toNum(margin);
+  return !(
+    ra.x + ra.w < rb.x - m ||
+    ra.x > rb.x + rb.w + m ||
+    ra.y + ra.h < rb.y - m ||
+    ra.y > rb.y + rb.h + m
+  );
+}
+function intersectionArea(a, b, margin = 0) {
+  const ra = normalizeRect(a);
+  const rb = normalizeRect({
+    x: toNum(b.x) - toNum(margin),
+    y: toNum(b.y) - toNum(margin),
+    w: toNum(b.w) + toNum(margin) * 2,
+    h: toNum(b.h) + toNum(margin) * 2
+  });
+  const left = Math.max(ra.x, rb.x);
+  const right = Math.min(ra.x + ra.w, rb.x + rb.w);
+  const top = Math.max(ra.y, rb.y);
+  const bottom = Math.min(ra.y + ra.h, rb.y + rb.h);
+  return Math.max(0, right - left) * Math.max(0, bottom - top);
+}
+function rectCenter(r) {
+  const rect = normalizeRect(r);
+  return { x: rect.x + rect.w / 2, y: rect.y + rect.h / 2 };
+}
 function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
 function loadExperience() {
@@ -406,21 +452,59 @@ function currentBlocks() {
   return (map.blocks || []).filter(block => block.enabled !== false && isVisibleByDay(block));
 }
 
+function playerHitboxAt(x, y) {
+  const map = currentMap();
+  const cfg = map?.playerHitbox || {};
+  const w = toNum(cfg.w, 4.8);
+  const h = toNum(cfg.h, 3.8);
+  const offsetY = toNum(cfg.offsetY, -1.4);
+  return {
+    x: x - w / 2,
+    y: y + offsetY - h / 2,
+    w,
+    h
+  };
+}
+
+function blockCollisionMargin() {
+  const map = currentMap();
+  return toNum(map?.collisionMargin, 0.15);
+}
+
 function isBlockedByCollision(x, y) {
+  const hitbox = playerHitboxAt(x, y);
+  const margin = blockCollisionMargin();
+  return currentBlocks().some(block => rectsIntersect(hitbox, block, margin));
+}
+
+function collisionAmountAt(x, y) {
+  const hitbox = playerHitboxAt(x, y);
+  const margin = blockCollisionMargin();
+  return currentBlocks().reduce((sum, block) => sum + intersectionArea(hitbox, block, margin), 0);
+}
+
+function isInsideWalkZone(x, y) {
   const map = currentMap();
   if (!map) return false;
-  const radius = Number(map.collisionRadius ?? 1.6);
-  return currentBlocks().some(block => pointInRect({ x, y }, block, radius));
+  const hitbox = playerHitboxAt(x, y);
+  return (!map.walkZones || map.walkZones.length === 0)
+    ? (hitbox.x >= 0 && hitbox.x + hitbox.w <= 100 && hitbox.y >= 0 && hitbox.y + hitbox.h <= 100)
+    : map.walkZones.some(z => rectsIntersect(hitbox, z, 0));
+}
+
+function canMoveTo(nextX, nextY) {
+  if (!isInsideWalkZone(nextX, nextY)) return false;
+  if (!isBlockedByCollision(nextX, nextY)) return true;
+
+  // 編集でプレイヤーの上にブロックを置いた場合に閉じ込められないよう、
+  // すでに接触中で「重なり量が減る移動」だけは許可する。
+  const currentOverlap = collisionAmountAt(state.player.x, state.player.y);
+  const nextOverlap = collisionAmountAt(nextX, nextY);
+  return currentOverlap > 0 && nextOverlap < currentOverlap;
 }
 
 function isWalkable(x, y) {
-  const map = currentMap();
-  if (!map) return false;
-  const inWalkZone = (!map.walkZones || map.walkZones.length === 0)
-    ? (x >= 0 && x <= 100 && y >= 0 && y <= 100)
-    : map.walkZones.some(z => pointInRect({ x, y }, z, 0));
-  if (!inWalkZone) return false;
-  return !isBlockedByCollision(x, y);
+  return canMoveTo(x, y);
 }
 
 function tryTransition(x, y) {
@@ -447,7 +531,7 @@ function movePlayer(dx, dy, dir) {
   next.x = clamp(next.x, 0, 100);
   next.y = clamp(next.y, 0, 100);
 
-  if (isWalkable(next.x, next.y)) {
+  if (canMoveTo(next.x, next.y)) {
     state.player.x = next.x;
     state.player.y = next.y;
   }
@@ -824,7 +908,15 @@ function drawDebugOverlay() {
     if (t.edge === 'top') ctx.fillRect(pctToPx(a), 0, pctToPx(b - a), pctToPx(4));
   });
 
-  // player coordinate crosshair
+  // player coordinate crosshair + actual collision hitbox
+  const ph = playerHitboxAt(state.player.x, state.player.y);
+  const touchingBlock = isBlockedByCollision(state.player.x, state.player.y);
+  ctx.fillStyle = touchingBlock ? 'rgba(255, 80, 80, 0.28)' : 'rgba(80, 180, 255, 0.22)';
+  ctx.strokeStyle = touchingBlock ? 'rgba(255, 80, 80, 0.95)' : 'rgba(80, 180, 255, 0.95)';
+  ctx.lineWidth = 2;
+  ctx.fillRect(pctToPx(ph.x), pctToPx(ph.y), pctToPx(ph.w), pctToPx(ph.h));
+  ctx.strokeRect(pctToPx(ph.x), pctToPx(ph.y), pctToPx(ph.w), pctToPx(ph.h));
+
   ctx.fillStyle = '#fff';
   ctx.font = 'bold 16px system-ui, sans-serif';
   ctx.fillText(`P ${state.player.x.toFixed(1)},${state.player.y.toFixed(1)}`, pctToPx(state.player.x) + 10, pctToPx(state.player.y) + 10);
@@ -926,7 +1018,7 @@ function setupControls() {
   bindTap(memoButton, openMemo);
   bindTap(achievementButton, openAchievements);
   bindTap(linkHubButton, () => openLinkBoard('community_hub'));
-  bindTap(editorButton, () => { closeActionDrawer(); window.location.href = 'editor.html?v=016'; });
+  bindTap(editorButton, () => { closeActionDrawer(); window.location.href = 'editor.html?v=019'; });
   bindTap(dayButton, () => { cycleDay(); closeActionDrawer(); });
   bindTap(debugButton, () => { toggleDebug(); closeActionDrawer(); });
   bindTap(actionButton, doAction);
