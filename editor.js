@@ -11,6 +11,24 @@ const editForm = document.getElementById('editForm');
 const helpText = document.getElementById('helpText');
 const validationBox = document.getElementById('validationBox');
 
+const contentEditor = document.getElementById('contentEditor');
+const contentHelp = document.getElementById('contentHelp');
+const contentKind = document.getElementById('contentKind');
+const contentForm = document.getElementById('contentForm');
+const contentFields = {
+  id: document.getElementById('contentId'),
+  title: document.getElementById('contentTitle'),
+  body: document.getElementById('contentBody'),
+  linkLabel: document.getElementById('contentLinkLabel'),
+  linkUrl: document.getElementById('contentLinkUrl'),
+  json: document.getElementById('contentJson'),
+  titleLabel: document.getElementById('contentTitleLabel'),
+  bodyLabel: document.getElementById('contentBodyLabel'),
+  linkLabelLabel: document.getElementById('contentLinkLabelLabel'),
+  linkUrlLabel: document.getElementById('contentLinkUrlLabel'),
+  jsonLabel: document.getElementById('contentJsonLabel')
+};
+
 const fields = {
   id: document.getElementById('fieldId'),
   label: document.getElementById('fieldLabel'),
@@ -36,7 +54,13 @@ const buttons = {
   copySelected: document.getElementById('copySelectedButton'),
   downloadMaps: document.getElementById('downloadMapsButton'),
   downloadNpcs: document.getElementById('downloadNpcsButton'),
-  downloadHidden: document.getElementById('downloadHiddenButton')
+  downloadHidden: document.getElementById('downloadHiddenButton'),
+  downloadDialogues: document.getElementById('downloadDialoguesButton'),
+  downloadBoards: document.getElementById('downloadBoardsButton'),
+  downloadMenus: document.getElementById('downloadMenusButton'),
+  downloadLinkBoards: document.getElementById('downloadLinkBoardsButton'),
+  applyContent: document.getElementById('applyContentButton'),
+  copyContent: document.getElementById('copyContentButton')
 };
 
 const editorOptions = {
@@ -58,6 +82,10 @@ const state = {
   mapsData: null,
   npcsData: null,
   hiddenData: null,
+  dialoguesData: null,
+  boardsData: null,
+  menusData: null,
+  linkBoardsData: null,
   images: new Map(),
   mapId: '',
   layer: 'interactables',
@@ -86,8 +114,8 @@ const RESIZE_CURSORS = {
   w: 'ew-resize'
 };
 
-const DRAFT_KEY = 'vc4u_editor_draft_v018';
-const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v018';
+const DRAFT_KEY = 'vc4u_editor_draft_v023';
+const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v023';
 const HISTORY_LIMIT = 60;
 
 function deepClone(obj) {
@@ -99,6 +127,10 @@ function snapshotData() {
     mapsData: deepClone(state.mapsData),
     npcsData: deepClone(state.npcsData),
     hiddenData: deepClone(state.hiddenData),
+    dialoguesData: deepClone(state.dialoguesData),
+    boardsData: deepClone(state.boardsData),
+    menusData: deepClone(state.menusData),
+    linkBoardsData: deepClone(state.linkBoardsData),
     mapId: state.mapId,
     layer: state.layer,
     selectedKey: state.selectedKey
@@ -110,6 +142,10 @@ function restoreSnapshot(snap) {
   state.mapsData = deepClone(snap.mapsData);
   state.npcsData = deepClone(snap.npcsData);
   state.hiddenData = deepClone(snap.hiddenData);
+  state.dialoguesData = deepClone(snap.dialoguesData || state.dialoguesData);
+  state.boardsData = deepClone(snap.boardsData || state.boardsData);
+  state.menusData = deepClone(snap.menusData || state.menusData);
+  state.linkBoardsData = deepClone(snap.linkBoardsData || state.linkBoardsData);
   state.mapId = snap.mapId || state.mapId;
   state.layer = snap.layer || state.layer;
   state.selectedKey = snap.selectedKey || '';
@@ -120,7 +156,7 @@ function restoreSnapshot(snap) {
 }
 
 function pushHistory() {
-  if (!state.mapsData || !state.npcsData || !state.hiddenData) return;
+  if (!state.mapsData || !state.npcsData || !state.hiddenData || !state.dialoguesData || !state.boardsData || !state.menusData) return;
   state.history.push(snapshotData());
   if (state.history.length > HISTORY_LIMIT) state.history.shift();
   state.future = [];
@@ -160,11 +196,15 @@ function updateEntityButtons() {
 
 function makeDraft() {
   return {
-    version: 'v022',
+    version: 'v023',
     savedAt: new Date().toISOString(),
     mapsData: state.mapsData,
     npcsData: state.npcsData,
-    hiddenData: state.hiddenData
+    hiddenData: state.hiddenData,
+    dialoguesData: state.dialoguesData,
+    boardsData: state.boardsData,
+    menusData: state.menusData,
+    linkBoardsData: state.linkBoardsData
   };
 }
 
@@ -186,6 +226,10 @@ function loadDraft() {
     state.mapsData = draft.mapsData || state.mapsData;
     state.npcsData = draft.npcsData || state.npcsData;
     state.hiddenData = draft.hiddenData || state.hiddenData;
+    state.dialoguesData = draft.dialoguesData || state.dialoguesData;
+    state.boardsData = draft.boardsData || state.boardsData;
+    state.menusData = draft.menusData || state.menusData;
+    state.linkBoardsData = draft.linkBoardsData || state.linkBoardsData;
     state.selectedKey = '';
     renderAll();
     helpText.textContent = '保存済みの下書きを読み込みました。';
@@ -244,14 +288,22 @@ function loadImage(src) {
 }
 
 async function boot() {
-  const [mapsData, npcsData, hiddenData] = await Promise.all([
+  const [mapsData, npcsData, hiddenData, dialoguesData, boardsData, menusData, linkBoardsData] = await Promise.all([
     loadJson('data/maps.json'),
     loadJson('data/npcs.json'),
-    loadJson('data/hidden.json')
+    loadJson('data/hidden.json'),
+    loadJson('data/dialogues.json'),
+    loadJson('data/boards.json'),
+    loadJson('data/menus.json'),
+    loadJson('data/linkBoards.json')
   ]);
   state.mapsData = mapsData;
   state.npcsData = npcsData;
   state.hiddenData = hiddenData;
+  state.dialoguesData = dialoguesData;
+  state.boardsData = boardsData;
+  state.menusData = menusData;
+  state.linkBoardsData = linkBoardsData;
 
   for (const map of Object.values(mapsData.maps)) {
     await loadImage(map.image);
@@ -759,6 +811,254 @@ function renderForm() {
   updateEntityButtons();
 }
 
+
+function getSelectedContentTarget() {
+  const e = selectedEntity();
+  if (!e) return null;
+  const item = e.ref;
+  if (e.type === 'npc') {
+    const id = item.dialogueId;
+    return id ? { kind: 'dialogue', id, data: state.dialoguesData?.dialogues?.[id], owner: item } : null;
+  }
+  if (e.type === 'hidden') {
+    return { kind: 'hidden', id: item.id, data: item, owner: item };
+  }
+  const type = item.type || e.type;
+  if (type === 'board') {
+    const id = item.boardId;
+    return id ? { kind: 'board', id, data: state.boardsData?.boards?.[id], owner: item } : null;
+  }
+  if (type === 'menu') {
+    const id = item.menuId;
+    return id ? { kind: 'menu', id, data: state.menusData?.menus?.[id], owner: item } : null;
+  }
+  if (type === 'sign' || type === 'event') {
+    const id = item.signId || item.dialogueId;
+    return id ? { kind: 'dialogue', id, data: state.dialoguesData?.dialogues?.[id], owner: item } : null;
+  }
+  if (type === 'door') {
+    const id = item.confirmId;
+    return id ? { kind: 'confirm', id, data: state.dialoguesData?.confirms?.[id], owner: item } : null;
+  }
+  return null;
+}
+
+function setContentPanelVisibility(show) {
+  if (!contentEditor) return;
+  contentEditor.classList.toggle('hidden', !show);
+}
+
+function setContentControlsDisabled(disabled) {
+  Object.values(contentFields).forEach(el => {
+    if (el && 'disabled' in el) el.disabled = !!disabled;
+  });
+  if (buttons.applyContent) buttons.applyContent.disabled = !!disabled;
+  if (buttons.copyContent) buttons.copyContent.disabled = !!disabled;
+}
+
+function hideContentRow(el, hidden) {
+  if (!el) return;
+  el.classList.toggle('hidden', !!hidden);
+}
+
+function renderContentEditor() {
+  const target = getSelectedContentTarget();
+  if (!target) {
+    setContentPanelVisibility(false);
+    return;
+  }
+  setContentPanelVisibility(true);
+  const locked = isLayerLocked();
+  const data = target.data;
+  const exists = !!data;
+  const kindLabel = {
+    dialogue: '会話データ',
+    confirm: '入店確認データ',
+    board: '掲示板データ',
+    menu: 'メニューデータ',
+    hidden: '隠し要素本文'
+  }[target.kind] || target.kind;
+  contentKind.textContent = `${kindLabel}｜${target.id}${exists ? '' : '（未作成）'}`;
+  contentHelp.textContent = exists
+    ? '選択中オブジェクトに紐づく表示内容を編集できます。「内容を反映」後に下書き保存→ゲームで確認してください。'
+    : '紐づくIDのデータが見つかりません。先にIDを既存データへ変更するか、JSON側へ追加してください。';
+  contentFields.id.value = target.id || '';
+  contentFields.title.value = '';
+  contentFields.body.value = '';
+  contentFields.linkLabel.value = '';
+  contentFields.linkUrl.value = '';
+  contentFields.json.value = '';
+  hideContentRow(contentFields.linkLabelLabel, false);
+  hideContentRow(contentFields.linkUrlLabel, false);
+  hideContentRow(contentFields.jsonLabel, false);
+  contentFields.titleLabel.firstChild.textContent = 'タイトル / 話者';
+  contentFields.bodyLabel.firstChild.textContent = '本文';
+  contentFields.linkLabelLabel.firstChild.textContent = 'リンクラベル / 補助項目';
+  contentFields.linkUrlLabel.firstChild.textContent = 'URL / 補助項目';
+  contentFields.jsonLabel.firstChild.textContent = '選択肢・項目・追加情報JSON';
+
+  if (!exists) {
+    setContentControlsDisabled(true);
+    contentFields.id.disabled = false;
+    return;
+  }
+
+  if (target.kind === 'dialogue') {
+    contentFields.titleLabel.firstChild.textContent = '話者';
+    contentFields.bodyLabel.firstChild.textContent = 'セリフ本文';
+    contentFields.jsonLabel.firstChild.textContent = '選択肢JSON';
+    contentFields.title.value = data.speaker || '';
+    contentFields.body.value = data.text || '';
+    contentFields.json.value = JSON.stringify(data.options || [{ label: '閉じる', type: 'close' }], null, 2);
+    hideContentRow(contentFields.linkLabelLabel, true);
+    hideContentRow(contentFields.linkUrlLabel, true);
+  }
+
+  if (target.kind === 'confirm') {
+    contentFields.titleLabel.firstChild.textContent = '確認タイトル';
+    contentFields.bodyLabel.firstChild.textContent = '確認本文';
+    contentFields.linkLabelLabel.firstChild.textContent = 'YESボタン文言';
+    contentFields.linkUrlLabel.firstChild.textContent = 'NOボタン文言';
+    contentFields.title.value = data.title || '';
+    contentFields.body.value = data.text || '';
+    contentFields.linkLabel.value = data.yesLabel || '入る';
+    contentFields.linkUrl.value = data.noLabel || 'やめる';
+    hideContentRow(contentFields.jsonLabel, true);
+  }
+
+  if (target.kind === 'board') {
+    contentFields.titleLabel.firstChild.textContent = '掲示板タイトル';
+    contentFields.bodyLabel.firstChild.textContent = '掲示板本文';
+    contentFields.linkLabelLabel.firstChild.textContent = 'メインリンクボタン名';
+    contentFields.linkUrlLabel.firstChild.textContent = 'メインリンクURL';
+    contentFields.jsonLabel.firstChild.textContent = '曜日文言・リンク集IDなどJSON';
+    contentFields.title.value = data.title || '';
+    contentFields.body.value = data.body || '';
+    contentFields.linkLabel.value = data.linkLabel || '';
+    contentFields.linkUrl.value = data.linkUrl || '';
+    contentFields.json.value = JSON.stringify({
+      bodyByDay: data.bodyByDay || {},
+      linkBoardId: data.linkBoardId || '',
+      extraLinkLabel: data.extraLinkLabel || ''
+    }, null, 2);
+  }
+
+  if (target.kind === 'menu') {
+    contentFields.titleLabel.firstChild.textContent = 'メニュータイトル';
+    contentFields.bodyLabel.firstChild.textContent = 'メモ / 説明文';
+    contentFields.linkLabelLabel.firstChild.textContent = 'アクション案内文';
+    contentFields.jsonLabel.firstChild.textContent = 'メニュー項目・曜日別項目・actionIds JSON';
+    contentFields.title.value = data.title || '';
+    contentFields.body.value = data.note || '';
+    contentFields.linkLabel.value = data.actionNote || '';
+    contentFields.json.value = JSON.stringify({
+      items: data.items || [],
+      itemsByDay: data.itemsByDay || {},
+      noteByDay: data.noteByDay || {},
+      actionIds: data.actionIds || []
+    }, null, 2);
+    hideContentRow(contentFields.linkUrlLabel, true);
+  }
+
+  if (target.kind === 'hidden') {
+    contentFields.titleLabel.firstChild.textContent = '隠し要素タイトル';
+    contentFields.bodyLabel.firstChild.textContent = '初回発見テキスト';
+    contentFields.linkLabelLabel.firstChild.textContent = '再確認テキスト';
+    contentFields.linkUrlLabel.firstChild.textContent = '体験メモに残す文';
+    contentFields.jsonLabel.firstChild.textContent = '出現条件・曜日・stats JSON';
+    contentFields.title.value = data.title || '';
+    contentFields.body.value = data.text || '';
+    contentFields.linkLabel.value = data.foundText || '';
+    contentFields.linkUrl.value = data.log || '';
+    contentFields.json.value = JSON.stringify({
+      visibleDays: data.visibleDays || ['all'],
+      visibleWhen: data.visibleWhen || null,
+      stats: data.stats || {}
+    }, null, 2);
+  }
+
+  setContentControlsDisabled(locked);
+  contentFields.id.disabled = false;
+}
+
+function safeParseContentJson(fallback) {
+  const raw = (contentFields.json?.value || '').trim();
+  if (!raw) return fallback;
+  try { return JSON.parse(raw); }
+  catch (err) {
+    helpText.textContent = `内容JSONの形式に誤りがあります: ${err.message}`;
+    return undefined;
+  }
+}
+
+function applyContentChanges() {
+  const target = getSelectedContentTarget();
+  if (!target || !target.data || isLayerLocked()) return;
+  const extra = safeParseContentJson(null);
+  if (extra === undefined) return;
+  pushHistory();
+  const data = target.data;
+  if (target.kind === 'dialogue') {
+    data.speaker = contentFields.title.value.trim() || data.speaker || '';
+    data.text = contentFields.body.value;
+    data.options = Array.isArray(extra) ? extra : (extra?.options || data.options || [{ label: '閉じる', type: 'close' }]);
+  }
+  if (target.kind === 'confirm') {
+    data.title = contentFields.title.value.trim() || data.title || '';
+    data.text = contentFields.body.value;
+    data.yesLabel = contentFields.linkLabel.value.trim() || '入る';
+    data.noLabel = contentFields.linkUrl.value.trim() || 'やめる';
+  }
+  if (target.kind === 'board') {
+    data.title = contentFields.title.value.trim() || data.title || '';
+    data.body = contentFields.body.value;
+    data.linkLabel = contentFields.linkLabel.value.trim();
+    data.linkUrl = contentFields.linkUrl.value.trim();
+    if (extra && typeof extra === 'object') {
+      data.bodyByDay = extra.bodyByDay || {};
+      data.linkBoardId = extra.linkBoardId || '';
+      data.extraLinkLabel = extra.extraLinkLabel || '';
+    }
+  }
+  if (target.kind === 'menu') {
+    data.title = contentFields.title.value.trim() || data.title || '';
+    data.note = contentFields.body.value;
+    data.actionNote = contentFields.linkLabel.value.trim();
+    if (extra && typeof extra === 'object') {
+      data.items = Array.isArray(extra.items) ? extra.items : (data.items || []);
+      data.itemsByDay = extra.itemsByDay || {};
+      data.noteByDay = extra.noteByDay || {};
+      data.actionIds = Array.isArray(extra.actionIds) ? extra.actionIds : (data.actionIds || []);
+    }
+  }
+  if (target.kind === 'hidden') {
+    data.title = contentFields.title.value.trim() || data.title || '';
+    data.text = contentFields.body.value;
+    data.foundText = contentFields.linkLabel.value;
+    data.log = contentFields.linkUrl.value;
+    if (extra && typeof extra === 'object') {
+      data.visibleDays = Array.isArray(extra.visibleDays) ? extra.visibleDays : (data.visibleDays || ['all']);
+      data.visibleWhen = extra.visibleWhen ?? null;
+      data.stats = extra.stats || {};
+    }
+  }
+  helpText.textContent = '紐づく内容を反映しました。ゲームで確認する場合は「下書き保存」→「ゲームで確認」を押してください。';
+  renderAll();
+}
+
+async function copyContentJson() {
+  const target = getSelectedContentTarget();
+  if (!target || !target.data) return;
+  const text = JSON.stringify(target.data, null, 2);
+  outputBox.value = text;
+  try {
+    await navigator.clipboard.writeText(text);
+    helpText.textContent = '紐づく内容JSONをコピーしました。';
+  } catch (_) {
+    helpText.textContent = 'コピーできない環境です。出力プレビューから手動でコピーしてください。';
+  }
+}
+
 function validateCurrentMap() {
   if (!validationBox) return;
   const warnings = [];
@@ -789,6 +1089,7 @@ function renderAll() {
   drawAllOverlays();
   renderList();
   renderForm();
+  renderContentEditor();
   validateCurrentMap();
   updateEntityButtons();
 }
@@ -1062,6 +1363,12 @@ buttons.deleteEntity?.addEventListener('click', deleteSelected);
 buttons.downloadMaps.addEventListener('click', () => downloadJson('maps.json', state.mapsData));
 buttons.downloadNpcs.addEventListener('click', () => downloadJson('npcs.json', state.npcsData));
 buttons.downloadHidden.addEventListener('click', () => downloadJson('hidden.json', state.hiddenData));
+buttons.downloadDialogues?.addEventListener('click', () => downloadJson('dialogues.json', state.dialoguesData));
+buttons.downloadBoards?.addEventListener('click', () => downloadJson('boards.json', state.boardsData));
+buttons.downloadMenus?.addEventListener('click', () => downloadJson('menus.json', state.menusData));
+buttons.downloadLinkBoards?.addEventListener('click', () => downloadJson('linkBoards.json', state.linkBoardsData));
+buttons.applyContent?.addEventListener('click', applyContentChanges);
+buttons.copyContent?.addEventListener('click', copyContentJson);
 buttons.copySelected.addEventListener('click', async () => {
   const e = selectedEntity();
   const text = JSON.stringify(e ? e.ref : currentMap(), null, 2);

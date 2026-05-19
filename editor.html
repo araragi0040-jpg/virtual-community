@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>歩ける語り場 v022｜配置エディタ</title>
-  <link rel="stylesheet" href="editor.css?v=022" />
+  <title>歩ける語り場 v023｜配置エディタ</title>
+  <link rel="stylesheet" href="editor.css?v=023" />
 </head>
 <body>
   <main class="editor-shell">
     <header class="editor-header">
       <div>
         <p class="eyebrow">Prototype Map Editor</p>
-        <h1>配置エディタ v022</h1>
-        <p class="lead">NPC・掲示板・入口・隠し要素・通行不可ブロックの座標をドラッグで仮調整するための編集デモです。四角い範囲は角・辺をドラッグしてサイズ調整できます。v022では通行不可ブロック・グリッド・スナップ・レイヤー表示切替に加えて、レイヤーごとの編集ロックにも対応しています。</p>
+        <h1>配置エディタ v023</h1>
+        <p class="lead">NPC・掲示板・入口・隠し要素・通行不可ブロックの座標をドラッグで仮調整するための編集デモです。四角い範囲は角・辺をドラッグしてサイズ調整できます。v023では配置編集に加えて、NPC会話・掲示板・メニューなどの紐づく内容も編集できる簡易データ編集欄を追加しています。</p>
       </div>
       <a class="back-link" href="index.html">ゲームへ戻る</a>
     </header>
@@ -62,7 +62,7 @@
           <p class="eyebrow">Editor Actions</p>
           <h2>保存・履歴操作</h2>
         </div>
-        <p class="small-note">v022：Undo / Redo・下書き保存・対象追加/削除・ブロック編集・レイヤー固定をここから行います。</p>
+        <p class="small-note">v023：Undo / Redo・下書き保存・対象追加/削除・ブロック編集・レイヤー固定・紐づく内容編集をここから行います。</p>
       </div>
       <div class="action-grid">
         <button id="undoButton" type="button">戻す</button>
@@ -78,6 +78,10 @@
         <button id="downloadMapsButton" type="button">maps.json保存</button>
         <button id="downloadNpcsButton" type="button">npcs.json保存</button>
         <button id="downloadHiddenButton" type="button">hidden.json保存</button>
+        <button id="downloadDialoguesButton" type="button">dialogues.json保存</button>
+        <button id="downloadBoardsButton" type="button">boards.json保存</button>
+        <button id="downloadMenusButton" type="button">menus.json保存</button>
+        <button id="downloadLinkBoardsButton" type="button">linkBoards.json保存</button>
       </div>
     </section>
 
@@ -119,7 +123,24 @@
           <p class="small-note">座標は0〜100のパーセント基準です。この形式のまま、後でスプレッドシート管理へ移行できます。</p>
         </form>
 
-        <h2>このマップの対象</h2>
+        <section id="contentEditor" class="content-editor hidden" aria-label="紐づく内容編集">
+          <h2>紐づく内容編集</h2>
+          <p id="contentHelp" class="help-text">選択中の対象に紐づく会話・掲示板・メニューなどを編集できます。</p>
+          <div class="content-kind" id="contentKind">未選択</div>
+          <form id="contentForm" class="edit-form">
+            <label>データID<input id="contentId" readonly /></label>
+            <label id="contentTitleLabel">タイトル / 話者<input id="contentTitle" /></label>
+            <label id="contentBodyLabel">本文<textarea id="contentBody" rows="5"></textarea></label>
+            <label id="contentLinkLabelLabel">リンクラベル / 補助項目<input id="contentLinkLabel" /></label>
+            <label id="contentLinkUrlLabel">URL / 補助項目<input id="contentLinkUrl" /></label>
+            <label id="contentJsonLabel">選択肢・項目・追加情報JSON<textarea id="contentJson" rows="8"></textarea></label>
+            <div class="content-actions">
+              <button id="applyContentButton" type="button">内容を反映</button>
+              <button id="copyContentButton" type="button">内容JSONコピー</button>
+            </div>
+          </form>
+        </section>
+
         <div id="entityList" class="entity-list"></div>
 
         <h2>確認・警告</h2>
@@ -131,6 +152,6 @@
     </section>
   </main>
 
-  <script src="editor.js?v=022"></script>
+  <script src="editor.js?v=023"></script>
 </body>
 </html>
