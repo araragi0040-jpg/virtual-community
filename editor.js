@@ -29,6 +29,27 @@ const contentFields = {
   jsonLabel: document.getElementById('contentJsonLabel')
 };
 
+const choiceEditor = {
+  panel: document.getElementById('choiceEditor'),
+  list: document.getElementById('choiceList'),
+  addButton: document.getElementById('addChoiceButton')
+};
+
+const CHOICE_TYPES = [
+  { value: 'close', label: '会話を閉じる' },
+  { value: 'dialogue', label: '別の会話へ進む' },
+  { value: 'board', label: '掲示板を開く' },
+  { value: 'menu', label: 'メニューを開く' },
+  { value: 'linkBoard', label: 'リンク集を開く' },
+  { value: 'link', label: '外部URLを開く' },
+  { value: 'action', label: '店内アクションを実行' },
+  { value: 'memo', label: '体験メモを開く' },
+  { value: 'achievements', label: '実績を開く' },
+  { value: 'info', label: '案内メッセージを出す' },
+  { value: 'map', label: 'マップ移動' },
+  { value: 'resetExperience', label: '体験メモをリセット' }
+];
+
 const fields = {
   id: document.getElementById('fieldId'),
   label: document.getElementById('fieldLabel'),
@@ -114,8 +135,8 @@ const RESIZE_CURSORS = {
   w: 'ew-resize'
 };
 
-const DRAFT_KEY = 'vc4u_editor_draft_v023';
-const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v023';
+const DRAFT_KEY = 'vc4u_editor_draft_v024';
+const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v024';
 const HISTORY_LIMIT = 60;
 
 function deepClone(obj) {
@@ -852,6 +873,7 @@ function setContentControlsDisabled(disabled) {
   Object.values(contentFields).forEach(el => {
     if (el && 'disabled' in el) el.disabled = !!disabled;
   });
+  choiceEditor.panel?.querySelectorAll('input, select, textarea, button').forEach(el => { el.disabled = !!disabled; });
   if (buttons.applyContent) buttons.applyContent.disabled = !!disabled;
   if (buttons.copyContent) buttons.copyContent.disabled = !!disabled;
 }
@@ -859,6 +881,200 @@ function setContentControlsDisabled(disabled) {
 function hideContentRow(el, hidden) {
   if (!el) return;
   el.classList.toggle('hidden', !!hidden);
+}
+
+
+function setChoiceEditorVisibility(show) {
+  if (!choiceEditor.panel) return;
+  choiceEditor.panel.classList.toggle('hidden', !show);
+}
+
+function choiceTypeLabel(type) {
+  return CHOICE_TYPES.find(t => t.value === type)?.label || type || '未設定';
+}
+
+function normalizeDialogueOptions(data) {
+  const raw = data?.options || data?.choices || [{ label: '閉じる', type: 'close' }];
+  if (!Array.isArray(raw) || !raw.length) return [{ label: '閉じる', type: 'close' }];
+  return raw.map(choice => ({
+    ...(choice && typeof choice === 'object' ? choice : {}),
+    label: String(choice?.label || '閉じる'),
+    type: String(choice?.type || 'close')
+  }));
+}
+
+function makeChoiceInput(labelText, className, value = '', placeholder = '') {
+  const label = document.createElement('label');
+  label.textContent = labelText;
+  const input = document.createElement('input');
+  input.className = className;
+  input.value = value || '';
+  if (placeholder) input.placeholder = placeholder;
+  label.appendChild(input);
+  return label;
+}
+
+function makeChoiceTypeSelect(value = 'close') {
+  const label = document.createElement('label');
+  label.textContent = '動作タイプ';
+  const select = document.createElement('select');
+  select.className = 'choice-type';
+  CHOICE_TYPES.forEach(item => {
+    const option = document.createElement('option');
+    option.value = item.value;
+    option.textContent = item.label;
+    if (item.value === value) option.selected = true;
+    select.appendChild(option);
+  });
+  label.appendChild(select);
+  return label;
+}
+
+function choiceMainTarget(choice) {
+  if (choice.type === 'map') return choice.targetMapId || choice.targetId || '';
+  return choice.targetId || choice.targetMapId || '';
+}
+
+function createChoiceRow(choice = {}, index = 0) {
+  const normalized = {
+    label: choice.label || '閉じる',
+    type: choice.type || 'close',
+    ...choice
+  };
+  const row = document.createElement('div');
+  row.className = 'choice-row';
+  row.__choiceOriginal = deepClone(normalized);
+
+  const head = document.createElement('div');
+  head.className = 'choice-row-head';
+  const title = document.createElement('div');
+  title.className = 'choice-row-title';
+  title.textContent = `選択肢 ${index + 1}`;
+  const actions = document.createElement('div');
+  actions.className = 'choice-row-actions';
+
+  const up = document.createElement('button');
+  up.type = 'button';
+  up.className = 'choice-mini-button';
+  up.textContent = '↑';
+  up.title = '上へ移動';
+  up.addEventListener('click', () => {
+    const prev = row.previousElementSibling;
+    if (prev) choiceEditor.list.insertBefore(row, prev);
+    updateChoiceRowTitles();
+  });
+
+  const down = document.createElement('button');
+  down.type = 'button';
+  down.className = 'choice-mini-button';
+  down.textContent = '↓';
+  down.title = '下へ移動';
+  down.addEventListener('click', () => {
+    const next = row.nextElementSibling;
+    if (next) choiceEditor.list.insertBefore(next, row);
+    updateChoiceRowTitles();
+  });
+
+  const del = document.createElement('button');
+  del.type = 'button';
+  del.className = 'choice-mini-button danger-button';
+  del.textContent = '削除';
+  del.addEventListener('click', () => {
+    row.remove();
+    updateChoiceRowTitles();
+    if (!choiceEditor.list.children.length) showChoiceEmpty();
+  });
+
+  actions.append(up, down, del);
+  head.append(title, actions);
+
+  const fieldsWrap = document.createElement('div');
+  fieldsWrap.className = 'choice-fields';
+  const topGrid = document.createElement('div');
+  topGrid.className = 'choice-grid-2';
+  topGrid.append(
+    makeChoiceInput('表示名', 'choice-label', normalized.label || '', '例：話す'),
+    makeChoiceTypeSelect(normalized.type || 'close')
+  );
+  const midGrid = document.createElement('div');
+  midGrid.className = 'choice-grid-2';
+  midGrid.append(
+    makeChoiceInput('対象ID / 移動先マップ', 'choice-target', choiceMainTarget(normalized), '例：talk_4u_inside_talk / menu_4u'),
+    makeChoiceInput('URL', 'choice-url', normalized.url || '', '外部URLを開く場合')
+  );
+  const bottomGrid = document.createElement('div');
+  bottomGrid.className = 'choice-grid-2';
+  bottomGrid.append(
+    makeChoiceInput('補足メッセージ', 'choice-message', normalized.message || '', '準備中などの案内文'),
+    makeChoiceInput('見た目class', 'choice-className', normalized.className || '', 'link / secondary / achievement など')
+  );
+  fieldsWrap.append(topGrid, midGrid, bottomGrid);
+  row.append(head, fieldsWrap);
+  return row;
+}
+
+function showChoiceEmpty() {
+  if (!choiceEditor.list) return;
+  choiceEditor.list.innerHTML = '<div class="choice-empty">選択肢がありません。「＋選択肢」で追加できます。</div>';
+}
+
+function updateChoiceRowTitles() {
+  if (!choiceEditor.list) return;
+  const rows = [...choiceEditor.list.querySelectorAll('.choice-row')];
+  rows.forEach((row, index) => {
+    const title = row.querySelector('.choice-row-title');
+    const type = row.querySelector('.choice-type')?.value || '';
+    if (title) title.textContent = `選択肢 ${index + 1}｜${choiceTypeLabel(type)}`;
+  });
+}
+
+function renderChoiceEditor(options) {
+  if (!choiceEditor.list) return;
+  choiceEditor.list.innerHTML = '';
+  const rows = normalizeDialogueOptions({ options });
+  if (!rows.length) {
+    showChoiceEmpty();
+    return;
+  }
+  rows.forEach((choice, index) => choiceEditor.list.appendChild(createChoiceRow(choice, index)));
+  updateChoiceRowTitles();
+}
+
+function addChoiceRow(choice = { label: '閉じる', type: 'close' }) {
+  if (!choiceEditor.list) return;
+  const empty = choiceEditor.list.querySelector('.choice-empty');
+  if (empty) choiceEditor.list.innerHTML = '';
+  choiceEditor.list.appendChild(createChoiceRow(choice, choiceEditor.list.querySelectorAll('.choice-row').length));
+  updateChoiceRowTitles();
+}
+
+function readChoiceRows() {
+  if (!choiceEditor.list) return [{ label: '閉じる', type: 'close' }];
+  const rows = [...choiceEditor.list.querySelectorAll('.choice-row')];
+  if (!rows.length) return [{ label: '閉じる', type: 'close' }];
+  return rows.map(row => {
+    const original = row.__choiceOriginal && typeof row.__choiceOriginal === 'object' ? deepClone(row.__choiceOriginal) : {};
+    const type = row.querySelector('.choice-type')?.value || 'close';
+    const label = row.querySelector('.choice-label')?.value.trim() || choiceTypeLabel(type);
+    const target = row.querySelector('.choice-target')?.value.trim() || '';
+    const url = row.querySelector('.choice-url')?.value.trim() || '';
+    const message = row.querySelector('.choice-message')?.value.trim() || '';
+    const className = row.querySelector('.choice-className')?.value.trim() || '';
+    const choice = { ...original, label, type };
+    delete choice.targetId;
+    delete choice.targetMapId;
+    delete choice.url;
+    delete choice.message;
+    delete choice.className;
+    if (target) {
+      if (type === 'map') choice.targetMapId = target;
+      else choice.targetId = target;
+    }
+    if (url) choice.url = url;
+    if (message) choice.message = message;
+    if (className) choice.className = className;
+    return choice;
+  });
 }
 
 function renderContentEditor() {
@@ -906,12 +1122,17 @@ function renderContentEditor() {
   if (target.kind === 'dialogue') {
     contentFields.titleLabel.firstChild.textContent = '話者';
     contentFields.bodyLabel.firstChild.textContent = 'セリフ本文';
-    contentFields.jsonLabel.firstChild.textContent = '選択肢JSON';
+    contentFields.jsonLabel.firstChild.textContent = '詳細JSON（通常は未使用）';
     contentFields.title.value = data.speaker || '';
     contentFields.body.value = data.text || '';
-    contentFields.json.value = JSON.stringify(data.options || [{ label: '閉じる', type: 'close' }], null, 2);
+    contentFields.json.value = '';
+    renderChoiceEditor(data.options || data.choices || [{ label: '閉じる', type: 'close' }]);
+    setChoiceEditorVisibility(true);
     hideContentRow(contentFields.linkLabelLabel, true);
     hideContentRow(contentFields.linkUrlLabel, true);
+    hideContentRow(contentFields.jsonLabel, true);
+  } else {
+    setChoiceEditorVisibility(false);
   }
 
   if (target.kind === 'confirm') {
@@ -1001,7 +1222,8 @@ function applyContentChanges() {
   if (target.kind === 'dialogue') {
     data.speaker = contentFields.title.value.trim() || data.speaker || '';
     data.text = contentFields.body.value;
-    data.options = Array.isArray(extra) ? extra : (extra?.options || data.options || [{ label: '閉じる', type: 'close' }]);
+    data.options = readChoiceRows();
+    delete data.choices;
   }
   if (target.kind === 'confirm') {
     data.title = contentFields.title.value.trim() || data.title || '';
@@ -1369,6 +1591,11 @@ buttons.downloadMenus?.addEventListener('click', () => downloadJson('menus.json'
 buttons.downloadLinkBoards?.addEventListener('click', () => downloadJson('linkBoards.json', state.linkBoardsData));
 buttons.applyContent?.addEventListener('click', applyContentChanges);
 buttons.copyContent?.addEventListener('click', copyContentJson);
+choiceEditor.addButton?.addEventListener('click', () => {
+  addChoiceRow({ label: '閉じる', type: 'close' });
+});
+choiceEditor.list?.addEventListener('input', updateChoiceRowTitles);
+choiceEditor.list?.addEventListener('change', updateChoiceRowTitles);
 buttons.copySelected.addEventListener('click', async () => {
   const e = selectedEntity();
   const text = JSON.stringify(e ? e.ref : currentMap(), null, 2);

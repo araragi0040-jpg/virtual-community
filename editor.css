@@ -280,3 +280,95 @@ button:disabled {
 @media (max-width: 860px) {
   .content-actions { grid-template-columns: 1fr; }
 }
+
+/* v024: dialogue choice editor */
+.choice-editor {
+  margin: 10px 0;
+  padding: 10px;
+  border: 2px solid rgba(243, 198, 90, .72);
+  border-radius: 14px;
+  background: rgba(243, 198, 90, .08);
+}
+.choice-editor-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.choice-editor-head h3 {
+  margin: 0 0 4px;
+  color: var(--accent);
+  font-size: .98rem;
+}
+.choice-editor-head .small-note { margin: 0; }
+.choice-list {
+  display: grid;
+  gap: 10px;
+}
+.choice-row {
+  padding: 10px;
+  border: 2px solid rgba(139, 98, 51, .88);
+  border-radius: 12px;
+  background: rgba(31, 22, 15, .86);
+}
+.choice-row-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.choice-row-title {
+  font-weight: 900;
+  color: #fff3cf;
+  font-size: .86rem;
+}
+.choice-row-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.choice-mini-button {
+  padding: 5px 8px;
+  min-height: 28px;
+  font-size: .76rem;
+  border-radius: 8px;
+}
+.choice-fields {
+  display: grid;
+  gap: 8px;
+}
+.choice-fields label {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 800;
+}
+.choice-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.choice-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+.choice-empty {
+  padding: 9px;
+  border: 2px dashed rgba(243, 198, 90, .48);
+  border-radius: 12px;
+  color: var(--muted);
+  font-size: .84rem;
+}
+@media (max-width: 860px) {
+  .choice-editor-head { display: grid; }
+  .choice-editor-head button { width: 100%; }
+  .choice-grid-2,
+  .choice-grid-3 { grid-template-columns: 1fr; }
+  .choice-row-actions { justify-content: stretch; }
+  .choice-mini-button { flex: 1; }
+}
