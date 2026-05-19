@@ -47,7 +47,11 @@ const editorOptions = {
   showInteractables: document.getElementById('showInteractablesToggle'),
   showNpcs: document.getElementById('showNpcsToggle'),
   showHidden: document.getElementById('showHiddenToggle'),
-  showTransitions: document.getElementById('showTransitionsToggle')
+  showTransitions: document.getElementById('showTransitionsToggle'),
+  lockBlocks: document.getElementById('lockBlocksToggle'),
+  lockInteractables: document.getElementById('lockInteractablesToggle'),
+  lockNpcs: document.getElementById('lockNpcsToggle'),
+  lockHidden: document.getElementById('lockHiddenToggle')
 };
 
 const state = {
@@ -65,7 +69,8 @@ const state = {
   showGrid: true,
   snapToGrid: false,
   gridSize: 5,
-  visibility: { blocks: true, interactables: true, npcs: true, hidden: true, transitions: true }
+  visibility: { blocks: true, interactables: true, npcs: true, hidden: true, transitions: true },
+  locks: { blocks: false, interactables: false, npcs: false, hidden: false }
 };
 
 const HANDLE_SIZE_PCT = 2.2;
@@ -145,15 +150,17 @@ function updateHistoryButtons() {
 }
 
 function updateEntityButtons() {
+  const locked = isLayerLocked();
   const hasSelected = !!selectedEntity();
-  if (buttons.duplicateEntity) buttons.duplicateEntity.disabled = !hasSelected;
-  if (buttons.deleteEntity) buttons.deleteEntity.disabled = !hasSelected;
+  if (buttons.addEntity) buttons.addEntity.disabled = locked || !currentMap();
+  if (buttons.duplicateEntity) buttons.duplicateEntity.disabled = locked || !hasSelected;
+  if (buttons.deleteEntity) buttons.deleteEntity.disabled = locked || !hasSelected;
   if (buttons.copySelected) buttons.copySelected.disabled = !currentMap();
 }
 
 function makeDraft() {
   return {
-    version: 'v020',
+    version: 'v022',
     savedAt: new Date().toISOString(),
     mapsData: state.mapsData,
     npcsData: state.npcsData,
@@ -309,6 +316,23 @@ function getEntityType(e) {
   return e.ref.type || e.type || '';
 }
 
+function isLayerLocked(layer = state.layer) {
+  return !!state.locks[layer];
+}
+
+function currentLayerName() {
+  return {
+    interactables: '入口・掲示板・看板・メニュー',
+    npcs: 'NPC',
+    hidden: '隠し要素',
+    blocks: '通行不可ブロック'
+  }[state.layer] || state.layer;
+}
+
+function showLockHelp() {
+  helpText.textContent = `${currentLayerName()}レイヤーは固定中です。表示はできますが、選択・移動・追加・削除はできません。固定を外すと編集できます。`;
+}
+
 function getEntityTarget(e) {
   if (!e) return '';
   const item = e.ref;
@@ -433,6 +457,7 @@ function makeNewEntityForCurrentLayer() {
 }
 
 function addEntity() {
+  if (isLayerLocked()) { showLockHelp(); return; }
   if (!currentMap()) return;
   const item = makeNewEntityForCurrentLayer();
   if (!item) return;
@@ -447,6 +472,7 @@ function addEntity() {
 }
 
 function duplicateSelected() {
+  if (isLayerLocked()) { showLockHelp(); return; }
   const e = selectedEntity();
   if (!e) return;
   pushHistory();
@@ -464,6 +490,7 @@ function duplicateSelected() {
 }
 
 function deleteSelected() {
+  if (isLayerLocked()) { showLockHelp(); return; }
   const e = selectedEntity();
   if (!e) return;
   const label = e.ref.label || e.ref.name || e.key;
@@ -681,12 +708,20 @@ function renderList() {
     entityList.innerHTML = '<p class="help-text">このマップには対象データがありません。</p>';
     return;
   }
+  const locked = isLayerLocked();
+  if (locked) {
+    const notice = document.createElement('div');
+    notice.className = 'lock-notice';
+    notice.textContent = `${currentLayerName()}レイヤーは固定中です。固定を外すと選択・編集できます。`;
+    entityList.appendChild(notice);
+  }
   list.forEach(e => {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'entity-item' + (e.key === state.selectedKey ? ' active' : '');
+    btn.className = 'entity-item' + (e.key === state.selectedKey ? ' active' : '') + (locked ? ' locked' : '');
     btn.textContent = `${e.ref.label || e.ref.name || e.key}｜${e.key}`;
-    btn.addEventListener('click', () => selectEntity(e.key));
+    btn.disabled = locked;
+    btn.addEventListener('click', () => { if (!locked) selectEntity(e.key); });
     entityList.appendChild(btn);
   });
 }
@@ -711,11 +746,15 @@ function renderForm() {
   fields.range.value = item.range ?? '';
   fields.type.value = getEntityType(e);
   fields.target.value = getEntityTarget(e);
-  fields.w.disabled = e.shape === 'point';
-  fields.h.disabled = e.shape === 'point';
-  fields.range.disabled = e.type === 'block';
-  fields.type.disabled = e.type === 'npc' || e.type === 'hidden' || e.type === 'block';
-  fields.target.disabled = e.type === 'hidden' || e.type === 'block';
+  const locked = isLayerLocked();
+  fields.label.disabled = locked;
+  fields.x.disabled = locked;
+  fields.y.disabled = locked;
+  fields.w.disabled = locked || e.shape === 'point';
+  fields.h.disabled = locked || e.shape === 'point';
+  fields.range.disabled = locked || e.type === 'block';
+  fields.type.disabled = locked || e.type === 'npc' || e.type === 'hidden' || e.type === 'block';
+  fields.target.disabled = locked || e.type === 'hidden' || e.type === 'block';
   outputBox.value = JSON.stringify(item, null, 2);
   updateEntityButtons();
 }
@@ -755,11 +794,18 @@ function renderAll() {
 }
 
 function selectEntity(key) {
+  if (isLayerLocked()) {
+    state.selectedKey = '';
+    renderAll();
+    showLockHelp();
+    return;
+  }
   state.selectedKey = key;
   renderAll();
 }
 
 function findEntityAt(p) {
+  if (isLayerLocked()) return null;
   const list = entities().filter(isEntityVisible).slice().reverse();
   for (const e of list) {
     const item = e.ref;
@@ -829,6 +875,7 @@ function resizeRectFromDrag(item, p, drag) {
 
 canvas.addEventListener('pointerdown', ev => {
   ev.preventDefault();
+  if (isLayerLocked()) { showLockHelp(); return; }
   canvas.setPointerCapture?.(ev.pointerId);
   const p = pointerPct(ev);
   const activeHandle = handleAt(p);
@@ -915,6 +962,7 @@ canvas.addEventListener('pointermove', ev => {
 }));
 
 function applyFieldChanges() {
+  if (isLayerLocked()) return;
   const e = selectedEntity();
   if (!e) return;
   const item = e.ref;
@@ -966,6 +1014,7 @@ layerSelect.addEventListener('change', () => {
   state.selectedKey = '';
   state.formHistoryArmed = false;
   renderAll();
+  if (isLayerLocked()) showLockHelp();
 });
 
 
@@ -978,7 +1027,13 @@ function syncEditorOptionsFromControls() {
   state.visibility.npcs = !!editorOptions.showNpcs?.checked;
   state.visibility.hidden = !!editorOptions.showHidden?.checked;
   state.visibility.transitions = !!editorOptions.showTransitions?.checked;
+  state.locks.blocks = !!editorOptions.lockBlocks?.checked;
+  state.locks.interactables = !!editorOptions.lockInteractables?.checked;
+  state.locks.npcs = !!editorOptions.lockNpcs?.checked;
+  state.locks.hidden = !!editorOptions.lockHidden?.checked;
+  if (isLayerLocked()) state.selectedKey = '';
   renderAll();
+  if (isLayerLocked()) showLockHelp();
 }
 
 Object.values(editorOptions).forEach(el => {

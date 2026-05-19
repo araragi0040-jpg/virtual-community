@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>歩ける語り場 v020｜配置エディタ</title>
-  <link rel="stylesheet" href="editor.css?v=020" />
+  <title>歩ける語り場 v022｜配置エディタ</title>
+  <link rel="stylesheet" href="editor.css?v=022" />
 </head>
 <body>
   <main class="editor-shell">
     <header class="editor-header">
       <div>
         <p class="eyebrow">Prototype Map Editor</p>
-        <h1>配置エディタ v020</h1>
-        <p class="lead">NPC・掲示板・入口・隠し要素・通行不可ブロックの座標をドラッグで仮調整するための編集デモです。四角い範囲は角・辺をドラッグしてサイズ調整できます。v020では通行不可ブロックに加えて、グリッド表示・スナップ配置・レイヤー表示切替にも対応し、RPGツクール風の編集感を高めています。</p>
+        <h1>配置エディタ v022</h1>
+        <p class="lead">NPC・掲示板・入口・隠し要素・通行不可ブロックの座標をドラッグで仮調整するための編集デモです。四角い範囲は角・辺をドラッグしてサイズ調整できます。v022では通行不可ブロック・グリッド・スナップ・レイヤー表示切替に加えて、レイヤーごとの編集ロックにも対応しています。</p>
       </div>
       <a class="back-link" href="index.html">ゲームへ戻る</a>
     </header>
@@ -49,6 +49,11 @@
       <label class="inline-check"><input id="showNpcsToggle" type="checkbox" checked /> NPC</label>
       <label class="inline-check"><input id="showHiddenToggle" type="checkbox" checked /> 隠し要素</label>
       <label class="inline-check"><input id="showTransitionsToggle" type="checkbox" checked /> マップ端</label>
+      <div class="toolbar-break"></div>
+      <label class="inline-check lock-check"><input id="lockBlocksToggle" type="checkbox" /> ブロック固定</label>
+      <label class="inline-check lock-check"><input id="lockInteractablesToggle" type="checkbox" /> 入口/掲示板固定</label>
+      <label class="inline-check lock-check"><input id="lockNpcsToggle" type="checkbox" /> NPC固定</label>
+      <label class="inline-check lock-check"><input id="lockHiddenToggle" type="checkbox" /> 隠し要素固定</label>
     </section>
 
     <section class="action-panel" aria-label="保存と履歴操作">
@@ -57,7 +62,7 @@
           <p class="eyebrow">Editor Actions</p>
           <h2>保存・履歴操作</h2>
         </div>
-        <p class="small-note">v020：Undo / Redo・下書き保存・対象追加/削除・ブロック編集をここから行います。</p>
+        <p class="small-note">v022：Undo / Redo・下書き保存・対象追加/削除・ブロック編集・レイヤー固定をここから行います。</p>
       </div>
       <div class="action-grid">
         <button id="undoButton" type="button">戻す</button>
@@ -126,6 +131,6 @@
     </section>
   </main>
 
-  <script src="editor.js?v=020"></script>
+  <script src="editor.js?v=022"></script>
 </body>
 </html>

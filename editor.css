@@ -207,3 +207,39 @@ button:disabled {
     padding: 7px 8px;
   }
 }
+
+
+/* v022: layer editing lock controls */
+.toolbar-break {
+  grid-column: 1 / -1;
+  height: 1px;
+  background: rgba(243, 198, 90, .24);
+  margin: 2px 0;
+}
+.lock-check {
+  border-color: rgba(255, 138, 116, .68);
+  background: rgba(255, 138, 116, .10);
+}
+.lock-check input:checked + span,
+.lock-check:has(input:checked) {
+  background: rgba(255, 138, 116, .22);
+  color: #ffe0d8 !important;
+}
+.entity-item.locked,
+.entity-item:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+.lock-notice {
+  border: 2px solid rgba(255, 138, 116, .72);
+  border-radius: 12px;
+  padding: 9px 10px;
+  margin: 8px 0;
+  color: #ffe0d8;
+  background: rgba(255, 138, 116, .10);
+  font-size: .84rem;
+  line-height: 1.45;
+}
+@media (max-width: 860px) {
+  .toolbar-break { margin: 0; }
+}
