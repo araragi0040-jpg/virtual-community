@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>歩ける語り場 v025｜配置エディタ</title>
-  <link rel="stylesheet" href="editor.css?v=025" />
+  <title>歩ける語り場 v026｜配置エディタ</title>
+  <link rel="stylesheet" href="editor.css?v=026" />
 </head>
 <body>
   <main class="editor-shell">
     <header class="editor-header">
       <div>
         <p class="eyebrow">Prototype Map Editor</p>
-        <h1>配置エディタ v025</h1>
-        <p class="lead">NPC・掲示板・入口・隠し要素・通行不可ブロックの座標をドラッグで仮調整するための編集デモです。四角い範囲は角・辺をドラッグしてサイズ調整できます。v025では、選択肢ごとに表示曜日・表示条件をフォームで設定できるようにしています。</p>
+        <h1>配置エディタ v026</h1>
+        <p class="lead">NPC・掲示板・入口・隠し要素・通行不可ブロックの座標をドラッグで仮調整するための編集デモです。四角い範囲は角・辺をドラッグしてサイズ調整できます。v026では、NPC・看板・掲示板・メニュー・隠し要素・扉・イベントなど全対象で、表示曜日・表示条件・選択肢を共通編集できるようにしています。</p>
       </div>
       <a class="back-link" href="index.html">ゲームへ戻る</a>
     </header>
@@ -62,7 +62,7 @@
           <p class="eyebrow">Editor Actions</p>
           <h2>保存・履歴操作</h2>
         </div>
-        <p class="small-note">v025：Undo / Redo・下書き保存・配置編集・内容編集・選択肢編集・選択肢の表示条件編集をここから行います。</p>
+        <p class="small-note">v026：全対象共通エディタ化。配置編集・内容編集・表示条件・選択肢編集をここから行います。</p>
       </div>
       <div class="action-grid">
         <button id="undoButton" type="button">戻す</button>
@@ -131,11 +131,22 @@
             <label>データID<input id="contentId" readonly /></label>
             <label id="contentTitleLabel">タイトル / 話者<input id="contentTitle" /></label>
             <label id="contentBodyLabel">本文<textarea id="contentBody" rows="5"></textarea></label>
+
+            <section id="targetMetaEditor" class="target-meta-editor" aria-label="対象の表示条件編集">
+              <div class="choice-editor-head compact-head">
+                <div>
+                  <h3>共通設定</h3>
+                  <p class="small-note">選択中の対象そのものの表示曜日・表示条件です。NPC、掲示板、看板、扉、隠し要素などで共通利用します。</p>
+                </div>
+              </div>
+              <div id="targetVisibleDays"></div>
+              <div id="targetCondition"></div>
+            </section>
             <section id="choiceEditor" class="choice-editor hidden" aria-label="選択肢編集">
               <div class="choice-editor-head">
                 <div>
                   <h3>選択肢エディタ</h3>
-                  <p class="small-note">会話のボタンをフォームで編集できます。v025では選択肢ごとの表示曜日・表示条件も設定できます。</p>
+                  <p class="small-note">この対象で表示するボタンを編集できます。選択肢がない対象にも後から追加できます。</p>
                 </div>
                 <button id="addChoiceButton" type="button">＋選択肢</button>
               </div>
@@ -162,6 +173,6 @@
     </section>
   </main>
 
-  <script src="editor.js?v=025"></script>
+  <script src="editor.js?v=026"></script>
 </body>
 </html>
