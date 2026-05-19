@@ -10,6 +10,26 @@
           "targetId": "talk_4u_inside_talk"
         },
         {
+          "label": "金曜のにぎわいを聞く",
+          "type": "dialogue",
+          "targetId": "talk_4u_friday_mood",
+          "visibleDays": [
+            "fri"
+          ],
+          "className": "achievement"
+        },
+        {
+          "label": "少し深い話をする",
+          "type": "dialogue",
+          "targetId": "talk_4u_deep_talk",
+          "condition": {
+            "type": "statAtLeast",
+            "stat": "talk",
+            "value": 3
+          },
+          "className": "link"
+        },
+        {
           "label": "メニューを見る",
           "type": "menu",
           "targetId": "menu_4u"
@@ -51,6 +71,17 @@
           "targetId": "talk_kusanone_inside_talk"
         },
         {
+          "label": "ステージの余韻について聞く",
+          "type": "dialogue",
+          "targetId": "talk_kusanone_stage_after_karaoke",
+          "condition": {
+            "type": "statAtLeast",
+            "stat": "karaoke",
+            "value": 1
+          },
+          "className": "link"
+        },
+        {
           "label": "メニューを見る",
           "type": "menu",
           "targetId": "menu_kusanone"
@@ -90,6 +121,15 @@
           "label": "話す",
           "type": "dialogue",
           "targetId": "talk_branch_inside_talk"
+        },
+        {
+          "label": "日曜のカフェ時間について聞く",
+          "type": "dialogue",
+          "targetId": "talk_branch_sunday",
+          "visibleDays": [
+            "sun"
+          ],
+          "className": "achievement"
         },
         {
           "label": "メニューを見る",
@@ -151,7 +191,11 @@
           "label": "へえ",
           "type": "close"
         }
-      ]
+      ],
+      "textByDay": {
+        "fri": "金曜は、いつもより誰かに会えそうな空気があるね。4Uの中も少しにぎやかかも。",
+        "sun": "日曜は、少し静かに街を見直せる日。カフェの方にも寄ってみるといいかも。"
+      }
     },
     "sign_to_kusanone": {
       "speaker": "看板",
@@ -435,6 +479,46 @@
     "event_branch_sun_window": {
       "speaker": "窓際席",
       "text": "窓際に柔らかい光が入っている。日曜だけは、ここで少し長めに休みたくなる。",
+      "options": [
+        {
+          "label": "閉じる",
+          "type": "close"
+        }
+      ]
+    },
+    "talk_4u_friday_mood": {
+      "speaker": "4U店内の人",
+      "text": "金曜の4Uは、少しだけ街の熱が集まってくる感じがするんだ。誰かの一言が、そのまま乾杯のきっかけになる日。",
+      "options": [
+        {
+          "label": "閉じる",
+          "type": "close"
+        }
+      ]
+    },
+    "talk_4u_deep_talk": {
+      "speaker": "4U店内の人",
+      "text": "何度か話しているうちに、少しずつ言葉の奥にあるものが見えてくる。ここでは、急がなくても大丈夫。",
+      "options": [
+        {
+          "label": "閉じる",
+          "type": "close"
+        }
+      ]
+    },
+    "talk_branch_sunday": {
+      "speaker": "ブランチカフェ店内の人",
+      "text": "日曜のカフェは、平日とは違う余白があります。急がずに座っているだけで、少し整っていく感じがしますね。",
+      "options": [
+        {
+          "label": "閉じる",
+          "type": "close"
+        }
+      ]
+    },
+    "talk_kusanone_stage_after_karaoke": {
+      "speaker": "くさのね店内の人",
+      "text": "一度マイクを持つと、ステージの見え方が少し変わるでしょう？見る場所から、表現する場所へ。そんな切り替わりがここにはあります。",
       "options": [
         {
           "label": "閉じる",

@@ -372,3 +372,50 @@ button:disabled {
   .choice-row-actions { justify-content: stretch; }
   .choice-mini-button { flex: 1; }
 }
+
+/* v025: choice visibility / condition editor */
+.choice-subtitle {
+  margin: 2px 0 6px;
+  color: #f6d98a;
+  font-size: .8rem;
+  font-weight: 900;
+}
+.choice-days-box,
+.choice-condition-box {
+  padding: 8px;
+  border: 1px solid rgba(243, 198, 90, .34);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .035);
+}
+.choice-day-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.choice-day-check {
+  display: inline-flex !important;
+  grid-template-columns: auto auto;
+  align-items: center;
+  gap: 4px !important;
+  padding: 5px 7px;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 999px;
+  background: rgba(0,0,0,.18);
+  color: #fff3cf !important;
+  font-size: .74rem !important;
+  cursor: pointer;
+}
+.choice-day-check input {
+  width: auto;
+  margin: 0;
+}
+.choice-condition-json {
+  min-height: 70px;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .76rem;
+  line-height: 1.4;
+}
+.choice-condition-hint {
+  margin: 4px 0 0;
+}

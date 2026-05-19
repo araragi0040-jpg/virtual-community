@@ -42,8 +42,8 @@ const DATA_URLS = {
 };
 
 // v004: 背景画像に人物が描き込まれているため、NPCスプライトは重ねず、近づいた時の！マーカーで会話可能地点を示す。
-const EDITOR_DRAFT_KEY = 'vc4u_editor_draft_v023';
-const EDITOR_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v023';
+const EDITOR_DRAFT_KEY = 'vc4u_editor_draft_v025';
+const EDITOR_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v025';
 
 const SHOW_NPC_SPRITES = false;
 
@@ -341,9 +341,22 @@ function currentMap() {
   return state.data.maps[state.currentMapId] || null;
 }
 function isVisibleByDay(entity) {
-  const visibleDays = entity.visibleDays;
+  const visibleDays = entity?.visibleDays;
   if (!visibleDays || visibleDays.length === 0 || visibleDays.includes('all')) return true;
   return visibleDays.includes(state.today.key);
+}
+
+function isChoiceVisible(choice) {
+  if (!choice) return false;
+  if (!isVisibleByDay(choice)) return false;
+  const condition = choice.visibleWhen || choice.condition;
+  return evaluateCondition(condition);
+}
+
+function visibleChoices(choices) {
+  const list = Array.isArray(choices) ? choices : [];
+  const filtered = list.filter(isChoiceVisible);
+  return filtered.length ? filtered : [{ label: '閉じる', type: 'close', className: 'secondary' }];
 }
 function currentInteractables() {
   const map = currentMap();
@@ -615,7 +628,7 @@ function showModal(title, body, choices = [], options = {}) {
   modalBody.textContent = body;
   modalBody.scrollTop = 0;
   modalChoices.innerHTML = '';
-  choices.forEach(choice => {
+  visibleChoices(choices).forEach(choice => {
     const btn = document.createElement('button');
     btn.textContent = choice.label;
     if (choice.className) btn.classList.add(choice.className);
@@ -641,7 +654,11 @@ function closeModal() {
 function openDialogue(dialogueId) {
   const dialogue = state.data.dialogues[dialogueId];
   if (!dialogue) return showMessage('会話', '会話データが見つかりません。', [{ label: '閉じる', type: 'close' }]);
-  showModal(dialogue.speaker, dialogue.text, dialogue.options || [{ label: '閉じる', type: 'close' }]);
+  const dayKey = state.today?.key;
+  const speaker = (dialogue.speakerByDay && dialogue.speakerByDay[dayKey]) || dialogue.speaker;
+  const text = (dialogue.textByDay && dialogue.textByDay[dayKey]) || dialogue.text;
+  const options = visibleChoices(dialogue.options || dialogue.choices || [{ label: '閉じる', type: 'close' }]);
+  showModal(speaker, text, options);
 }
 
 function openBoard(boardId) {
@@ -778,8 +795,17 @@ function openConfirm(confirmId, item) {
   ]);
 }
 
+function resolveConditionalChoiceTarget(choice) {
+  const branches = Array.isArray(choice.branches) ? choice.branches : [];
+  for (const branch of branches) {
+    if (evaluateCondition(branch.when || branch.condition)) return branch.targetId || branch.targetMapId || '';
+  }
+  return choice.fallbackId || choice.targetId || '';
+}
+
 function handleChoice(choice) {
   if (choice.type === 'close') return closeModal();
+  if (choice.type === 'conditionalDialogue') return openDialogue(resolveConditionalChoiceTarget(choice));
   if (choice.type === 'dialogue') return openDialogue(choice.targetId);
   if (choice.type === 'board') return openBoard(choice.targetId);
   if (choice.type === 'menu') return openMenu(choice.targetId);

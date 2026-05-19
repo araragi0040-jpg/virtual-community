@@ -38,6 +38,7 @@ const choiceEditor = {
 const CHOICE_TYPES = [
   { value: 'close', label: '会話を閉じる' },
   { value: 'dialogue', label: '別の会話へ進む' },
+  { value: 'conditionalDialogue', label: '条件で会話を分岐' },
   { value: 'board', label: '掲示板を開く' },
   { value: 'menu', label: 'メニューを開く' },
   { value: 'linkBoard', label: 'リンク集を開く' },
@@ -48,6 +49,30 @@ const CHOICE_TYPES = [
   { value: 'info', label: '案内メッセージを出す' },
   { value: 'map', label: 'マップ移動' },
   { value: 'resetExperience', label: '体験メモをリセット' }
+];
+
+const DAY_OPTIONS = [
+  { value: 'all', label: '全曜日' },
+  { value: 'mon', label: '月' },
+  { value: 'tue', label: '火' },
+  { value: 'wed', label: '水' },
+  { value: 'thu', label: '木' },
+  { value: 'fri', label: '金' },
+  { value: 'sat', label: '土' },
+  { value: 'sun', label: '日' }
+];
+
+const CHOICE_CONDITION_TYPES = [
+  { value: 'none', label: '条件なし' },
+  { value: 'statAtLeast', label: '体験値が一定以上' },
+  { value: 'totalAtLeast', label: '合計体験値が一定以上' },
+  { value: 'actionAtLeast', label: '特定アクション回数以上' },
+  { value: 'visitedMap', label: '特定マップ訪問済み' },
+  { value: 'hiddenFound', label: '隠し要素発見済み' },
+  { value: 'hiddenCountAtLeast', label: '隠し要素発見数以上' },
+  { value: 'achievementUnlocked', label: '実績開放済み' },
+  { value: 'dayIs', label: '特定曜日' },
+  { value: 'customJson', label: '詳細JSON条件' }
 ];
 
 const fields = {
@@ -135,8 +160,8 @@ const RESIZE_CURSORS = {
   w: 'ew-resize'
 };
 
-const DRAFT_KEY = 'vc4u_editor_draft_v024';
-const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v024';
+const DRAFT_KEY = 'vc4u_editor_draft_v025';
+const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v025';
 const HISTORY_LIMIT = 60;
 
 function deepClone(obj) {
@@ -217,7 +242,7 @@ function updateEntityButtons() {
 
 function makeDraft() {
   return {
-    version: 'v023',
+    version: 'v025',
     savedAt: new Date().toISOString(),
     mapsData: state.mapsData,
     npcsData: state.npcsData,
@@ -935,6 +960,158 @@ function choiceMainTarget(choice) {
   return choice.targetId || choice.targetMapId || '';
 }
 
+
+function normalizeVisibleDaysForChoice(choice) {
+  const days = Array.isArray(choice?.visibleDays) ? choice.visibleDays.filter(Boolean) : ['all'];
+  if (!days.length || days.includes('all')) return ['all'];
+  return days;
+}
+
+function makeVisibleDaysEditor(days = ['all']) {
+  const wrap = document.createElement('div');
+  wrap.className = 'choice-days-box';
+  const title = document.createElement('div');
+  title.className = 'choice-subtitle';
+  title.textContent = '表示曜日';
+  const checks = document.createElement('div');
+  checks.className = 'choice-day-checks';
+  const normalized = normalizeVisibleDaysForChoice({ visibleDays: days });
+  DAY_OPTIONS.forEach(day => {
+    const label = document.createElement('label');
+    label.className = 'choice-day-check';
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.className = 'choice-visible-day';
+    input.dataset.day = day.value;
+    input.checked = normalized.includes('all') ? day.value === 'all' : normalized.includes(day.value);
+    input.addEventListener('change', () => {
+      const all = checks.querySelector('input[data-day="all"]');
+      if (input.dataset.day === 'all' && input.checked) {
+        checks.querySelectorAll('input.choice-visible-day').forEach(cb => { if (cb !== input) cb.checked = false; });
+      }
+      if (input.dataset.day !== 'all' && input.checked && all) all.checked = false;
+      const anySpecific = [...checks.querySelectorAll('input.choice-visible-day')].some(cb => cb.dataset.day !== 'all' && cb.checked);
+      if (!anySpecific && all) all.checked = true;
+    });
+    label.append(input, document.createTextNode(day.label));
+    checks.appendChild(label);
+  });
+  wrap.append(title, checks);
+  return wrap;
+}
+
+function conditionToEditorFields(condition) {
+  if (!condition) return { type: 'none', key: '', value: '', json: '' };
+  const type = condition.type;
+  if (!type || condition.all || condition.any || condition.not) {
+    return { type: 'customJson', key: '', value: '', json: JSON.stringify(condition, null, 2) };
+  }
+  switch (type) {
+    case 'statAtLeast':
+      return { type, key: condition.stat || '', value: condition.value ?? '', json: '' };
+    case 'totalAtLeast':
+      return { type, key: '', value: condition.value ?? '', json: '' };
+    case 'actionAtLeast':
+      return { type, key: condition.actionId || '', value: condition.value ?? '', json: '' };
+    case 'visitedMap':
+      return { type, key: condition.mapId || '', value: '', json: '' };
+    case 'hiddenFound':
+      return { type, key: condition.hiddenId || '', value: '', json: '' };
+    case 'hiddenCountAtLeast':
+      return { type, key: '', value: condition.value ?? '', json: '' };
+    case 'achievementUnlocked':
+      return { type, key: condition.achievementId || '', value: '', json: '' };
+    case 'dayIs':
+      return { type, key: condition.day || '', value: '', json: '' };
+    default:
+      return { type: 'customJson', key: '', value: '', json: JSON.stringify(condition, null, 2) };
+  }
+}
+
+function makeChoiceConditionEditor(condition) {
+  const fields = conditionToEditorFields(condition);
+  const wrap = document.createElement('div');
+  wrap.className = 'choice-condition-box';
+  const title = document.createElement('div');
+  title.className = 'choice-subtitle';
+  title.textContent = '表示条件';
+
+  const grid = document.createElement('div');
+  grid.className = 'choice-grid-3';
+
+  const typeLabel = document.createElement('label');
+  typeLabel.textContent = '条件タイプ';
+  const typeSelect = document.createElement('select');
+  typeSelect.className = 'choice-condition-type';
+  CHOICE_CONDITION_TYPES.forEach(item => {
+    const option = document.createElement('option');
+    option.value = item.value;
+    option.textContent = item.label;
+    if (item.value === fields.type) option.selected = true;
+    typeSelect.appendChild(option);
+  });
+  typeLabel.appendChild(typeSelect);
+
+  const keyLabel = makeChoiceInput('条件キー', 'choice-condition-key', fields.key, '例：talk / action_4u_drink / mapId');
+  const valueLabel = makeChoiceInput('条件値', 'choice-condition-value', fields.value, '例：3');
+  grid.append(typeLabel, keyLabel, valueLabel);
+
+  const jsonLabel = document.createElement('label');
+  jsonLabel.textContent = '詳細条件JSON';
+  const textarea = document.createElement('textarea');
+  textarea.className = 'choice-condition-json';
+  textarea.rows = 3;
+  textarea.placeholder = '{ "type": "statAtLeast", "stat": "talk", "value": 3 }';
+  textarea.value = fields.json;
+  jsonLabel.appendChild(textarea);
+
+  const hint = document.createElement('p');
+  hint.className = 'small-note choice-condition-hint';
+  hint.textContent = '通常は条件タイプ・条件キー・条件値だけでOKです。複雑な条件は「詳細JSON条件」を選んで入力します。';
+
+  function refresh() {
+    const isNone = typeSelect.value === 'none';
+    const isCustom = typeSelect.value === 'customJson';
+    keyLabel.classList.toggle('hidden', isNone || isCustom || ['totalAtLeast', 'hiddenCountAtLeast'].includes(typeSelect.value));
+    valueLabel.classList.toggle('hidden', isNone || isCustom || ['visitedMap', 'hiddenFound', 'achievementUnlocked', 'dayIs'].includes(typeSelect.value));
+    jsonLabel.classList.toggle('hidden', !isCustom);
+    hint.classList.toggle('hidden', isNone);
+  }
+  typeSelect.addEventListener('change', refresh);
+  refresh();
+
+  wrap.append(title, grid, jsonLabel, hint);
+  return wrap;
+}
+
+function readChoiceVisibleDays(row) {
+  const checks = [...row.querySelectorAll('.choice-visible-day')].filter(cb => cb.checked).map(cb => cb.dataset.day);
+  if (!checks.length || checks.includes('all')) return ['all'];
+  return checks;
+}
+
+function readChoiceCondition(row) {
+  const type = row.querySelector('.choice-condition-type')?.value || 'none';
+  const key = row.querySelector('.choice-condition-key')?.value.trim() || '';
+  const rawValue = row.querySelector('.choice-condition-value')?.value.trim() || '';
+  const value = rawValue === '' ? undefined : (Number.isNaN(Number(rawValue)) ? rawValue : Number(rawValue));
+  const json = row.querySelector('.choice-condition-json')?.value.trim() || '';
+  if (type === 'none') return null;
+  if (type === 'customJson') {
+    if (!json) return null;
+    return JSON.parse(json);
+  }
+  if (type === 'statAtLeast') return { type, stat: key, value: value ?? 0 };
+  if (type === 'totalAtLeast') return { type, value: value ?? 0 };
+  if (type === 'actionAtLeast') return { type, actionId: key, value: value ?? 0 };
+  if (type === 'visitedMap') return { type, mapId: key };
+  if (type === 'hiddenFound') return { type, hiddenId: key };
+  if (type === 'hiddenCountAtLeast') return { type, value: value ?? 0 };
+  if (type === 'achievementUnlocked') return { type, achievementId: key };
+  if (type === 'dayIs') return { type, day: key };
+  return null;
+}
+
 function createChoiceRow(choice = {}, index = 0) {
   const normalized = {
     label: choice.label || '閉じる',
@@ -1008,8 +1185,11 @@ function createChoiceRow(choice = {}, index = 0) {
     makeChoiceInput('補足メッセージ', 'choice-message', normalized.message || '', '準備中などの案内文'),
     makeChoiceInput('見た目class', 'choice-className', normalized.className || '', 'link / secondary / achievement など')
   );
-  fieldsWrap.append(topGrid, midGrid, bottomGrid);
+  const visibleDaysEditor = makeVisibleDaysEditor(normalized.visibleDays || ['all']);
+  const conditionEditor = makeChoiceConditionEditor(normalized.visibleWhen || normalized.condition || null);
+  fieldsWrap.append(topGrid, midGrid, bottomGrid, visibleDaysEditor, conditionEditor);
   row.append(head, fieldsWrap);
+  row.querySelector('.choice-type')?.addEventListener('change', updateChoiceRowTitles);
   return row;
 }
 
@@ -1060,12 +1240,17 @@ function readChoiceRows() {
     const url = row.querySelector('.choice-url')?.value.trim() || '';
     const message = row.querySelector('.choice-message')?.value.trim() || '';
     const className = row.querySelector('.choice-className')?.value.trim() || '';
+    const visibleDays = readChoiceVisibleDays(row);
+    const condition = readChoiceCondition(row);
     const choice = { ...original, label, type };
     delete choice.targetId;
     delete choice.targetMapId;
     delete choice.url;
     delete choice.message;
     delete choice.className;
+    delete choice.visibleDays;
+    delete choice.visibleWhen;
+    delete choice.condition;
     if (target) {
       if (type === 'map') choice.targetMapId = target;
       else choice.targetId = target;
@@ -1073,6 +1258,8 @@ function readChoiceRows() {
     if (url) choice.url = url;
     if (message) choice.message = message;
     if (className) choice.className = className;
+    if (visibleDays.length && !visibleDays.includes('all')) choice.visibleDays = visibleDays;
+    if (condition) choice.condition = condition;
     return choice;
   });
 }
@@ -1222,7 +1409,12 @@ function applyContentChanges() {
   if (target.kind === 'dialogue') {
     data.speaker = contentFields.title.value.trim() || data.speaker || '';
     data.text = contentFields.body.value;
-    data.options = readChoiceRows();
+    try {
+      data.options = readChoiceRows();
+    } catch (err) {
+      helpText.textContent = `選択肢の条件JSONに誤りがあります: ${err.message}`;
+      return;
+    }
     delete data.choices;
   }
   if (target.kind === 'confirm') {
