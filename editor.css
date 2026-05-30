@@ -419,3 +419,18 @@ button:disabled {
 .choice-condition-hint {
   margin: 4px 0 0;
 }
+
+/* v026: common target condition editor */
+.target-meta-editor {
+  margin: 10px 0;
+  padding: 10px;
+  border: 2px solid rgba(154, 221, 123, .65);
+  border-radius: 14px;
+  background: rgba(154, 221, 123, .07);
+}
+.target-meta-editor .choice-subtitle { color: #d4f4a5; }
+.target-meta-editor .choice-days-box,
+.target-meta-editor .choice-condition-box {
+  border-color: rgba(154, 221, 123, .34);
+}
+.compact-head { margin-bottom: 8px; }

@@ -42,8 +42,8 @@ const DATA_URLS = {
 };
 
 // v004: 背景画像に人物が描き込まれているため、NPCスプライトは重ねず、近づいた時の！マーカーで会話可能地点を示す。
-const EDITOR_DRAFT_KEY = 'vc4u_editor_draft_v025';
-const EDITOR_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v025';
+const EDITOR_DRAFT_KEY = 'vc4u_editor_draft_v026';
+const EDITOR_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v026';
 
 const SHOW_NPC_SPRITES = false;
 
@@ -353,6 +353,11 @@ function isChoiceVisible(choice) {
   return evaluateCondition(condition);
 }
 
+function isVisibleEntity(entity) {
+  if (!isVisibleByDay(entity)) return false;
+  return evaluateCondition(entity?.visibleWhen || entity?.condition);
+}
+
 function visibleChoices(choices) {
   const list = Array.isArray(choices) ? choices : [];
   const filtered = list.filter(isChoiceVisible);
@@ -361,10 +366,10 @@ function visibleChoices(choices) {
 function currentInteractables() {
   const map = currentMap();
   if (!map) return [];
-  return [ ...(map.interactables || []).filter(isVisibleByDay), ...currentHiddenSpots() ];
+  return [ ...(map.interactables || []).filter(isVisibleEntity), ...currentHiddenSpots() ];
 }
 function currentNpcs() {
-  return state.data.npcs.filter(npc => npc.mapId === state.currentMapId && isVisibleByDay(npc));
+  return state.data.npcs.filter(npc => npc.mapId === state.currentMapId && isVisibleEntity(npc));
 }
 
 function recordMapVisit(mapId) {
@@ -669,10 +674,14 @@ function openBoard(boardId) {
   const body = (board.bodyByDay && board.bodyByDay[dayKey]) || board.body;
   const linkLabel = (board.linkLabelByDay && board.linkLabelByDay[dayKey]) || board.linkLabel || 'リンクを開く';
   const linkUrl = (board.linkUrlByDay && board.linkUrlByDay[dayKey]) || board.linkUrl;
-  const choices = [];
-  if (board.linkBoardId) choices.push({ label: board.extraLinkLabel || linkLabel || 'リンク一覧を見る', type: 'linkBoard', targetId: board.linkBoardId, className: 'link' });
-  if (linkUrl) choices.push({ label: linkLabel, type: 'link', url: linkUrl, className: 'link' });
-  choices.push({ label: '閉じる', type: 'close', className: 'secondary' });
+  let choices = [];
+  if (Array.isArray(board.options) || Array.isArray(board.choices)) {
+    choices = board.options || board.choices || [];
+  } else {
+    if (board.linkBoardId) choices.push({ label: board.extraLinkLabel || linkLabel || 'リンク一覧を見る', type: 'linkBoard', targetId: board.linkBoardId, className: 'link' });
+    if (linkUrl) choices.push({ label: linkLabel, type: 'link', url: linkUrl, className: 'link' });
+    choices.push({ label: '閉じる', type: 'close', className: 'secondary' });
+  }
   showModal(board.title, body, choices);
 }
 
@@ -702,12 +711,16 @@ function openMenu(menuId) {
   const items = (menu.itemsByDay && menu.itemsByDay[dayKey]) || menu.items || [];
   const actionNote = menu.actionNote ? `\n\n${menu.actionNote}` : '';
   const body = `${note}\n\n${items.map(item => `・${item}`).join('\n')}${actionNote}`;
-  const choices = [];
-  (menu.actionIds || []).forEach(actionId => {
-    const action = state.data.actions[actionId];
-    if (action) choices.push({ label: `▶ ${action.title}`, type: 'action', targetId: actionId, className: 'link' });
-  });
-  choices.push({ label: '閉じる', type: 'close', className: 'secondary' });
+  let choices = [];
+  if (Array.isArray(menu.options) || Array.isArray(menu.choices)) {
+    choices = menu.options || menu.choices || [];
+  } else {
+    (menu.actionIds || []).forEach(actionId => {
+      const action = state.data.actions[actionId];
+      if (action) choices.push({ label: `▶ ${action.title}`, type: 'action', targetId: actionId, className: 'link' });
+    });
+    choices.push({ label: '閉じる', type: 'close', className: 'secondary' });
+  }
   showModal(menu.title, body, choices);
 }
 
@@ -750,10 +763,13 @@ function openHidden(hiddenId) {
     body += formatUnlockedAchievements(newly);
   }
 
-  showModal(hidden.title || '隠し要素', body, [
-    { label: '実績を見る', type: 'achievements', className: 'achievement' },
-    { label: '閉じる', type: 'close', className: 'secondary' }
-  ]);
+  const choices = (Array.isArray(hidden.options) || Array.isArray(hidden.choices))
+    ? (hidden.options || hidden.choices || [])
+    : [
+      { label: '実績を見る', type: 'achievements', className: 'achievement' },
+      { label: '閉じる', type: 'close', className: 'secondary' }
+    ];
+  showModal(hidden.title || '隠し要素', body, choices);
 }
 
 function openAchievements() {
@@ -789,10 +805,13 @@ function openMemo() {
 
 function openConfirm(confirmId, item) {
   const confirm = state.data.confirms[confirmId] || { title: item.label, text: `${item.label}しますか？`, yesLabel: 'はい', noLabel: 'いいえ' };
-  showModal(confirm.title, confirm.text, [
-    { label: confirm.yesLabel || 'はい', type: 'map', targetMapId: item.targetMapId, spawn: item.spawn },
-    { label: confirm.noLabel || 'いいえ', type: 'close', className: 'secondary' }
-  ]);
+  const choices = (Array.isArray(confirm.options) || Array.isArray(confirm.choices))
+    ? (confirm.options || confirm.choices || [])
+    : [
+      { label: confirm.yesLabel || 'はい', type: 'map', targetMapId: item.targetMapId, spawn: item.spawn },
+      { label: confirm.noLabel || 'いいえ', type: 'close', className: 'secondary' }
+    ];
+  showModal(confirm.title, confirm.text, choices);
 }
 
 function resolveConditionalChoiceTarget(choice) {

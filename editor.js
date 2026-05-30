@@ -35,6 +35,12 @@ const choiceEditor = {
   addButton: document.getElementById('addChoiceButton')
 };
 
+const targetMetaEditor = {
+  panel: document.getElementById('targetMetaEditor'),
+  visibleDays: document.getElementById('targetVisibleDays'),
+  condition: document.getElementById('targetCondition')
+};
+
 const CHOICE_TYPES = [
   { value: 'close', label: '会話を閉じる' },
   { value: 'dialogue', label: '別の会話へ進む' },
@@ -160,8 +166,8 @@ const RESIZE_CURSORS = {
   w: 'ew-resize'
 };
 
-const DRAFT_KEY = 'vc4u_editor_draft_v025';
-const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v025';
+const DRAFT_KEY = 'vc4u_editor_draft_v026';
+const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v026';
 const HISTORY_LIMIT = 60;
 
 function deepClone(obj) {
@@ -242,7 +248,7 @@ function updateEntityButtons() {
 
 function makeDraft() {
   return {
-    version: 'v025',
+    version: 'v026',
     savedAt: new Date().toISOString(),
     mapsData: state.mapsData,
     npcsData: state.npcsData,
@@ -862,31 +868,48 @@ function getSelectedContentTarget() {
   const e = selectedEntity();
   if (!e) return null;
   const item = e.ref;
+
+  function fallback(kind = 'entity') {
+    return { kind, id: item.id || e.key, data: item, owner: item, linked: false };
+  }
+
   if (e.type === 'npc') {
     const id = item.dialogueId;
-    return id ? { kind: 'dialogue', id, data: state.dialoguesData?.dialogues?.[id], owner: item } : null;
+    if (id && state.dialoguesData?.dialogues?.[id]) return { kind: 'dialogue', id, data: state.dialoguesData.dialogues[id], owner: item, linked: true };
+    return fallback('npc');
   }
   if (e.type === 'hidden') {
-    return { kind: 'hidden', id: item.id, data: item, owner: item };
+    return { kind: 'hidden', id: item.id, data: item, owner: item, linked: false };
   }
+  if (e.type === 'block') {
+    return fallback('block');
+  }
+
   const type = item.type || e.type;
   if (type === 'board') {
     const id = item.boardId;
-    return id ? { kind: 'board', id, data: state.boardsData?.boards?.[id], owner: item } : null;
+    if (id && state.boardsData?.boards?.[id]) return { kind: 'board', id, data: state.boardsData.boards[id], owner: item, linked: true };
+    return fallback('boardObject');
   }
   if (type === 'menu') {
     const id = item.menuId;
-    return id ? { kind: 'menu', id, data: state.menusData?.menus?.[id], owner: item } : null;
+    if (id && state.menusData?.menus?.[id]) return { kind: 'menu', id, data: state.menusData.menus[id], owner: item, linked: true };
+    return fallback('menuObject');
   }
   if (type === 'sign' || type === 'event') {
     const id = item.signId || item.dialogueId;
-    return id ? { kind: 'dialogue', id, data: state.dialoguesData?.dialogues?.[id], owner: item } : null;
+    if (id && state.dialoguesData?.dialogues?.[id]) return { kind: 'dialogue', id, data: state.dialoguesData.dialogues[id], owner: item, linked: true };
+    return fallback(type === 'sign' ? 'signObject' : 'eventObject');
   }
   if (type === 'door') {
     const id = item.confirmId;
-    return id ? { kind: 'confirm', id, data: state.dialoguesData?.confirms?.[id], owner: item } : null;
+    if (id && state.dialoguesData?.confirms?.[id]) return { kind: 'confirm', id, data: state.dialoguesData.confirms[id], owner: item, linked: true };
+    return fallback('doorObject');
   }
-  return null;
+  if (type === 'exit') {
+    return fallback('exitObject');
+  }
+  return fallback('entity');
 }
 
 function setContentPanelVisibility(show) {
@@ -899,6 +922,7 @@ function setContentControlsDisabled(disabled) {
     if (el && 'disabled' in el) el.disabled = !!disabled;
   });
   choiceEditor.panel?.querySelectorAll('input, select, textarea, button').forEach(el => { el.disabled = !!disabled; });
+  targetMetaEditor.panel?.querySelectorAll('input, select, textarea, button').forEach(el => { el.disabled = !!disabled; });
   if (buttons.applyContent) buttons.applyContent.disabled = !!disabled;
   if (buttons.copyContent) buttons.copyContent.disabled = !!disabled;
 }
@@ -918,14 +942,18 @@ function choiceTypeLabel(type) {
   return CHOICE_TYPES.find(t => t.value === type)?.label || type || '未設定';
 }
 
-function normalizeDialogueOptions(data) {
-  const raw = data?.options || data?.choices || [{ label: '閉じる', type: 'close' }];
-  if (!Array.isArray(raw) || !raw.length) return [{ label: '閉じる', type: 'close' }];
+function normalizeChoiceList(data, fallback = []) {
+  const raw = Array.isArray(data?.options) ? data.options : (Array.isArray(data?.choices) ? data.choices : fallback);
+  if (!Array.isArray(raw) || !raw.length) return [];
   return raw.map(choice => ({
     ...(choice && typeof choice === 'object' ? choice : {}),
     label: String(choice?.label || '閉じる'),
     type: String(choice?.type || 'close')
   }));
+}
+
+function normalizeDialogueOptions(data) {
+  return normalizeChoiceList(data, [{ label: '閉じる', type: 'close' }]);
 }
 
 function makeChoiceInput(labelText, className, value = '', placeholder = '') {
@@ -1112,6 +1140,42 @@ function readChoiceCondition(row) {
   return null;
 }
 
+function renderTargetMetaEditor(owner) {
+  if (!targetMetaEditor.panel) return;
+  targetMetaEditor.panel.classList.toggle('hidden', !owner);
+  if (!owner) return;
+  targetMetaEditor.visibleDays.innerHTML = '';
+  targetMetaEditor.condition.innerHTML = '';
+  targetMetaEditor.visibleDays.appendChild(makeVisibleDaysEditor(owner.visibleDays || ['all']));
+  targetMetaEditor.condition.appendChild(makeChoiceConditionEditor(owner.visibleWhen || owner.condition || null));
+}
+
+function readVisibleDaysFromContainer(container) {
+  const checks = [...container.querySelectorAll('.choice-visible-day')]
+    .filter(cb => cb.checked)
+    .map(cb => cb.dataset.day);
+  if (!checks.length || checks.includes('all')) return ['all'];
+  return checks;
+}
+
+function applyTargetMeta(owner) {
+  if (!owner || !targetMetaEditor.panel) return;
+  const visibleDays = readVisibleDaysFromContainer(targetMetaEditor.visibleDays);
+  const condition = readChoiceCondition(targetMetaEditor.condition);
+  delete owner.visibleDays;
+  delete owner.visibleWhen;
+  delete owner.condition;
+  if (visibleDays.length && !visibleDays.includes('all')) owner.visibleDays = visibleDays;
+  if (condition) owner.visibleWhen = condition;
+}
+
+function applyChoicesToData(data, choices) {
+  if (!data || typeof data !== 'object') return;
+  delete data.options;
+  delete data.choices;
+  if (Array.isArray(choices) && choices.length) data.options = choices;
+}
+
 function createChoiceRow(choice = {}, index = 0) {
   const normalized = {
     label: choice.label || '閉じる',
@@ -1208,10 +1272,10 @@ function updateChoiceRowTitles() {
   });
 }
 
-function renderChoiceEditor(options) {
+function renderChoiceEditor(options = []) {
   if (!choiceEditor.list) return;
   choiceEditor.list.innerHTML = '';
-  const rows = normalizeDialogueOptions({ options });
+  const rows = normalizeChoiceList({ options }, []);
   if (!rows.length) {
     showChoiceEmpty();
     return;
@@ -1229,9 +1293,9 @@ function addChoiceRow(choice = { label: '閉じる', type: 'close' }) {
 }
 
 function readChoiceRows() {
-  if (!choiceEditor.list) return [{ label: '閉じる', type: 'close' }];
+  if (!choiceEditor.list) return [];
   const rows = [...choiceEditor.list.querySelectorAll('.choice-row')];
-  if (!rows.length) return [{ label: '閉じる', type: 'close' }];
+  if (!rows.length) return [];
   return rows.map(row => {
     const original = row.__choiceOriginal && typeof row.__choiceOriginal === 'object' ? deepClone(row.__choiceOriginal) : {};
     const type = row.querySelector('.choice-type')?.value || 'close';
@@ -1268,6 +1332,7 @@ function renderContentEditor() {
   const target = getSelectedContentTarget();
   if (!target) {
     setContentPanelVisibility(false);
+    renderTargetMetaEditor(null);
     return;
   }
   setContentPanelVisibility(true);
@@ -1279,12 +1344,21 @@ function renderContentEditor() {
     confirm: '入店確認データ',
     board: '掲示板データ',
     menu: 'メニューデータ',
-    hidden: '隠し要素本文'
+    hidden: '隠し要素本文',
+    npc: 'NPC本体データ',
+    block: '通行不可ブロック',
+    boardObject: '掲示板オブジェクト',
+    menuObject: 'メニューオブジェクト',
+    signObject: '看板オブジェクト',
+    eventObject: 'イベントオブジェクト',
+    doorObject: '扉オブジェクト',
+    exitObject: '出口オブジェクト',
+    entity: '対象データ'
   }[target.kind] || target.kind;
-  contentKind.textContent = `${kindLabel}｜${target.id}${exists ? '' : '（未作成）'}`;
-  contentHelp.textContent = exists
-    ? '選択中オブジェクトに紐づく表示内容を編集できます。「内容を反映」後に下書き保存→ゲームで確認してください。'
-    : '紐づくIDのデータが見つかりません。先にIDを既存データへ変更するか、JSON側へ追加してください。';
+
+  contentKind.textContent = `${kindLabel}｜${target.id}${target.linked === false ? '（対象本体）' : ''}`;
+  contentHelp.textContent = '選択中対象の本文・表示条件・選択肢を共通形式で編集できます。内容反映後に下書き保存→ゲームで確認してください。';
+
   contentFields.id.value = target.id || '';
   contentFields.title.value = '';
   contentFields.body.value = '';
@@ -1294,11 +1368,11 @@ function renderContentEditor() {
   hideContentRow(contentFields.linkLabelLabel, false);
   hideContentRow(contentFields.linkUrlLabel, false);
   hideContentRow(contentFields.jsonLabel, false);
-  contentFields.titleLabel.firstChild.textContent = 'タイトル / 話者';
-  contentFields.bodyLabel.firstChild.textContent = '本文';
+  contentFields.titleLabel.firstChild.textContent = 'タイトル / 表示名';
+  contentFields.bodyLabel.firstChild.textContent = '本文 / 説明';
   contentFields.linkLabelLabel.firstChild.textContent = 'リンクラベル / 補助項目';
   contentFields.linkUrlLabel.firstChild.textContent = 'URL / 補助項目';
-  contentFields.jsonLabel.firstChild.textContent = '選択肢・項目・追加情報JSON';
+  contentFields.jsonLabel.firstChild.textContent = '追加情報JSON';
 
   if (!exists) {
     setContentControlsDisabled(true);
@@ -1306,23 +1380,17 @@ function renderContentEditor() {
     return;
   }
 
+  renderTargetMetaEditor(target.owner || data);
+
   if (target.kind === 'dialogue') {
     contentFields.titleLabel.firstChild.textContent = '話者';
     contentFields.bodyLabel.firstChild.textContent = 'セリフ本文';
-    contentFields.jsonLabel.firstChild.textContent = '詳細JSON（通常は未使用）';
     contentFields.title.value = data.speaker || '';
     contentFields.body.value = data.text || '';
-    contentFields.json.value = '';
-    renderChoiceEditor(data.options || data.choices || [{ label: '閉じる', type: 'close' }]);
-    setChoiceEditorVisibility(true);
     hideContentRow(contentFields.linkLabelLabel, true);
     hideContentRow(contentFields.linkUrlLabel, true);
     hideContentRow(contentFields.jsonLabel, true);
-  } else {
-    setChoiceEditorVisibility(false);
-  }
-
-  if (target.kind === 'confirm') {
+  } else if (target.kind === 'confirm') {
     contentFields.titleLabel.firstChild.textContent = '確認タイトル';
     contentFields.bodyLabel.firstChild.textContent = '確認本文';
     contentFields.linkLabelLabel.firstChild.textContent = 'YESボタン文言';
@@ -1332,9 +1400,7 @@ function renderContentEditor() {
     contentFields.linkLabel.value = data.yesLabel || '入る';
     contentFields.linkUrl.value = data.noLabel || 'やめる';
     hideContentRow(contentFields.jsonLabel, true);
-  }
-
-  if (target.kind === 'board') {
+  } else if (target.kind === 'board') {
     contentFields.titleLabel.firstChild.textContent = '掲示板タイトル';
     contentFields.bodyLabel.firstChild.textContent = '掲示板本文';
     contentFields.linkLabelLabel.firstChild.textContent = 'メインリンクボタン名';
@@ -1346,12 +1412,12 @@ function renderContentEditor() {
     contentFields.linkUrl.value = data.linkUrl || '';
     contentFields.json.value = JSON.stringify({
       bodyByDay: data.bodyByDay || {},
+      linkLabelByDay: data.linkLabelByDay || {},
+      linkUrlByDay: data.linkUrlByDay || {},
       linkBoardId: data.linkBoardId || '',
       extraLinkLabel: data.extraLinkLabel || ''
     }, null, 2);
-  }
-
-  if (target.kind === 'menu') {
+  } else if (target.kind === 'menu') {
     contentFields.titleLabel.firstChild.textContent = 'メニュータイトル';
     contentFields.bodyLabel.firstChild.textContent = 'メモ / 説明文';
     contentFields.linkLabelLabel.firstChild.textContent = 'アクション案内文';
@@ -1366,25 +1432,36 @@ function renderContentEditor() {
       actionIds: data.actionIds || []
     }, null, 2);
     hideContentRow(contentFields.linkUrlLabel, true);
-  }
-
-  if (target.kind === 'hidden') {
+  } else if (target.kind === 'hidden') {
     contentFields.titleLabel.firstChild.textContent = '隠し要素タイトル';
     contentFields.bodyLabel.firstChild.textContent = '初回発見テキスト';
     contentFields.linkLabelLabel.firstChild.textContent = '再確認テキスト';
     contentFields.linkUrlLabel.firstChild.textContent = '体験メモに残す文';
-    contentFields.jsonLabel.firstChild.textContent = '出現条件・曜日・stats JSON';
-    contentFields.title.value = data.title || '';
+    contentFields.jsonLabel.firstChild.textContent = 'stats JSON';
+    contentFields.title.value = data.title || data.label || '';
     contentFields.body.value = data.text || '';
     contentFields.linkLabel.value = data.foundText || '';
     contentFields.linkUrl.value = data.log || '';
+    contentFields.json.value = JSON.stringify({ stats: data.stats || {} }, null, 2);
+  } else {
+    contentFields.titleLabel.firstChild.textContent = '表示名';
+    contentFields.bodyLabel.firstChild.textContent = '管理メモ / 説明';
+    contentFields.linkLabelLabel.firstChild.textContent = '補助ラベル';
+    contentFields.linkUrlLabel.firstChild.textContent = '補助URL / 対象ID';
+    contentFields.jsonLabel.firstChild.textContent = '追加情報JSON';
+    contentFields.title.value = data.label || data.name || data.title || '';
+    contentFields.body.value = data.note || data.description || data.text || '';
+    contentFields.linkLabel.value = data.linkLabel || '';
+    contentFields.linkUrl.value = data.linkUrl || data.targetId || data.targetMapId || '';
     contentFields.json.value = JSON.stringify({
-      visibleDays: data.visibleDays || ['all'],
-      visibleWhen: data.visibleWhen || null,
-      stats: data.stats || {}
+      actions: data.actions || [],
+      stats: data.stats || {},
+      custom: data.custom || {}
     }, null, 2);
   }
 
+  renderChoiceEditor(data.options || data.choices || []);
+  setChoiceEditorVisibility(true);
   setContentControlsDisabled(locked);
   contentFields.id.disabled = false;
 }
@@ -1404,37 +1481,40 @@ function applyContentChanges() {
   if (!target || !target.data || isLayerLocked()) return;
   const extra = safeParseContentJson(null);
   if (extra === undefined) return;
+
+  let choices = [];
+  try {
+    choices = readChoiceRows();
+  } catch (err) {
+    helpText.textContent = `選択肢の条件JSONに誤りがあります: ${err.message}`;
+    return;
+  }
+
   pushHistory();
+  applyTargetMeta(target.owner || target.data);
   const data = target.data;
+
   if (target.kind === 'dialogue') {
     data.speaker = contentFields.title.value.trim() || data.speaker || '';
     data.text = contentFields.body.value;
-    try {
-      data.options = readChoiceRows();
-    } catch (err) {
-      helpText.textContent = `選択肢の条件JSONに誤りがあります: ${err.message}`;
-      return;
-    }
-    delete data.choices;
-  }
-  if (target.kind === 'confirm') {
+  } else if (target.kind === 'confirm') {
     data.title = contentFields.title.value.trim() || data.title || '';
     data.text = contentFields.body.value;
     data.yesLabel = contentFields.linkLabel.value.trim() || '入る';
     data.noLabel = contentFields.linkUrl.value.trim() || 'やめる';
-  }
-  if (target.kind === 'board') {
+  } else if (target.kind === 'board') {
     data.title = contentFields.title.value.trim() || data.title || '';
     data.body = contentFields.body.value;
     data.linkLabel = contentFields.linkLabel.value.trim();
     data.linkUrl = contentFields.linkUrl.value.trim();
     if (extra && typeof extra === 'object') {
       data.bodyByDay = extra.bodyByDay || {};
+      data.linkLabelByDay = extra.linkLabelByDay || {};
+      data.linkUrlByDay = extra.linkUrlByDay || {};
       data.linkBoardId = extra.linkBoardId || '';
       data.extraLinkLabel = extra.extraLinkLabel || '';
     }
-  }
-  if (target.kind === 'menu') {
+  } else if (target.kind === 'menu') {
     data.title = contentFields.title.value.trim() || data.title || '';
     data.note = contentFields.body.value;
     data.actionNote = contentFields.linkLabel.value.trim();
@@ -1444,19 +1524,33 @@ function applyContentChanges() {
       data.noteByDay = extra.noteByDay || {};
       data.actionIds = Array.isArray(extra.actionIds) ? extra.actionIds : (data.actionIds || []);
     }
-  }
-  if (target.kind === 'hidden') {
+  } else if (target.kind === 'hidden') {
     data.title = contentFields.title.value.trim() || data.title || '';
+    data.label = data.label || data.title;
     data.text = contentFields.body.value;
     data.foundText = contentFields.linkLabel.value;
     data.log = contentFields.linkUrl.value;
     if (extra && typeof extra === 'object') {
-      data.visibleDays = Array.isArray(extra.visibleDays) ? extra.visibleDays : (data.visibleDays || ['all']);
-      data.visibleWhen = extra.visibleWhen ?? null;
       data.stats = extra.stats || {};
     }
+  } else {
+    const title = contentFields.title.value.trim();
+    if (title) {
+      if ('name' in data && !('label' in data)) data.name = title;
+      else data.label = title;
+    }
+    data.note = contentFields.body.value;
+    data.linkLabel = contentFields.linkLabel.value.trim();
+    data.linkUrl = contentFields.linkUrl.value.trim();
+    if (extra && typeof extra === 'object') {
+      data.actions = Array.isArray(extra.actions) ? extra.actions : (data.actions || []);
+      data.stats = extra.stats || data.stats || {};
+      data.custom = extra.custom || data.custom || {};
+    }
   }
-  helpText.textContent = '紐づく内容を反映しました。ゲームで確認する場合は「下書き保存」→「ゲームで確認」を押してください。';
+
+  applyChoicesToData(data, choices);
+  helpText.textContent = '紐づく内容・共通設定・選択肢を反映しました。ゲームで確認する場合は「下書き保存」→「ゲームで確認」を押してください。';
   renderAll();
 }
 

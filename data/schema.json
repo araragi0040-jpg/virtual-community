@@ -1,5 +1,5 @@
 {
-  "version": "v025",
+  "version": "v026",
   "purpose": "Googleスプレッドシート移行と配置エディタ用のデータ設計メモ",
   "coordinateSystem": {
     "x": "0-100",
@@ -42,7 +42,7 @@
     {
       "name": "dialogue_options",
       "key": "dialogueId+order",
-      "description": "会話選択肢。v025では visibleDays / conditionJson で曜日・表示条件を管理"
+      "description": "共通選択肢。v026ではNPC・看板・掲示板・メニュー・隠し要素・扉などで visibleDays / conditionJson を管理"
     },
     {
       "name": "boards",
