@@ -19,6 +19,8 @@ const areaName = document.getElementById('areaName');
 const dayBadge = document.getElementById('dayBadge');
 const experienceBadge = document.getElementById('experienceBadge');
 const achievementBadge = document.getElementById('achievementBadge');
+const dataSourceBadge = document.getElementById('dataSourceBadge');
+const dataSourceButton = document.getElementById('dataSourceButton');
 const hintText = document.getElementById('hintText');
 const debugText = document.getElementById('debugText');
 const loading = document.getElementById('loading');
@@ -40,6 +42,10 @@ const DATA_URLS = {
   hidden: 'data/hidden.json',
   linkBoards: 'data/linkBoards.json'
 };
+
+const DATA_SOURCE_KEY = 'vc4u_data_source_v030';
+const GAS_URL_KEY = 'vc4u_gas_api_url_v030';
+const GAS_TIMEOUT_MS = 10000;
 
 // v004: 背景画像に人物が描き込まれているため、NPCスプライトは重ねず、近づいた時の！マーカーで会話可能地点を示す。
 const EDITOR_DRAFT_KEY = 'vc4u_editor_draft_v028';
@@ -71,6 +77,9 @@ const state = {
   todayIndex: new Date().getDay(),
   today: DAY_INFO[new Date().getDay()],
   usingEditorDraft: false,
+  dataSource: 'local',
+  gasUrl: '',
+  dataLoadError: '',
   experience: createEmptyExperience()
 };
 
@@ -242,12 +251,138 @@ async function loadJson(url) {
 
 function loadImage(src) {
   return new Promise((resolve, reject) => {
+    if (!src) return reject(new Error('画像パスが空です'));
     if (state.images.has(src)) return resolve(state.images.get(src));
     const img = new Image();
-    img.onload = () => { state.images.set(src, img); resolve(img); };
-    img.onerror = () => reject(new Error(`${src} を読み込めませんでした`));
+    let done = false;
+    const finish = (fn) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      fn();
+    };
+    const timer = setTimeout(() => finish(() => reject(new Error(`${src} の読み込みがタイムアウトしました`))), 12000);
+    img.onload = () => finish(() => { state.images.set(src, img); resolve(img); });
+    img.onerror = () => finish(() => reject(new Error(`${src} を読み込めませんでした`)));
     img.src = src;
   });
+}
+
+async function fetchJsonWithTimeout(url, timeoutMs = GAS_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+    if (!res.ok) throw new Error(`${url} の取得に失敗しました: ${res.status}`);
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function getRuntimeDataSettings() {
+  const params = new URLSearchParams(window.location.search);
+  const sourceParam = (params.get('source') || '').toLowerCase();
+  const apiParam = params.get('api') || '';
+  const storedSource = localStorage.getItem(DATA_SOURCE_KEY) || 'local';
+  const source = sourceParam === 'gas' || sourceParam === 'local' ? sourceParam : storedSource;
+  const gasUrl = apiParam || localStorage.getItem(GAS_URL_KEY) || '';
+  if (apiParam) localStorage.setItem(GAS_URL_KEY, apiParam);
+  if (sourceParam) localStorage.setItem(DATA_SOURCE_KEY, source);
+  return { source, gasUrl };
+}
+
+async function loadLocalDataBundle() {
+  const [mapsData, npcsData, dialoguesData, boardsData, menusData, actionsData, achievementsData, hiddenData, linkBoardsData] = await Promise.all([
+    loadJson(DATA_URLS.maps), loadJson(DATA_URLS.npcs), loadJson(DATA_URLS.dialogues), loadJson(DATA_URLS.boards), loadJson(DATA_URLS.menus), loadJson(DATA_URLS.actions),
+    loadJson(DATA_URLS.achievements), loadJson(DATA_URLS.hidden), loadJson(DATA_URLS.linkBoards)
+  ]);
+  return { mapsData, npcsData, dialoguesData, boardsData, menusData, actionsData, achievementsData, hiddenData, linkBoardsData };
+}
+
+async function loadGasDataBundle(gasUrl) {
+  if (!gasUrl) throw new Error('GAS WebアプリURLが未設定です。');
+  const separator = gasUrl.includes('?') ? '&' : '?';
+  const url = `${gasUrl}${separator}mode=project&t=${Date.now()}`;
+  const json = await fetchJsonWithTimeout(url);
+  if (!json || json.ok === false) throw new Error(json?.error || 'GAS APIのレスポンスが不正です。');
+  const data = json.data || json;
+  // GAS側は { data: { mapsData, npcsData, ... } } を返す。
+  // ただし、将来直接 { mapsData, ... } が返っても受けられるようにする。
+  if (!data.mapsData && data.maps && data.npcs) {
+    return {
+      mapsData: { initialMapId: data.initialMapId || 'outside_4u', maps: data.maps },
+      npcsData: { npcs: data.npcs || [] },
+      dialoguesData: { dialogues: data.dialogues || {}, confirms: data.confirms || {} },
+      boardsData: { boards: data.boards || {} },
+      menusData: { menus: data.menus || {} },
+      actionsData: { actions: data.actions || {} },
+      achievementsData: { achievements: data.achievements || [] },
+      hiddenData: { hiddenSpots: data.hiddenSpots || [] },
+      linkBoardsData: { linkBoards: data.linkBoards || {} }
+    };
+  }
+  return data;
+}
+
+function applyDataBundle(bundle) {
+  const mapsData = bundle.mapsData || { maps: {}, initialMapId: 'outside_4u' };
+  const npcsData = bundle.npcsData || { npcs: [] };
+  const dialoguesData = bundle.dialoguesData || { dialogues: {}, confirms: {} };
+  const boardsData = bundle.boardsData || { boards: {} };
+  const menusData = bundle.menusData || { menus: {} };
+  const actionsData = bundle.actionsData || { actions: {} };
+  const achievementsData = bundle.achievementsData || { achievements: [] };
+  const hiddenData = bundle.hiddenData || { hiddenSpots: [] };
+  const linkBoardsData = bundle.linkBoardsData || { linkBoards: {} };
+
+  if (!mapsData.maps || !Object.keys(mapsData.maps).length) {
+    throw new Error('マップデータが空です。');
+  }
+
+  state.data = {
+    maps: mapsData.maps,
+    initialMapId: mapsData.initialMapId || Object.keys(mapsData.maps)[0],
+    npcs: npcsData.npcs || [],
+    dialogues: dialoguesData.dialogues || {},
+    confirms: dialoguesData.confirms || {},
+    boards: boardsData.boards || {},
+    menus: menusData.menus || {},
+    actions: actionsData.actions || {},
+    achievements: achievementsData.achievements || [],
+    hiddenSpots: hiddenData.hiddenSpots || [],
+    linkBoards: linkBoardsData.linkBoards || {}
+  };
+}
+
+async function loadProjectData() {
+  const settings = getRuntimeDataSettings();
+  state.dataSource = settings.source || 'local';
+  state.gasUrl = settings.gasUrl || '';
+  state.dataLoadError = '';
+
+  if (state.dataSource === 'gas') {
+    try {
+      loading.textContent = 'GASからデータ読み込み中...';
+      const bundle = await loadGasDataBundle(state.gasUrl);
+      return { bundle, source: 'gas' };
+    } catch (err) {
+      console.warn('GAS読み込みに失敗。ローカルJSONへ切り替えます。', err);
+      state.dataLoadError = err.message || String(err);
+      state.dataSource = 'local';
+      localStorage.setItem(DATA_SOURCE_KEY, 'local');
+    }
+  }
+
+  loading.textContent = 'ローカルデータ読み込み中...';
+  return { bundle: await loadLocalDataBundle(), source: 'local' };
+}
+
+function updateDataSourceBadge() {
+  if (!dataSourceBadge) return;
+  const source = state.dataSource === 'gas' ? 'GAS' : 'Local';
+  dataSourceBadge.textContent = `データ ${source}`;
+  dataSourceBadge.title = state.dataLoadError ? `GAS読み込み失敗：${state.dataLoadError}` : '';
 }
 
 function loadEditorPreviewDraft() {
@@ -264,10 +399,20 @@ function loadEditorPreviewDraft() {
 }
 
 async function boot() {
-  let [mapsData, npcsData, dialoguesData, boardsData, menusData, actionsData, achievementsData, hiddenData, linkBoardsData] = await Promise.all([
-    loadJson(DATA_URLS.maps), loadJson(DATA_URLS.npcs), loadJson(DATA_URLS.dialogues), loadJson(DATA_URLS.boards), loadJson(DATA_URLS.menus), loadJson(DATA_URLS.actions),
-    loadJson(DATA_URLS.achievements), loadJson(DATA_URLS.hidden), loadJson(DATA_URLS.linkBoards)
-  ]);
+  loading.classList.remove('hidden');
+  loading.textContent = 'データ読み込み中...';
+
+  const { bundle, source } = await loadProjectData();
+
+  let mapsData = bundle.mapsData;
+  let npcsData = bundle.npcsData;
+  let hiddenData = bundle.hiddenData;
+  let dialoguesData = bundle.dialoguesData;
+  let boardsData = bundle.boardsData;
+  let menusData = bundle.menusData;
+  let linkBoardsData = bundle.linkBoardsData;
+  let actionsData = bundle.actionsData;
+  let achievementsData = bundle.achievementsData;
 
   const previewDraft = loadEditorPreviewDraft();
   if (previewDraft) {
@@ -283,36 +428,33 @@ async function boot() {
     if (hintText) hintText.textContent = `配置エディタの下書きを反映中です。${previewStamp ? '保存日時：' + previewStamp : ''}`;
   }
 
-  state.data = {
-    maps: mapsData.maps,
-    initialMapId: mapsData.initialMapId,
-    npcs: npcsData.npcs,
-    dialogues: dialoguesData.dialogues,
-    confirms: dialoguesData.confirms,
-    boards: boardsData.boards,
-    menus: menusData.menus,
-    actions: actionsData.actions,
-    achievements: achievementsData.achievements || [],
-    hiddenSpots: hiddenData.hiddenSpots || [],
-    linkBoards: linkBoardsData.linkBoards || {}
-  };
+  applyDataBundle({ mapsData, npcsData, hiddenData, dialoguesData, boardsData, menusData, linkBoardsData, actionsData, achievementsData });
+  state.dataSource = source;
+  updateDataSourceBadge();
 
+  loading.textContent = '画像読み込み中...';
   const imagePaths = new Set();
-  Object.values(state.data.maps).forEach(map => imagePaths.add(map.image));
+  Object.values(state.data.maps).forEach(map => { if (map.image) imagePaths.add(map.image); });
   Object.values(PLAYER_SPRITES).forEach(src => imagePaths.add(src));
-  if (SHOW_NPC_SPRITES) state.data.npcs.forEach(npc => imagePaths.add(npc.sprite));
-  await Promise.all([...imagePaths].map(loadImage));
+  if (SHOW_NPC_SPRITES) state.data.npcs.forEach(npc => { if (npc.sprite) imagePaths.add(npc.sprite); });
+
+  const imageResults = await Promise.allSettled([...imagePaths].map(loadImage));
+  const failedImages = imageResults.filter(r => r.status === 'rejected');
+  if (failedImages.length) {
+    console.warn('一部画像の読み込みに失敗しました。', failedImages.map(r => r.reason?.message || r.reason));
+  }
 
   state.ready = true;
   loadExperience();
   updateExperienceBadge();
-
-  // v005 fix: currentMapId が未設定の状態で render() が走ると、
-  // マップ画像を参照できず黒画面になるため、先に初期マップをセットする。
   setMap(state.data.initialMapId);
   setDay(state.todayIndex);
   dayButton.textContent = '曜日切替';
+
   loading.classList.add('hidden');
+  if (failedImages.length) {
+    updateHint(true);
+  }
 
   requestAnimationFrame(loop);
 }
@@ -800,6 +942,62 @@ function openMemo() {
     { label: '称号・実績を見る', type: 'achievements', className: 'achievement' },
     { label: 'メモをリセット', type: 'resetExperience', className: 'secondary' },
     { label: '閉じる', type: 'close' }
+  ]);
+}
+
+function openDataSourceSettings() {
+  const gasUrl = state.gasUrl || localStorage.getItem(GAS_URL_KEY) || '';
+  const sourceText = state.dataSource === 'gas' ? 'GAS API' : 'ローカルJSON';
+  const err = state.dataLoadError ? `
+
+前回のGAS読み込みエラー：
+${state.dataLoadError}` : '';
+  showModal('データ設定', `現在の取得元：${sourceText}
+
+GAS URL：${gasUrl || '未設定'}${err}`, [
+    { label: 'GAS URLを設定', type: 'setGasUrl', className: 'link' },
+    { label: 'GASで読み込む', type: 'useGasData', className: 'link' },
+    { label: 'ローカルJSONで読み込む', type: 'useLocalData', className: 'secondary' },
+    { label: '再読み込み', type: 'reload' },
+    { label: '閉じる', type: 'close', className: 'secondary' }
+  ], { long: true });
+}
+
+function setGasUrlFromPrompt() {
+  const current = state.gasUrl || localStorage.getItem(GAS_URL_KEY) || '';
+  const url = window.prompt('GAS WebアプリURLを入力してください', current);
+  if (url === null) return openDataSourceSettings();
+  const trimmed = String(url).trim();
+  if (trimmed) {
+    localStorage.setItem(GAS_URL_KEY, trimmed);
+    state.gasUrl = trimmed;
+    showModal('GAS URL設定', 'GAS URLを保存しました。GASで読み込む場合は「GASで読み込む」を選んで再読み込みしてください。', [
+      { label: 'GASで読み込む', type: 'useGasData', className: 'link' },
+      { label: 'データ設定に戻る', type: 'dataSettings', className: 'secondary' }
+    ]);
+  } else {
+    localStorage.removeItem(GAS_URL_KEY);
+    state.gasUrl = '';
+    showModal('GAS URL設定', 'GAS URLを空にしました。', [
+      { label: 'データ設定に戻る', type: 'dataSettings', className: 'secondary' }
+    ]);
+  }
+}
+
+function setDataSource(source) {
+  const next = source === 'gas' ? 'gas' : 'local';
+  if (next === 'gas') {
+    const gasUrl = state.gasUrl || localStorage.getItem(GAS_URL_KEY) || '';
+    if (!gasUrl) {
+      return showModal('GAS URL未設定', 'GASで読み込むには、先にGAS WebアプリURLを設定してください。', [
+        { label: 'GAS URLを設定', type: 'setGasUrl', className: 'link' },
+        { label: '閉じる', type: 'close', className: 'secondary' }
+      ]);
+    }
+  }
+  localStorage.setItem(DATA_SOURCE_KEY, next);
+  showModal('データ取得元を変更', `${next === 'gas' ? 'GAS API' : 'ローカルJSON'}で読み込む設定にしました。再読み込みします。`, [
+    { label: '再読み込み', type: 'reload', className: 'link' }
   ]);
 }
 
