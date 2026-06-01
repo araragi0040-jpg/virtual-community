@@ -1,5 +1,5 @@
 /**
- * 歩ける語り場 v029 GAS 読み込み専用API
+ * 歩ける語り場 v031 GAS 読み込み専用API
  *
  * 使い方：
  * 1. Googleスプレッドシートに v028/v029 のTSVを貼り付ける
@@ -30,7 +30,7 @@ function doGet(e) {
     }
 
     const project = buildProjectFromSheets();
-    return jsonOutput({ ok: true, version: 'v029', generatedAt: new Date().toISOString(), data: project });
+    return jsonOutput({ ok: true, version: 'v031', generatedAt: new Date().toISOString(), data: project });
   } catch (err) {
     return jsonOutput({ ok: false, error: String(err && err.message ? err.message : err), stack: String(err && err.stack ? err.stack : '') });
   }

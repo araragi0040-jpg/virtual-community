@@ -120,6 +120,10 @@ const buttons = {
   exportTsv: document.getElementById('exportTsvButton'),
   exportCsv: document.getElementById('exportCsvButton'),
   previewSheets: document.getElementById('previewSheetsButton'),
+  gasSettings: document.getElementById('gasSettingsButton'),
+  gasTest: document.getElementById('gasTestButton'),
+  loadGas: document.getElementById('loadGasButton'),
+  compareGas: document.getElementById('compareGasButton'),
   applyContent: document.getElementById('applyContentButton'),
   copyContent: document.getElementById('copyContentButton')
 };
@@ -161,7 +165,10 @@ const state = {
   snapToGrid: false,
   gridSize: 5,
   visibility: { blocks: true, interactables: true, npcs: true, hidden: true, transitions: true },
-  locks: { blocks: false, interactables: false, npcs: false, hidden: false }
+  locks: { blocks: false, interactables: false, npcs: false, hidden: false },
+  dataSource: 'local',
+  gasUrl: '',
+  gasLastLoadedAt: ''
 };
 
 const HANDLE_SIZE_PCT = 2.2;
@@ -177,8 +184,15 @@ const RESIZE_CURSORS = {
   w: 'ew-resize'
 };
 
-const DRAFT_KEY = 'vc4u_editor_draft_v029';
-const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v029';
+const DRAFT_KEY = 'vc4u_editor_draft_v031';
+const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v031';
+const LEGACY_DRAFT_KEY = 'vc4u_editor_draft_v029';
+const LEGACY_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v029';
+const DATA_SOURCE_KEY = 'vc4u_data_source_v031';
+const GAS_URL_KEY = 'vc4u_gas_api_url_v031';
+const LEGACY_DATA_SOURCE_KEY = 'vc4u_data_source_v030';
+const LEGACY_GAS_URL_KEY = 'vc4u_gas_api_url_v030';
+const GAS_TIMEOUT_MS = 12000;
 const HISTORY_LIMIT = 60;
 
 function deepClone(obj) {
@@ -263,7 +277,7 @@ function updateEntityButtons() {
 
 function makeDraft() {
   return {
-    version: 'v029',
+    version: 'v031',
     savedAt: new Date().toISOString(),
     mapsData: state.mapsData,
     npcsData: state.npcsData,
@@ -288,7 +302,7 @@ function saveDraft() {
 
 function loadDraft() {
   try {
-    const raw = localStorage.getItem(DRAFT_KEY);
+    const raw = localStorage.getItem(DRAFT_KEY) || localStorage.getItem(LEGACY_DRAFT_KEY);
     if (!raw) { helpText.textContent = '保存済みの下書きがありません。'; return; }
     pushHistory();
     const draft = JSON.parse(raw);
@@ -310,12 +324,15 @@ function loadDraft() {
 function clearDraft() {
   localStorage.removeItem(DRAFT_KEY);
   localStorage.removeItem(PREVIEW_FLAG_KEY);
+  localStorage.removeItem(LEGACY_DRAFT_KEY);
+  localStorage.removeItem(LEGACY_PREVIEW_FLAG_KEY);
   helpText.textContent = '下書きとゲーム確認用フラグを削除しました。';
 }
 
 function previewGame() {
   saveDraft();
   localStorage.setItem(PREVIEW_FLAG_KEY, '1');
+  localStorage.setItem(LEGACY_PREVIEW_FLAG_KEY, '1');
   window.location.href = 'index.html?preview=1';
 }
 
@@ -356,7 +373,60 @@ function loadImage(src) {
   });
 }
 
-async function boot() {
+function getStoredGasUrl() {
+  return localStorage.getItem(GAS_URL_KEY) || localStorage.getItem(LEGACY_GAS_URL_KEY) || '';
+}
+
+function saveStoredGasUrl(url) {
+  localStorage.setItem(GAS_URL_KEY, url || '');
+  // ゲーム側v030との互換用。v031以降はGAS_URL_KEYを優先する。
+  localStorage.setItem(LEGACY_GAS_URL_KEY, url || '');
+}
+
+function saveDataSource(source) {
+  localStorage.setItem(DATA_SOURCE_KEY, source || 'local');
+  localStorage.setItem(LEGACY_DATA_SOURCE_KEY, source || 'local');
+}
+
+async function fetchJsonWithTimeout(url, timeoutMs = GAS_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function gasUrlWithMode(baseUrl, mode) {
+  const sep = baseUrl.includes('?') ? '&' : '?';
+  return `${baseUrl}${sep}mode=${encodeURIComponent(mode)}&t=${Date.now()}`;
+}
+
+async function loadGasDataBundle(gasUrl) {
+  if (!gasUrl) throw new Error('GAS WebアプリURLが未設定です。');
+  const json = await fetchJsonWithTimeout(gasUrlWithMode(gasUrl, 'project'));
+  if (!json || json.ok === false) throw new Error(json?.error || 'GAS APIのレスポンスが不正です。');
+  const data = json.data || json;
+  if (!data.mapsData && data.maps && data.npcs) {
+    return {
+      mapsData: { initialMapId: data.initialMapId || 'outside_4u', maps: data.maps },
+      npcsData: { npcs: data.npcs || [] },
+      dialoguesData: { dialogues: data.dialogues || {}, confirms: data.confirms || {} },
+      boardsData: { boards: data.boards || {} },
+      menusData: { menus: data.menus || {} },
+      actionsData: { actions: data.actions || {} },
+      achievementsData: { achievements: data.achievements || [] },
+      hiddenData: { hiddenSpots: data.hiddenSpots || [] },
+      linkBoardsData: { linkBoards: data.linkBoards || {} }
+    };
+  }
+  return data;
+}
+
+async function loadLocalDataBundle() {
   const [mapsData, npcsData, hiddenData, dialoguesData, boardsData, menusData, linkBoardsData, actionsData, achievementsData] = await Promise.all([
     loadJson('data/maps.json'),
     loadJson('data/npcs.json'),
@@ -368,34 +438,135 @@ async function boot() {
     loadJson('data/actions.json').catch(() => ({ actions: {} })),
     loadJson('data/achievements.json').catch(() => ({ achievements: [] }))
   ]);
-  state.mapsData = mapsData;
-  state.npcsData = npcsData;
-  state.hiddenData = hiddenData;
-  state.dialoguesData = dialoguesData;
-  state.boardsData = boardsData;
-  state.menusData = menusData;
-  state.linkBoardsData = linkBoardsData;
-  state.actionsData = actionsData;
-  state.achievementsData = achievementsData;
+  return { mapsData, npcsData, hiddenData, dialoguesData, boardsData, menusData, linkBoardsData, actionsData, achievementsData };
+}
 
-  for (const map of Object.values(mapsData.maps)) {
-    await loadImage(map.image);
+function applyBundleToEditor(bundle, sourceLabel = 'local') {
+  state.mapsData = bundle.mapsData || { initialMapId: 'outside_4u', maps: {} };
+  state.npcsData = bundle.npcsData || { npcs: [] };
+  state.hiddenData = bundle.hiddenData || { hiddenSpots: [] };
+  state.dialoguesData = bundle.dialoguesData || { dialogues: {}, confirms: {} };
+  state.boardsData = bundle.boardsData || { boards: {} };
+  state.menusData = bundle.menusData || { menus: {} };
+  state.linkBoardsData = bundle.linkBoardsData || { linkBoards: {} };
+  state.actionsData = bundle.actionsData || { actions: {} };
+  state.achievementsData = bundle.achievementsData || { achievements: [] };
+  state.dataSource = sourceLabel;
+  state.gasUrl = getStoredGasUrl();
+}
+
+async function rebuildMapSelectAndImages() {
+  mapSelect.innerHTML = '';
+  state.images.clear();
+  const maps = state.mapsData?.maps || {};
+  for (const map of Object.values(maps)) {
+    try { if (map.image) await loadImage(map.image); } catch (err) { console.warn('画像読み込み失敗:', map.image, err); }
     const option = document.createElement('option');
     option.value = map.id;
-    option.textContent = map.name;
+    option.textContent = map.name || map.id;
     mapSelect.appendChild(option);
   }
-
-  state.mapId = mapsData.initialMapId;
+  if (!state.mapId || !maps[state.mapId]) state.mapId = state.mapsData.initialMapId || Object.keys(maps)[0] || '';
   mapSelect.value = state.mapId;
+}
+
+function openGasSettings() {
+  const current = getStoredGasUrl();
+  const url = window.prompt('GAS WebアプリURLを入力してください。\nゲーム画面のデータ設定と同じURLを使えます。', current);
+  if (url === null) return;
+  saveStoredGasUrl(url.trim());
+  state.gasUrl = url.trim();
+  helpText.textContent = state.gasUrl ? 'GAS URLを保存しました。必要なら「GAS接続テスト」または「GASから読込」を押してください。' : 'GAS URLを空にしました。';
+}
+
+async function testGasConnection() {
+  const gasUrl = getStoredGasUrl();
+  if (!gasUrl) { helpText.textContent = 'GAS URLが未設定です。「GAS URL設定」から登録してください。'; return; }
+  helpText.textContent = 'GAS接続テスト中...';
+  try {
+    const json = await fetchJsonWithTimeout(gasUrlWithMode(gasUrl, 'ping'), 8000);
+    if (!json || json.ok === false) throw new Error(json?.error || 'pingの応答が不正です。');
+    helpText.textContent = `GAS接続OK：${json.message || 'ready'} / ${json.generatedAt || ''}`;
+  } catch (err) {
+    helpText.textContent = `GAS接続に失敗しました：${err.message || err}`;
+  }
+}
+
+async function loadFromGasIntoEditor() {
+  const gasUrl = getStoredGasUrl();
+  if (!gasUrl) { helpText.textContent = 'GAS URLが未設定です。「GAS URL設定」から登録してください。'; return; }
+  if (state.mapsData) pushHistory();
+  helpText.textContent = 'GASからデータを読み込み中...';
+  try {
+    const bundle = await loadGasDataBundle(gasUrl);
+    applyBundleToEditor(bundle, 'gas');
+    saveDataSource('gas');
+    state.selectedKey = '';
+    await rebuildMapSelectAndImages();
+    normalizeAllData({ silent: true });
+    renderAll();
+    validateProject();
+    state.gasLastLoadedAt = new Date().toISOString();
+    helpText.textContent = 'GASからデータを読み込みました。編集内容はまだスプシには保存されません。必要なら「下書き保存」してください。';
+  } catch (err) {
+    helpText.textContent = `GAS読み込みに失敗しました：${err.message || err}`;
+    console.error(err);
+  }
+}
+
+function summarizeBundle(bundle) {
+  const maps = bundle.mapsData?.maps || {};
+  return {
+    maps: Object.keys(maps).length,
+    interactables: Object.values(maps).reduce((n, m) => n + ((m.interactables || []).length), 0),
+    blocks: Object.values(maps).reduce((n, m) => n + ((m.blocks || []).length), 0),
+    npcs: (bundle.npcsData?.npcs || []).length,
+    hidden: (bundle.hiddenData?.hiddenSpots || []).length,
+    dialogues: Object.keys(bundle.dialoguesData?.dialogues || {}).length,
+    confirms: Object.keys(bundle.dialoguesData?.confirms || {}).length,
+    boards: Object.keys(bundle.boardsData?.boards || {}).length,
+    menus: Object.keys(bundle.menusData?.menus || {}).length,
+    linkBoards: Object.keys(bundle.linkBoardsData?.linkBoards || {}).length,
+    actions: Object.keys(bundle.actionsData?.actions || {}).length,
+    achievements: (bundle.achievementsData?.achievements || []).length
+  };
+}
+
+async function compareGasWithCurrent() {
+  const gasUrl = getStoredGasUrl();
+  if (!gasUrl) { helpText.textContent = 'GAS URLが未設定です。「GAS URL設定」から登録してください。'; return; }
+  helpText.textContent = 'GAS差分確認中...';
+  try {
+    const gasBundle = await loadGasDataBundle(gasUrl);
+    const current = summarizeBundle(makeDraft());
+    const gas = summarizeBundle(gasBundle);
+    const keys = Array.from(new Set([...Object.keys(current), ...Object.keys(gas)]));
+    const lines = ['【現在のエディタ】	【GAS】	【差】'];
+    keys.forEach(key => lines.push(`${key}	${current[key] || 0}	${gas[key] || 0}	${(gas[key] || 0) - (current[key] || 0)}`));
+    outputBox.value = lines.join('\n');
+    helpText.textContent = 'GAS差分サマリーを出力プレビューに表示しました。件数差が0でも本文差分までは見ていません。';
+  } catch (err) {
+    helpText.textContent = `GAS差分確認に失敗しました：${err.message || err}`;
+  }
+}
+
+
+async function boot() {
+  const bundle = await loadLocalDataBundle();
+  applyBundleToEditor(bundle, 'local');
+  state.gasUrl = getStoredGasUrl();
+  state.mapId = state.mapsData.initialMapId;
+  await rebuildMapSelectAndImages();
+
   updateHistoryButtons();
   const missingButtons = Object.entries(buttons).filter(([, el]) => !el).map(([key]) => key);
   if (missingButtons.length) {
     helpText.textContent = `編集ボタンの読み込みに失敗しました: ${missingButtons.join(', ')}`;
     console.warn('Missing editor buttons:', missingButtons);
   }
-  const hasDraft = !!localStorage.getItem(DRAFT_KEY);
+  const hasDraft = !!(localStorage.getItem(DRAFT_KEY) || localStorage.getItem(LEGACY_DRAFT_KEY));
   if (hasDraft) helpText.textContent = '保存済みの下書きがあります。必要なら「下書き読込」を押してください。';
+  if (state.gasUrl && !hasDraft) helpText.textContent = 'GAS URLが設定済みです。「GAS接続テスト」または「GASから読込」を押せます。';
   renderAll();
 }
 
@@ -1872,7 +2043,7 @@ Object.values(editorOptions).forEach(el => {
 
 function projectPackage() {
   return {
-    schemaVersion: 'v029',
+    schemaVersion: 'v031',
     exportedAt: new Date().toISOString(),
     mapsData: state.mapsData,
     npcsData: state.npcsData,
@@ -2193,13 +2364,13 @@ function validateProject() {
 
 function downloadProjectBundle() {
   normalizeAllData({ silent: true });
-  downloadJson('vc4u_project_bundle_v029.json', projectPackage());
+  downloadJson('vc4u_project_bundle_v031.json', projectPackage());
 }
 
 function exportBackup() {
   normalizeAllData({ silent: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-  downloadJson(`vc4u_backup_v029_${stamp}.json`, projectPackage());
+  downloadJson(`vc4u_backup_v031_${stamp}.json`, projectPackage());
   helpText.textContent = '全データバックアップを書き出しました。復元する場合は「バックアップ復元」からこのJSONを選択してください。';
 }
 
@@ -2450,6 +2621,10 @@ buttons.downloadProject?.addEventListener('click', downloadProjectBundle);
 buttons.exportTsv?.addEventListener('click', () => exportSheetFiles('tsv'));
 buttons.exportCsv?.addEventListener('click', () => exportSheetFiles('csv'));
 buttons.previewSheets?.addEventListener('click', previewSheetOutput);
+buttons.gasSettings?.addEventListener('click', openGasSettings);
+buttons.gasTest?.addEventListener('click', testGasConnection);
+buttons.loadGas?.addEventListener('click', loadFromGasIntoEditor);
+buttons.compareGas?.addEventListener('click', compareGasWithCurrent);
 buttons.applyContent?.addEventListener('click', applyContentChanges);
 buttons.copyContent?.addEventListener('click', copyContentJson);
 choiceEditor.addButton?.addEventListener('click', () => {

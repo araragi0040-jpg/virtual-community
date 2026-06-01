@@ -43,13 +43,15 @@ const DATA_URLS = {
   linkBoards: 'data/linkBoards.json'
 };
 
-const DATA_SOURCE_KEY = 'vc4u_data_source_v030';
-const GAS_URL_KEY = 'vc4u_gas_api_url_v030';
+const DATA_SOURCE_KEY = 'vc4u_data_source_v031';
+const GAS_URL_KEY = 'vc4u_gas_api_url_v031';
 const GAS_TIMEOUT_MS = 10000;
 
 // v004: 背景画像に人物が描き込まれているため、NPCスプライトは重ねず、近づいた時の！マーカーで会話可能地点を示す。
-const EDITOR_DRAFT_KEY = 'vc4u_editor_draft_v028';
-const EDITOR_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v028';
+const EDITOR_DRAFT_KEY = 'vc4u_editor_draft_v031';
+const EDITOR_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v031';
+const LEGACY_EDITOR_DRAFT_KEY = 'vc4u_editor_draft_v028';
+const LEGACY_EDITOR_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v028';
 
 const SHOW_NPC_SPRITES = false;
 
@@ -284,9 +286,9 @@ function getRuntimeDataSettings() {
   const params = new URLSearchParams(window.location.search);
   const sourceParam = (params.get('source') || '').toLowerCase();
   const apiParam = params.get('api') || '';
-  const storedSource = localStorage.getItem(DATA_SOURCE_KEY) || 'local';
+  const storedSource = localStorage.getItem(DATA_SOURCE_KEY) || localStorage.getItem('vc4u_data_source_v030') || 'local';
   const source = sourceParam === 'gas' || sourceParam === 'local' ? sourceParam : storedSource;
-  const gasUrl = apiParam || localStorage.getItem(GAS_URL_KEY) || '';
+  const gasUrl = apiParam || localStorage.getItem(GAS_URL_KEY) || localStorage.getItem('vc4u_gas_api_url_v030') || '';
   if (apiParam) localStorage.setItem(GAS_URL_KEY, apiParam);
   if (sourceParam) localStorage.setItem(DATA_SOURCE_KEY, source);
   return { source, gasUrl };
@@ -388,9 +390,9 @@ function updateDataSourceBadge() {
 function loadEditorPreviewDraft() {
   try {
     const params = new URLSearchParams(window.location.search);
-    const wantsPreview = params.get('preview') === '1' || localStorage.getItem(EDITOR_PREVIEW_FLAG_KEY) === '1';
+    const wantsPreview = params.get('preview') === '1' || localStorage.getItem(EDITOR_PREVIEW_FLAG_KEY) === '1' || localStorage.getItem(LEGACY_EDITOR_PREVIEW_FLAG_KEY) === '1';
     if (!wantsPreview) return null;
-    const raw = localStorage.getItem(EDITOR_DRAFT_KEY);
+    const raw = localStorage.getItem(EDITOR_DRAFT_KEY) || localStorage.getItem(LEGACY_EDITOR_DRAFT_KEY);
     if (!raw) return null;
     return JSON.parse(raw);
   } catch (_) {
