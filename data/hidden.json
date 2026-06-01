@@ -9,13 +9,22 @@
       "w": 18,
       "h": 10,
       "range": 12,
-      "visibleDays": ["all"],
-      "visibleWhen": { "type": "statAtLeast", "stat": "talk", "value": 3 },
+      "visibleDays": [
+        "all"
+      ],
+      "visibleWhen": {
+        "type": "statAtLeast",
+        "stat": "talk",
+        "value": 3
+      },
       "title": "カウンターの小さなメモ",
       "text": "カウンターの端に、小さなメモが置かれている。\n\n『うまく話せなくても、ここに座った時点で会話は始まっている。』",
       "foundText": "メモの言葉を、もう一度読み返した。\n少しだけ、ここに座る理由が分かった気がする。",
       "log": "語り場4Uでカウンターの小さなメモを見つけた",
-      "stats": { "talk": 1 }
+      "stats": {
+        "talk": 1
+      },
+      "note": ""
     },
     {
       "id": "hidden_kusanone_mic_light",
@@ -26,13 +35,22 @@
       "w": 16,
       "h": 10,
       "range": 12,
-      "visibleDays": ["all"],
-      "visibleWhen": { "type": "statAtLeast", "stat": "karaoke", "value": 1 },
+      "visibleDays": [
+        "all"
+      ],
+      "visibleWhen": {
+        "type": "statAtLeast",
+        "stat": "karaoke",
+        "value": 1
+      },
       "title": "ステージの灯り",
       "text": "ステージのマイク近くに、ほんの少しだけ灯りが残っている。\n\nさっきまで誰かが歌っていたような、これから誰かが始めるような、そんな気配がある。",
       "foundText": "ステージの灯りを眺めた。\n何も始まっていない時間にも、表現の余白がある。",
       "log": "くさのね劇場でステージの灯りを見つけた",
-      "stats": { "event": 1 }
+      "stats": {
+        "event": 1
+      },
+      "note": ""
     },
     {
       "id": "hidden_branch_window_note",
@@ -43,13 +61,22 @@
       "w": 18,
       "h": 12,
       "range": 12,
-      "visibleDays": ["all"],
-      "visibleWhen": { "type": "statAtLeast", "stat": "relax", "value": 2 },
+      "visibleDays": [
+        "all"
+      ],
+      "visibleWhen": {
+        "type": "statAtLeast",
+        "stat": "relax",
+        "value": 2
+      },
       "title": "窓辺のひとこと",
       "text": "窓辺に置かれた小さなカードに、手書きの言葉がある。\n\n『急がない時間にだけ、見えてくるものがある。』",
       "foundText": "窓辺の言葉を眺めた。\nこの街には、立ち止まることで見つかるものもあるらしい。",
       "log": "ブランチカフェで窓辺のひとことを見つけた",
-      "stats": { "relax": 1 }
+      "stats": {
+        "relax": 1
+      },
+      "note": ""
     }
   ]
 }

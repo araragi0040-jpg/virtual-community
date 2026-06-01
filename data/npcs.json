@@ -17,7 +17,8 @@
         "sat": "talk_4u_inside_sat",
         "sun": "talk_4u_inside_sun",
         "default": "talk_4u_inside_01"
-      }
+      },
+      "note": ""
     },
     {
       "id": "npc_4u_outside",
@@ -34,7 +35,8 @@
       "dialogueByDay": {
         "fri": "talk_4u_outside_fri",
         "default": "talk_4u_outside_01"
-      }
+      },
+      "note": ""
     },
     {
       "id": "npc_kusanone_inside",
@@ -51,7 +53,8 @@
       "dialogueByDay": {
         "sat": "talk_kusanone_inside_sat",
         "default": "talk_kusanone_inside_01"
-      }
+      },
+      "note": ""
     },
     {
       "id": "npc_kusanone_outside",
@@ -64,7 +67,8 @@
       "visibleDays": [
         "all"
       ],
-      "range": 14
+      "range": 14,
+      "note": ""
     },
     {
       "id": "npc_branch_inside",
@@ -81,7 +85,8 @@
       "dialogueByDay": {
         "sun": "talk_branch_inside_sun",
         "default": "talk_branch_inside_01"
-      }
+      },
+      "note": ""
     },
     {
       "id": "npc_branch_outside",
@@ -98,7 +103,8 @@
       "dialogueByDay": {
         "sun": "talk_branch_outside_sun",
         "default": "talk_branch_outside_01"
-      }
+      },
+      "note": ""
     },
     {
       "id": "npc_town_01",
@@ -116,7 +122,8 @@
         "fri": "talk_town_01_fri",
         "sat": "talk_town_01_sat",
         "default": "talk_town_01"
-      }
+      },
+      "note": ""
     },
     {
       "id": "npc_town_02",
@@ -134,7 +141,8 @@
         "sat": "talk_town_02_sat",
         "sun": "talk_town_02_sun",
         "default": "talk_town_02"
-      }
+      },
+      "note": ""
     },
     {
       "id": "npc_town_03",
@@ -151,7 +159,8 @@
       "dialogueByDay": {
         "sun": "talk_town_03_sun",
         "default": "talk_town_03"
-      }
+      },
+      "note": ""
     }
   ]
 }

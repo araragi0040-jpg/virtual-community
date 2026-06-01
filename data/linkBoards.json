@@ -8,40 +8,56 @@
           "label": "語り場4U 公式サイト",
           "url": "https://katariba4u.com/",
           "note": "語り場4Uの情報を見る",
-          "enabled": true
+          "enabled": true,
+          "id": "community_hub_link_1",
+          "type": "link"
         },
         {
           "label": "くさのね劇場 店舗情報",
           "url": "https://kusanone-gekijyo.foodre.jp/",
           "note": "くさのね劇場の店舗情報を見る",
-          "enabled": true
+          "enabled": true,
+          "id": "community_hub_link_2",
+          "type": "link"
         },
         {
           "label": "ブランチカフェ Instagram",
           "url": "https://www.instagram.com/branch_cafe/",
           "note": "ブランチカフェの雰囲気を見る",
-          "enabled": true
+          "enabled": true,
+          "id": "community_hub_link_3",
+          "type": "link"
         },
         {
           "label": "コミュニティニュース",
           "url": "",
           "note": "作成中のニュースサイトURLをここに入れる",
-          "enabled": false
+          "enabled": false,
+          "id": "community_hub_link_4",
+          "type": "link"
         },
         {
           "label": "みんなの活動リンク",
           "type": "linkBoard",
           "targetId": "member_activities",
           "note": "人物・仕事・活動のリンク集サンプル",
-          "enabled": true
+          "enabled": true,
+          "id": "community_hub_link_5"
         },
         {
           "label": "語り場ガチャ",
           "url": "",
           "note": "後で語り場ガチャURLを設定",
-          "enabled": false
+          "enabled": false,
+          "id": "community_hub_link_6",
+          "type": "link"
         }
-      ]
+      ],
+      "id": "community_hub",
+      "visibleDays": [
+        "all"
+      ],
+      "note": ""
     },
     "shops": {
       "title": "3店舗リンク集",
@@ -51,21 +67,32 @@
           "label": "語り場4U",
           "url": "https://katariba4u.com/",
           "note": "中心拠点",
-          "enabled": true
+          "enabled": true,
+          "id": "shops_link_1",
+          "type": "link"
         },
         {
           "label": "くさのね劇場",
           "url": "https://kusanone-gekijyo.foodre.jp/",
           "note": "表現・イベントの空間",
-          "enabled": true
+          "enabled": true,
+          "id": "shops_link_2",
+          "type": "link"
         },
         {
           "label": "ブランチカフェ",
           "url": "https://www.instagram.com/branch_cafe/",
           "note": "カフェ・交流の空間",
-          "enabled": true
+          "enabled": true,
+          "id": "shops_link_3",
+          "type": "link"
         }
-      ]
+      ],
+      "id": "shops",
+      "visibleDays": [
+        "all"
+      ],
+      "note": ""
     },
     "member_activities": {
       "title": "みんなの活動リンク｜サンプル",
@@ -75,28 +102,40 @@
           "label": "活動サンプルA：イベント主催",
           "url": "",
           "note": "例：LIFE ARTS LIVE / 企画ページなど",
-          "enabled": false
+          "enabled": false,
+          "id": "member_activities_link_1",
+          "type": "link"
         },
         {
           "label": "活動サンプルB：制作・デザイン",
           "url": "",
           "note": "例：ポートフォリオ / Instagramなど",
-          "enabled": false
+          "enabled": false,
+          "id": "member_activities_link_2",
+          "type": "link"
         },
         {
           "label": "活動サンプルC：仕事・サービス",
           "url": "",
           "note": "例：HP / 予約フォームなど",
-          "enabled": false
+          "enabled": false,
+          "id": "member_activities_link_3",
+          "type": "link"
         },
         {
           "label": "3店舗リンクへ戻る",
           "type": "linkBoard",
           "targetId": "shops",
           "note": "店舗リンク一覧を開く",
-          "enabled": true
+          "enabled": true,
+          "id": "member_activities_link_4"
         }
-      ]
+      ],
+      "id": "member_activities",
+      "visibleDays": [
+        "all"
+      ],
+      "note": ""
     }
   }
 }

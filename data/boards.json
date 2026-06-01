@@ -11,7 +11,12 @@
         "sun": "日曜は少し静かに。4Uの情報を見ながら、また来たいタイミングを探してみてください。"
       },
       "linkBoardId": "community_hub",
-      "extraLinkLabel": "街のリンク案内所"
+      "extraLinkLabel": "街のリンク案内所",
+      "id": "board_4u",
+      "visibleDays": [
+        "all"
+      ],
+      "note": ""
     },
     "board_kusanone": {
       "title": "くさのね劇場掲示板",
@@ -21,7 +26,12 @@
       "bodyByDay": {
         "sat": "土曜はイベントや表現の雰囲気が出やすい日。くさのね劇場の店舗情報・イベント利用はこちら。"
       },
-      "linkBoardId": "shops"
+      "linkBoardId": "shops",
+      "id": "board_kusanone",
+      "visibleDays": [
+        "all"
+      ],
+      "note": ""
     },
     "board_branch": {
       "title": "ブランチカフェ掲示板",
@@ -31,7 +41,12 @@
       "bodyByDay": {
         "sun": "日曜のカフェ時間。ブランチカフェの雰囲気や最新情報はこちらから確認できます。"
       },
-      "linkBoardId": "shops"
+      "linkBoardId": "shops",
+      "id": "board_branch",
+      "visibleDays": [
+        "all"
+      ],
+      "note": ""
     },
     "board_town_news": {
       "title": "街の掲示板",
@@ -43,7 +58,12 @@
         "sat": "土曜はイベントや表現の気配が強い日。今後はここに、今日のおすすめ導線や開催情報を出せるようにします。",
         "sun": "日曜は少しゆっくり振り返る日。来週の予定や、見逃したお知らせを確認できる場所にしていきます。"
       },
-      "linkBoardId": "community_hub"
+      "linkBoardId": "community_hub",
+      "id": "board_town_news",
+      "visibleDays": [
+        "all"
+      ],
+      "note": ""
     }
   }
 }

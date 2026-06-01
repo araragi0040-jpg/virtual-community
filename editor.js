@@ -111,6 +111,12 @@ const buttons = {
   downloadBoards: document.getElementById('downloadBoardsButton'),
   downloadMenus: document.getElementById('downloadMenusButton'),
   downloadLinkBoards: document.getElementById('downloadLinkBoardsButton'),
+  normalizeData: document.getElementById('normalizeDataButton'),
+  validateProject: document.getElementById('validateProjectButton'),
+  exportBackup: document.getElementById('exportBackupButton'),
+  importBackup: document.getElementById('importBackupButton'),
+  importBackupInput: document.getElementById('importBackupInput'),
+  downloadProject: document.getElementById('downloadProjectButton'),
   applyContent: document.getElementById('applyContentButton'),
   copyContent: document.getElementById('copyContentButton')
 };
@@ -138,6 +144,8 @@ const state = {
   boardsData: null,
   menusData: null,
   linkBoardsData: null,
+  actionsData: null,
+  achievementsData: null,
   images: new Map(),
   mapId: '',
   layer: 'interactables',
@@ -166,8 +174,8 @@ const RESIZE_CURSORS = {
   w: 'ew-resize'
 };
 
-const DRAFT_KEY = 'vc4u_editor_draft_v026';
-const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v026';
+const DRAFT_KEY = 'vc4u_editor_draft_v027';
+const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v027';
 const HISTORY_LIMIT = 60;
 
 function deepClone(obj) {
@@ -183,6 +191,8 @@ function snapshotData() {
     boardsData: deepClone(state.boardsData),
     menusData: deepClone(state.menusData),
     linkBoardsData: deepClone(state.linkBoardsData),
+    actionsData: deepClone(state.actionsData),
+    achievementsData: deepClone(state.achievementsData),
     mapId: state.mapId,
     layer: state.layer,
     selectedKey: state.selectedKey
@@ -198,6 +208,8 @@ function restoreSnapshot(snap) {
   state.boardsData = deepClone(snap.boardsData || state.boardsData);
   state.menusData = deepClone(snap.menusData || state.menusData);
   state.linkBoardsData = deepClone(snap.linkBoardsData || state.linkBoardsData);
+  state.actionsData = deepClone(snap.actionsData || state.actionsData);
+  state.achievementsData = deepClone(snap.achievementsData || state.achievementsData);
   state.mapId = snap.mapId || state.mapId;
   state.layer = snap.layer || state.layer;
   state.selectedKey = snap.selectedKey || '';
@@ -256,7 +268,9 @@ function makeDraft() {
     dialoguesData: state.dialoguesData,
     boardsData: state.boardsData,
     menusData: state.menusData,
-    linkBoardsData: state.linkBoardsData
+    linkBoardsData: state.linkBoardsData,
+    actionsData: state.actionsData,
+    achievementsData: state.achievementsData
   };
 }
 
@@ -340,14 +354,16 @@ function loadImage(src) {
 }
 
 async function boot() {
-  const [mapsData, npcsData, hiddenData, dialoguesData, boardsData, menusData, linkBoardsData] = await Promise.all([
+  const [mapsData, npcsData, hiddenData, dialoguesData, boardsData, menusData, linkBoardsData, actionsData, achievementsData] = await Promise.all([
     loadJson('data/maps.json'),
     loadJson('data/npcs.json'),
     loadJson('data/hidden.json'),
     loadJson('data/dialogues.json'),
     loadJson('data/boards.json'),
     loadJson('data/menus.json'),
-    loadJson('data/linkBoards.json')
+    loadJson('data/linkBoards.json'),
+    loadJson('data/actions.json').catch(() => ({ actions: {} })),
+    loadJson('data/achievements.json').catch(() => ({ achievements: [] }))
   ]);
   state.mapsData = mapsData;
   state.npcsData = npcsData;
@@ -356,6 +372,8 @@ async function boot() {
   state.boardsData = boardsData;
   state.menusData = menusData;
   state.linkBoardsData = linkBoardsData;
+  state.actionsData = actionsData;
+  state.achievementsData = achievementsData;
 
   for (const map of Object.values(mapsData.maps)) {
     await loadImage(map.image);
@@ -1849,6 +1867,373 @@ Object.values(editorOptions).forEach(el => {
   el?.addEventListener('change', syncEditorOptionsFromControls);
 });
 
+function projectPackage() {
+  return {
+    schemaVersion: 'v027',
+    exportedAt: new Date().toISOString(),
+    mapsData: state.mapsData,
+    npcsData: state.npcsData,
+    hiddenData: state.hiddenData,
+    dialoguesData: state.dialoguesData,
+    boardsData: state.boardsData,
+    menusData: state.menusData,
+    linkBoardsData: state.linkBoardsData,
+    actionsData: state.actionsData,
+    achievementsData: state.achievementsData
+  };
+}
+
+function normalizeVisibleDaysValue(days) {
+  if (!Array.isArray(days) || !days.length) return ['all'];
+  const clean = [...new Set(days.filter(Boolean).map(String))];
+  if (!clean.length || clean.includes('all')) return ['all'];
+  return clean.filter(day => DAY_OPTIONS.some(d => d.value === day));
+}
+
+function normalizeConditionFields(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (obj.condition && !obj.visibleWhen && !('kind' in obj && obj.kind === 'achievement')) {
+    obj.visibleWhen = obj.condition;
+    delete obj.condition;
+  }
+  return obj;
+}
+
+function normalizeChoice(choice) {
+  const c = choice && typeof choice === 'object' ? { ...choice } : { label: String(choice || '閉じる') };
+  c.label = String(c.label || '閉じる');
+  c.type = String(c.type || 'close');
+  if (c.type === 'externalLink') c.type = 'link';
+  if (c.target && !c.targetId) c.targetId = c.target;
+  delete c.target;
+  c.visibleDays = normalizeVisibleDaysValue(c.visibleDays);
+  if (c.visibleDays.includes('all')) delete c.visibleDays;
+  if (c.condition && !c.visibleWhen) {
+    c.visibleWhen = c.condition;
+    delete c.condition;
+  }
+  return c;
+}
+
+function normalizeOptionsArray(obj, fallback = []) {
+  if (!obj || typeof obj !== 'object') return [];
+  let raw = [];
+  if (Array.isArray(obj.options)) raw = obj.options;
+  else if (Array.isArray(obj.choices)) raw = obj.choices;
+  else if (obj.option1 || obj.option2 || obj.option3) {
+    raw = [obj.option1, obj.option2, obj.option3]
+      .filter(Boolean)
+      .map(label => ({ label, type: 'close' }));
+    delete obj.option1;
+    delete obj.option2;
+    delete obj.option3;
+  } else raw = fallback;
+  const out = Array.isArray(raw) ? raw.map(normalizeChoice).filter(c => c.label) : [];
+  delete obj.choices;
+  delete obj.options;
+  if (out.length) obj.options = out;
+  return out;
+}
+
+function normalizeCommonObject(obj, id, label = '') {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (id && !obj.id) obj.id = id;
+  if (!obj.visibleDays) obj.visibleDays = ['all'];
+  obj.visibleDays = normalizeVisibleDaysValue(obj.visibleDays);
+  normalizeConditionFields(obj);
+  if (label && !obj.label && !obj.title && !obj.name) obj.label = label;
+  if (!('note' in obj)) obj.note = '';
+  normalizeOptionsArray(obj, []);
+  return obj;
+}
+
+function normalizeAllData({ silent = false } = {}) {
+  if (!state.mapsData) return;
+  const maps = state.mapsData.maps || {};
+  Object.entries(maps).forEach(([mapId, map]) => {
+    map.id = map.id || mapId;
+    map.label = map.label || map.name || map.title || mapId;
+    map.note = map.note || '';
+    (map.interactables || []).forEach((item, idx) => {
+      normalizeCommonObject(item, item.id || `${mapId}_interactable_${idx + 1}`, item.label || item.type || '対象');
+      if (item.condition && !item.visibleWhen) {
+        item.visibleWhen = item.condition;
+        delete item.condition;
+      }
+    });
+    (map.blocks || []).forEach((item, idx) => {
+      normalizeCommonObject(item, item.id || `${mapId}_block_${idx + 1}`, item.label || '通行不可');
+    });
+    (map.transitions || []).forEach((item, idx) => {
+      normalizeCommonObject(item, item.id || `${mapId}_transition_${idx + 1}`, item.label || 'マップ移動');
+    });
+  });
+
+  (state.npcsData?.npcs || []).forEach((npc, idx) => {
+    normalizeCommonObject(npc, npc.id || `npc_${idx + 1}`, npc.name || npc.label || 'NPC');
+    npc.name = npc.name || npc.label || npc.id;
+  });
+
+  Object.entries(state.dialoguesData?.dialogues || {}).forEach(([id, d]) => {
+    normalizeCommonObject(d, id, d.speaker || id);
+    d.speaker = d.speaker || d.label || id;
+    d.text = d.text || d.body || '';
+  });
+  Object.entries(state.dialoguesData?.confirms || {}).forEach(([id, c]) => {
+    c.id = c.id || id;
+    c.title = c.title || c.label || id;
+    c.text = c.text || '';
+    c.visibleDays = normalizeVisibleDaysValue(c.visibleDays);
+    if (c.condition && !c.visibleWhen) {
+      c.visibleWhen = c.condition;
+      delete c.condition;
+    }
+    // 入店確認はtargetMapIdを実行時に扉オブジェクトから補完するため、既存optionsがある場合のみ正規化。
+    if (Array.isArray(c.options) || Array.isArray(c.choices)) normalizeOptionsArray(c, []);
+    if (!('note' in c)) c.note = '';
+  });
+
+  Object.entries(state.boardsData?.boards || {}).forEach(([id, b]) => {
+    normalizeCommonObject(b, id, b.title || id);
+    b.title = b.title || b.label || id;
+    b.body = b.body || '';
+  });
+  Object.entries(state.menusData?.menus || {}).forEach(([id, m]) => {
+    normalizeCommonObject(m, id, m.title || id);
+    m.title = m.title || m.label || id;
+    m.items = Array.isArray(m.items) ? m.items : [];
+    m.actionIds = Array.isArray(m.actionIds) ? m.actionIds : [];
+  });
+  (state.hiddenData?.hiddenSpots || []).forEach((h, idx) => {
+    normalizeCommonObject(h, h.id || `hidden_${idx + 1}`, h.label || h.title || '隠し要素');
+    h.title = h.title || h.label || h.id;
+    h.text = h.text || '';
+  });
+  Object.entries(state.linkBoardsData?.linkBoards || {}).forEach(([id, lb]) => {
+    lb.id = lb.id || id;
+    lb.title = lb.title || id;
+    lb.body = lb.body || '';
+    lb.visibleDays = normalizeVisibleDaysValue(lb.visibleDays);
+    lb.links = Array.isArray(lb.links) ? lb.links.map((link, idx) => {
+      const l = { ...link };
+      l.id = l.id || `${id}_link_${idx + 1}`;
+      l.label = l.label || 'リンク';
+      l.type = l.type || (l.targetId ? 'linkBoard' : 'link');
+      l.enabled = l.enabled !== false;
+      l.visibleDays = normalizeVisibleDaysValue(l.visibleDays);
+      if (l.visibleDays.includes('all')) delete l.visibleDays;
+      if (l.condition && !l.visibleWhen) {
+        l.visibleWhen = l.condition;
+        delete l.condition;
+      }
+      return l;
+    }) : [];
+    if (!('note' in lb)) lb.note = '';
+  });
+
+
+  Object.entries(state.actionsData?.actions || {}).forEach(([id, a]) => {
+    a.id = a.id || id;
+    a.title = a.title || id;
+    a.category = a.category || '';
+    a.resultTitle = a.resultTitle || a.title;
+    a.resultText = a.resultText || '';
+    a.log = a.log || '';
+    a.stats = a.stats && typeof a.stats === 'object' ? a.stats : {};
+    if (!('note' in a)) a.note = '';
+  });
+  (state.achievementsData?.achievements || []).forEach((a, idx) => {
+    a.id = a.id || `achievement_${idx + 1}`;
+    a.title = a.title || a.id;
+    a.kind = a.kind || 'achievement';
+    a.description = a.description || '';
+    a.lockedHint = a.lockedHint || '';
+    a.condition = a.condition || { type: 'totalAtLeast', value: 1 };
+    if (!('note' in a)) a.note = '';
+  });
+
+  if (!silent) {
+    helpText.textContent = 'データ正規化を実行しました。旧形式の選択肢を options 形式へ寄せ、共通項目を補完しました。';
+    renderAll();
+  }
+}
+
+function collectProjectValidation() {
+  const errors = [];
+  const warnings = [];
+  const maps = state.mapsData?.maps || {};
+  const mapIds = new Set(Object.keys(maps));
+  const dialogueIds = new Set(Object.keys(state.dialoguesData?.dialogues || {}));
+  const confirmIds = new Set(Object.keys(state.dialoguesData?.confirms || {}));
+  const boardIds = new Set(Object.keys(state.boardsData?.boards || {}));
+  const menuIds = new Set(Object.keys(state.menusData?.menus || {}));
+  const actionIds = new Set(Object.keys(state.actionsData?.actions || {}));
+  const achievementIds = new Set((state.achievementsData?.achievements || []).map(a => a.id).filter(Boolean));
+  const linkBoardIds = new Set(Object.keys(state.linkBoardsData?.linkBoards || {}));
+  const hiddenIds = new Set((state.hiddenData?.hiddenSpots || []).map(h => h.id).filter(Boolean));
+  // actions.jsonは現状エディタ読み込み対象外のため、menus.actionIdsはID形式のみ軽く警告扱い。
+
+  function checkDuplicate(list, label) {
+    const seen = new Set();
+    list.filter(Boolean).forEach(id => {
+      if (seen.has(id)) errors.push(`${label}: IDが重複しています: ${id}`);
+      seen.add(id);
+    });
+  }
+
+  checkDuplicate((state.npcsData?.npcs || []).map(n => n.id), 'NPC');
+  checkDuplicate((state.hiddenData?.hiddenSpots || []).map(h => h.id), '隠し要素');
+  Object.entries(maps).forEach(([mapId, map]) => {
+    if (!map.image) warnings.push(`maps.${mapId}: 画像パスが空です。`);
+    (map.interactables || []).forEach(item => {
+      const name = `${mapId}/${item.id || item.label || item.type}`;
+      if (!item.id) errors.push(`${name}: idが空です。`);
+      if (item.type === 'door' && item.confirmId && !confirmIds.has(item.confirmId)) errors.push(`${name}: confirmIdが存在しません: ${item.confirmId}`);
+      if (item.type === 'board' && item.boardId && !boardIds.has(item.boardId)) errors.push(`${name}: boardIdが存在しません: ${item.boardId}`);
+      if (item.type === 'menu' && item.menuId && !menuIds.has(item.menuId)) errors.push(`${name}: menuIdが存在しません: ${item.menuId}`);
+      if ((item.type === 'sign' || item.type === 'event') && item.dialogueId && !dialogueIds.has(item.dialogueId)) errors.push(`${name}: dialogueIdが存在しません: ${item.dialogueId}`);
+      if (item.targetMapId && !mapIds.has(item.targetMapId)) errors.push(`${name}: targetMapIdが存在しません: ${item.targetMapId}`);
+    });
+    (map.transitions || []).forEach(item => {
+      const name = `${mapId}/${item.id || 'transition'}`;
+      if (item.targetMapId && !mapIds.has(item.targetMapId)) errors.push(`${name}: targetMapIdが存在しません: ${item.targetMapId}`);
+    });
+  });
+
+  (state.npcsData?.npcs || []).forEach(npc => {
+    const name = `NPC/${npc.id || npc.name}`;
+    if (!npc.id) errors.push(`${name}: idが空です。`);
+    if (npc.mapId && !mapIds.has(npc.mapId)) errors.push(`${name}: mapIdが存在しません: ${npc.mapId}`);
+    if (npc.dialogueId && !dialogueIds.has(npc.dialogueId)) errors.push(`${name}: dialogueIdが存在しません: ${npc.dialogueId}`);
+    Object.entries(npc.dialogueByDay || {}).forEach(([day, did]) => {
+      if (did && !dialogueIds.has(did)) errors.push(`${name}: dialogueByDay.${day} が存在しません: ${did}`);
+    });
+  });
+
+  Object.entries(state.dialoguesData?.dialogues || {}).forEach(([id, d]) => {
+    if (!d.text) warnings.push(`dialogues.${id}: 本文が空です。`);
+    (d.options || d.choices || []).forEach((choice, idx) => validateChoice(choice, `dialogues.${id}.options[${idx}]`));
+  });
+  Object.entries(state.dialoguesData?.confirms || {}).forEach(([id, c]) => {
+    (c.options || c.choices || []).forEach((choice, idx) => validateChoice(choice, `confirms.${id}.options[${idx}]`));
+  });
+  Object.entries(state.boardsData?.boards || {}).forEach(([id, b]) => {
+    if (b.linkBoardId && !linkBoardIds.has(b.linkBoardId)) errors.push(`boards.${id}: linkBoardIdが存在しません: ${b.linkBoardId}`);
+    if (!b.linkUrl && !b.linkBoardId && !Array.isArray(b.options)) warnings.push(`boards.${id}: URL/リンク集/選択肢が未設定です。`);
+    (b.options || b.choices || []).forEach((choice, idx) => validateChoice(choice, `boards.${id}.options[${idx}]`));
+  });
+  Object.entries(state.menusData?.menus || {}).forEach(([id, m]) => {
+    if (!Array.isArray(m.items)) warnings.push(`menus.${id}: items が配列ではありません。`);
+    (m.options || m.choices || []).forEach((choice, idx) => validateChoice(choice, `menus.${id}.options[${idx}]`));
+  });
+  (state.hiddenData?.hiddenSpots || []).forEach(h => {
+    const name = `hidden.${h.id || h.title}`;
+    if (h.mapId && !mapIds.has(h.mapId)) errors.push(`${name}: mapIdが存在しません: ${h.mapId}`);
+    (h.options || h.choices || []).forEach((choice, idx) => validateChoice(choice, `${name}.options[${idx}]`));
+  });
+  Object.entries(state.linkBoardsData?.linkBoards || {}).forEach(([id, lb]) => {
+    (lb.links || []).forEach((link, idx) => {
+      const label = `linkBoards.${id}.links[${idx}]`;
+      if (link.enabled !== false && link.type === 'linkBoard' && link.targetId && !linkBoardIds.has(link.targetId)) errors.push(`${label}: targetIdのリンク集が存在しません: ${link.targetId}`);
+      if (link.enabled !== false && link.type !== 'linkBoard' && !link.url) warnings.push(`${label}: 有効リンクですがURLが空です。`);
+    });
+  });
+
+  function validateChoice(choice, label) {
+    if (!choice || typeof choice !== 'object') {
+      errors.push(`${label}: 選択肢データが不正です。`);
+      return;
+    }
+    const type = choice.type || 'close';
+    if (!choice.label) warnings.push(`${label}: 表示名が空です。`);
+    if (type === 'dialogue' && choice.targetId && !dialogueIds.has(choice.targetId)) errors.push(`${label}: dialogue targetIdが存在しません: ${choice.targetId}`);
+    if (type === 'board' && choice.targetId && !boardIds.has(choice.targetId)) errors.push(`${label}: board targetIdが存在しません: ${choice.targetId}`);
+    if (type === 'menu' && choice.targetId && !menuIds.has(choice.targetId)) errors.push(`${label}: menu targetIdが存在しません: ${choice.targetId}`);
+    if (type === 'linkBoard' && choice.targetId && !linkBoardIds.has(choice.targetId)) errors.push(`${label}: linkBoard targetIdが存在しません: ${choice.targetId}`);
+    if (type === 'map' && choice.targetMapId && !mapIds.has(choice.targetMapId)) errors.push(`${label}: targetMapIdが存在しません: ${choice.targetMapId}`);
+    if (type === 'action' && !choice.targetId) warnings.push(`${label}: action targetIdが空です。`);
+    if (type === 'action' && choice.targetId && actionIds.size && !actionIds.has(choice.targetId)) errors.push(`${label}: action targetIdが存在しません: ${choice.targetId}`);
+    if (type === 'link' && !choice.url) warnings.push(`${label}: link URLが空です。`);
+    if (type === 'achievement' && choice.targetId && achievementIds.size && !achievementIds.has(choice.targetId)) warnings.push(`${label}: achievement targetIdが実績IDに見つかりません: ${choice.targetId}`);
+    if (type === 'conditionalDialogue') {
+      (choice.branches || []).forEach((b, i) => {
+        if (b.targetId && !dialogueIds.has(b.targetId)) errors.push(`${label}.branches[${i}]: targetIdが存在しません: ${b.targetId}`);
+      });
+      if (choice.fallbackId && !dialogueIds.has(choice.fallbackId)) errors.push(`${label}: fallbackIdが存在しません: ${choice.fallbackId}`);
+    }
+  }
+
+  return { errors, warnings };
+}
+
+function renderProjectValidation(result) {
+  const { errors, warnings } = result;
+  if (!errors.length && !warnings.length) {
+    validationBox.className = 'validation-box ok';
+    validationBox.textContent = '全体チェックOK：ID重複・参照切れ・未設定リンクの大きな問題は見つかりませんでした。';
+    return;
+  }
+  validationBox.className = errors.length ? 'validation-box error' : 'validation-box warn';
+  const lines = [];
+  if (errors.length) lines.push(`<strong>エラー ${errors.length}件</strong>`, ...errors.map(e => `<div>❌ ${escapeHtml(e)}</div>`));
+  if (warnings.length) lines.push(`<strong>警告 ${warnings.length}件</strong>`, ...warnings.map(w => `<div>⚠ ${escapeHtml(w)}</div>`));
+  validationBox.innerHTML = lines.join('');
+}
+
+function validateProject() {
+  normalizeAllData({ silent: true });
+  const result = collectProjectValidation();
+  renderProjectValidation(result);
+  outputBox.value = JSON.stringify(result, null, 2);
+  helpText.textContent = result.errors.length ? '全体チェックでエラーが見つかりました。出力プレビューで詳細を確認してください。' : '全体チェックを実行しました。';
+}
+
+function downloadProjectBundle() {
+  normalizeAllData({ silent: true });
+  downloadJson('vc4u_project_bundle_v027.json', projectPackage());
+}
+
+function exportBackup() {
+  normalizeAllData({ silent: true });
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  downloadJson(`vc4u_backup_v027_${stamp}.json`, projectPackage());
+  helpText.textContent = '全データバックアップを書き出しました。復元する場合は「バックアップ復元」からこのJSONを選択してください。';
+}
+
+function importBackupFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(String(reader.result || '{}'));
+      pushHistory();
+      state.mapsData = deepClone(data.mapsData || data.maps || state.mapsData);
+      state.npcsData = deepClone(data.npcsData || data.npcs || state.npcsData);
+      state.hiddenData = deepClone(data.hiddenData || data.hidden || state.hiddenData);
+      state.dialoguesData = deepClone(data.dialoguesData || data.dialogues || state.dialoguesData);
+      state.boardsData = deepClone(data.boardsData || data.boards || state.boardsData);
+      state.menusData = deepClone(data.menusData || data.menus || state.menusData);
+      state.linkBoardsData = deepClone(data.linkBoardsData || data.linkBoards || state.linkBoardsData);
+      state.actionsData = deepClone(data.actionsData || data.actions || state.actionsData);
+      state.achievementsData = deepClone(data.achievementsData || data.achievements || state.achievementsData);
+      normalizeAllData({ silent: true });
+      renderAll();
+      helpText.textContent = 'バックアップJSONを復元しました。必要に応じて「下書き保存」または各JSON保存を行ってください。';
+    } catch (err) {
+      validationBox.className = 'validation-box warn';
+      validationBox.textContent = `バックアップ復元に失敗しました: ${err.message}`;
+    } finally {
+      buttons.importBackupInput.value = '';
+    }
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+function escapeHtml(str) {
+  return String(str || '').replace(/[&<>'"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[ch]));
+}
+
+
 function downloadJson(filename, obj) {
   const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -1875,6 +2260,12 @@ buttons.downloadDialogues?.addEventListener('click', () => downloadJson('dialogu
 buttons.downloadBoards?.addEventListener('click', () => downloadJson('boards.json', state.boardsData));
 buttons.downloadMenus?.addEventListener('click', () => downloadJson('menus.json', state.menusData));
 buttons.downloadLinkBoards?.addEventListener('click', () => downloadJson('linkBoards.json', state.linkBoardsData));
+buttons.normalizeData?.addEventListener('click', () => { pushHistory(); normalizeAllData(); validateProject(); });
+buttons.validateProject?.addEventListener('click', validateProject);
+buttons.exportBackup?.addEventListener('click', exportBackup);
+buttons.importBackup?.addEventListener('click', () => buttons.importBackupInput?.click());
+buttons.importBackupInput?.addEventListener('change', ev => importBackupFile(ev.target.files?.[0]));
+buttons.downloadProject?.addEventListener('click', downloadProjectBundle);
 buttons.applyContent?.addEventListener('click', applyContentChanges);
 buttons.copyContent?.addEventListener('click', copyContentJson);
 choiceEditor.addButton?.addEventListener('click', () => {

@@ -33,7 +33,12 @@
             "x": 4,
             "y": 52,
             "dir": "right"
-          }
+          },
+          "visibleDays": [
+            "all"
+          ],
+          "label": "マップ移動",
+          "note": ""
         },
         {
           "id": "to_kusanone",
@@ -47,7 +52,12 @@
             "x": 64,
             "y": 4,
             "dir": "front"
-          }
+          },
+          "visibleDays": [
+            "all"
+          ],
+          "label": "マップ移動",
+          "note": ""
         }
       ],
       "interactables": [
@@ -66,7 +76,11 @@
             "y": 86,
             "dir": "back"
           },
-          "range": 10
+          "range": 10,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "board_4u_outside",
@@ -77,7 +91,11 @@
           "w": 12,
           "h": 10,
           "boardId": "board_4u",
-          "range": 13
+          "range": 13,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "sign_to_branch",
@@ -88,7 +106,11 @@
           "w": 17,
           "h": 12,
           "signId": "sign_to_branch",
-          "range": 13
+          "range": 13,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "sign_to_kusanone",
@@ -99,7 +121,11 @@
           "w": 28,
           "h": 10,
           "signId": "sign_to_kusanone",
-          "range": 13
+          "range": 13,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "board_town_news_outside",
@@ -110,7 +136,11 @@
           "w": 16,
           "h": 13,
           "boardId": "board_town_news",
-          "range": 13
+          "range": 13,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "event_4u_friday_lively",
@@ -124,7 +154,8 @@
           "range": 14,
           "visibleDays": [
             "fri"
-          ]
+          ],
+          "note": ""
         }
       ],
       "blocks": [
@@ -135,7 +166,11 @@
           "x": 24,
           "y": 6,
           "w": 52,
-          "h": 28
+          "h": 28,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "block_4u_left_trees",
@@ -144,7 +179,11 @@
           "x": 0,
           "y": 0,
           "w": 18,
-          "h": 34
+          "h": 34,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "block_4u_right_trees",
@@ -153,7 +192,11 @@
           "x": 76,
           "y": 0,
           "w": 24,
-          "h": 28
+          "h": 28,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "block_4u_bottom_shrubs",
@@ -162,10 +205,16 @@
           "x": 0,
           "y": 88,
           "w": 22,
-          "h": 12
+          "h": 12,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         }
       ],
-      "collisionRadius": 1.6
+      "collisionRadius": 1.6,
+      "label": "語り場4U付近",
+      "note": ""
     },
     "outside_kusanone": {
       "id": "outside_kusanone",
@@ -198,7 +247,12 @@
             "x": 48,
             "y": 96,
             "dir": "back"
-          }
+          },
+          "visibleDays": [
+            "all"
+          ],
+          "label": "マップ移動",
+          "note": ""
         }
       ],
       "interactables": [
@@ -217,7 +271,11 @@
             "y": 86,
             "dir": "back"
           },
-          "range": 10
+          "range": 10,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "board_kusanone_outside",
@@ -228,7 +286,11 @@
           "w": 13,
           "h": 10,
           "boardId": "board_kusanone",
-          "range": 13
+          "range": 13,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "sign_to_4u_from_kusanone",
@@ -239,7 +301,11 @@
           "w": 28,
           "h": 9,
           "signId": "sign_to_4u_from_kusanone",
-          "range": 13
+          "range": 13,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "event_kusanone_saturday_stage",
@@ -253,7 +319,8 @@
           "range": 14,
           "visibleDays": [
             "sat"
-          ]
+          ],
+          "note": ""
         }
       ],
       "blocks": [
@@ -264,7 +331,11 @@
           "x": 22,
           "y": 58,
           "w": 56,
-          "h": 9
+          "h": 9,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "block_kusanone_left_trees",
@@ -273,7 +344,11 @@
           "x": 0,
           "y": 12,
           "w": 18,
-          "h": 58
+          "h": 58,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "block_kusanone_right_trees",
@@ -282,10 +357,16 @@
           "x": 80,
           "y": 12,
           "w": 20,
-          "h": 72
+          "h": 72,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         }
       ],
-      "collisionRadius": 1.6
+      "collisionRadius": 1.6,
+      "label": "くさのね劇場付近",
+      "note": ""
     },
     "outside_branch": {
       "id": "outside_branch",
@@ -318,7 +399,12 @@
             "x": 96,
             "y": 49,
             "dir": "left"
-          }
+          },
+          "visibleDays": [
+            "all"
+          ],
+          "label": "マップ移動",
+          "note": ""
         }
       ],
       "interactables": [
@@ -337,7 +423,11 @@
             "y": 86,
             "dir": "back"
           },
-          "range": 10
+          "range": 10,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "board_branch_outside",
@@ -348,7 +438,11 @@
           "w": 12,
           "h": 10,
           "boardId": "board_branch",
-          "range": 13
+          "range": 13,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "sign_to_4u_from_branch",
@@ -359,7 +453,11 @@
           "w": 22,
           "h": 11,
           "signId": "sign_to_4u_from_branch",
-          "range": 13
+          "range": 13,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "event_branch_sunday_cafe",
@@ -373,7 +471,8 @@
           "range": 14,
           "visibleDays": [
             "sun"
-          ]
+          ],
+          "note": ""
         }
       ],
       "blocks": [
@@ -384,7 +483,11 @@
           "x": 28,
           "y": 5,
           "w": 60,
-          "h": 25
+          "h": 25,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "block_branch_top_trees",
@@ -393,7 +496,11 @@
           "x": 0,
           "y": 0,
           "w": 25,
-          "h": 28
+          "h": 28,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "block_branch_bottom_shrubs",
@@ -402,7 +509,11 @@
           "x": 0,
           "y": 78,
           "w": 100,
-          "h": 22
+          "h": 22,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "block_branch_right_trees",
@@ -411,10 +522,16 @@
           "x": 88,
           "y": 20,
           "w": 12,
-          "h": 60
+          "h": 60,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         }
       ],
-      "collisionRadius": 1.6
+      "collisionRadius": 1.6,
+      "label": "ブランチカフェ付近",
+      "note": ""
     },
     "room_4u": {
       "id": "room_4u",
@@ -450,7 +567,11 @@
             "y": 42,
             "dir": "front"
           },
-          "range": 10
+          "range": 10,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "board_4u_inside",
@@ -461,7 +582,11 @@
           "w": 22,
           "h": 17,
           "boardId": "board_4u",
-          "range": 13
+          "range": 13,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "menu_4u",
@@ -472,7 +597,11 @@
           "w": 14,
           "h": 14,
           "menuId": "menu_4u",
-          "range": 13
+          "range": 13,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "event_4u_sat_karaoke",
@@ -486,7 +615,8 @@
           "range": 13,
           "visibleDays": [
             "sat"
-          ]
+          ],
+          "note": ""
         }
       ],
       "blocks": [
@@ -497,7 +627,11 @@
           "x": 8,
           "y": 5,
           "w": 84,
-          "h": 31
+          "h": 31,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "block_4u_left_table",
@@ -506,7 +640,11 @@
           "x": 7,
           "y": 64,
           "w": 22,
-          "h": 16
+          "h": 16,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "block_4u_right_shelf",
@@ -515,10 +653,16 @@
           "x": 76,
           "y": 62,
           "w": 18,
-          "h": 18
+          "h": 18,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         }
       ],
-      "collisionRadius": 1.6
+      "collisionRadius": 1.6,
+      "label": "語り場4U 店内",
+      "note": ""
     },
     "room_kusanone": {
       "id": "room_kusanone",
@@ -554,7 +698,11 @@
             "y": 76,
             "dir": "front"
           },
-          "range": 10
+          "range": 10,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "board_kusanone_inside",
@@ -565,7 +713,11 @@
           "w": 16,
           "h": 12,
           "boardId": "board_kusanone",
-          "range": 13
+          "range": 13,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "menu_kusanone",
@@ -576,7 +728,11 @@
           "w": 12,
           "h": 10,
           "menuId": "menu_kusanone",
-          "range": 13
+          "range": 13,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "event_kusanone_fri_rehearsal",
@@ -590,7 +746,8 @@
           "range": 13,
           "visibleDays": [
             "fri"
-          ]
+          ],
+          "note": ""
         }
       ],
       "blocks": [
@@ -601,7 +758,11 @@
           "x": 24,
           "y": 6,
           "w": 54,
-          "h": 22
+          "h": 22,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "block_kusanone_table_left",
@@ -610,7 +771,11 @@
           "x": 13,
           "y": 37,
           "w": 28,
-          "h": 18
+          "h": 18,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "block_kusanone_table_right",
@@ -619,7 +784,11 @@
           "x": 59,
           "y": 37,
           "w": 28,
-          "h": 18
+          "h": 18,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "block_kusanone_counter",
@@ -628,10 +797,16 @@
           "x": 67,
           "y": 58,
           "w": 24,
-          "h": 18
+          "h": 18,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         }
       ],
-      "collisionRadius": 1.6
+      "collisionRadius": 1.6,
+      "label": "くさのね劇場 店内",
+      "note": ""
     },
     "room_branch": {
       "id": "room_branch",
@@ -667,7 +842,11 @@
             "y": 42,
             "dir": "front"
           },
-          "range": 10
+          "range": 10,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "board_branch_inside",
@@ -678,7 +857,11 @@
           "w": 13,
           "h": 10,
           "boardId": "board_branch",
-          "range": 13
+          "range": 13,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "menu_branch",
@@ -689,7 +872,11 @@
           "w": 14,
           "h": 10,
           "menuId": "menu_branch",
-          "range": 13
+          "range": 13,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "event_branch_sun_window",
@@ -703,7 +890,8 @@
           "range": 13,
           "visibleDays": [
             "sun"
-          ]
+          ],
+          "note": ""
         }
       ],
       "blocks": [
@@ -714,7 +902,11 @@
           "x": 14,
           "y": 50,
           "w": 67,
-          "h": 15
+          "h": 15,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         },
         {
           "id": "block_branch_plants",
@@ -723,10 +915,16 @@
           "x": 8,
           "y": 6,
           "w": 84,
-          "h": 12
+          "h": 12,
+          "visibleDays": [
+            "all"
+          ],
+          "note": ""
         }
       ],
-      "collisionRadius": 1.6
+      "collisionRadius": 1.6,
+      "label": "ブランチカフェ 店内",
+      "note": ""
     }
   }
 }

@@ -33,7 +33,11 @@
         "act_4u_karaoke",
         "act_4u_talk"
       ],
-      "actionNote": "気になるものを選ぶと、簡単な店内演出が表示されます。"
+      "actionNote": "気になるものを選ぶと、簡単な店内演出が表示されます。",
+      "id": "menu_4u",
+      "visibleDays": [
+        "all"
+      ]
     },
     "menu_kusanone": {
       "title": "くさのね劇場 メニュー",
@@ -62,7 +66,11 @@
         "act_kusanone_karaoke",
         "act_kusanone_stage"
       ],
-      "actionNote": "食べる・飲む・歌うなど、くさのね劇場らしい過ごし方を試せます。"
+      "actionNote": "食べる・飲む・歌うなど、くさのね劇場らしい過ごし方を試せます。",
+      "id": "menu_kusanone",
+      "visibleDays": [
+        "all"
+      ]
     },
     "menu_branch": {
       "title": "ブランチカフェ メニュー",
@@ -91,7 +99,11 @@
         "act_branch_lunch",
         "act_branch_relax"
       ],
-      "actionNote": "カフェらしい過ごし方を選んで、雰囲気を確認できます。"
+      "actionNote": "カフェらしい過ごし方を選んで、雰囲気を確認できます。",
+      "id": "menu_branch",
+      "visibleDays": [
+        "all"
+      ]
     }
   }
 }

@@ -10,7 +10,8 @@
         "type": "totalAtLeast",
         "value": 1
       },
-      "rewardText": "この街での最初の体験が記録されました。"
+      "rewardText": "この街での最初の体験が記録されました。",
+      "note": ""
     },
     {
       "id": "ach_katariba_seed",
@@ -23,7 +24,8 @@
         "stat": "talk",
         "value": 3
       },
-      "rewardText": "称号『語りの芽』を獲得しました。"
+      "rewardText": "称号『語りの芽』を獲得しました。",
+      "note": ""
     },
     {
       "id": "ach_first_song",
@@ -36,7 +38,8 @@
         "stat": "karaoke",
         "value": 1
       },
-      "rewardText": "歌うことで、場との距離が少し近づきました。"
+      "rewardText": "歌うことで、場との距離が少し近づきました。",
+      "note": ""
     },
     {
       "id": "ach_cafe_rest",
@@ -49,7 +52,8 @@
         "stat": "relax",
         "value": 3
       },
-      "rewardText": "称号『ひと息の達人』を獲得しました。"
+      "rewardText": "称号『ひと息の達人』を獲得しました。",
+      "note": ""
     },
     {
       "id": "ach_three_shops",
@@ -73,7 +77,8 @@
           }
         ]
       },
-      "rewardText": "街の輪郭が少し見えてきました。"
+      "rewardText": "街の輪郭が少し見えてきました。",
+      "note": ""
     },
     {
       "id": "ach_hidden_first",
@@ -85,7 +90,8 @@
         "type": "hiddenCountAtLeast",
         "value": 1
       },
-      "rewardText": "何気ない場所にも、見つける楽しさがあるようです。"
+      "rewardText": "何気ない場所にも、見つける楽しさがあるようです。",
+      "note": ""
     },
     {
       "id": "ach_all_hidden_sample",
@@ -97,7 +103,8 @@
         "type": "hiddenCountAtLeast",
         "value": 3
       },
-      "rewardText": "称号『街の気配を読む人』を獲得しました。"
+      "rewardText": "称号『街の気配を読む人』を獲得しました。",
+      "note": ""
     },
     {
       "id": "ach_board_reader",
@@ -110,7 +117,8 @@
         "stat": "board",
         "value": 1
       },
-      "rewardText": "街の情報に触れる入口を見つけました。"
+      "rewardText": "街の情報に触れる入口を見つけました。",
+      "note": ""
     },
     {
       "id": "ach_link_visitor",
@@ -123,7 +131,8 @@
         "stat": "link",
         "value": 1
       },
-      "rewardText": "仮想マップから、実際の活動へ一歩つながりました。"
+      "rewardText": "仮想マップから、実際の活動へ一歩つながりました。",
+      "note": ""
     },
     {
       "id": "ach_info_seeker",
@@ -148,7 +157,8 @@
           }
         ]
       },
-      "rewardText": "称号『情報の旅人』を獲得しました。"
+      "rewardText": "称号『情報の旅人』を獲得しました。",
+      "note": ""
     }
   ]
 }

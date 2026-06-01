@@ -434,3 +434,19 @@ button:disabled {
   border-color: rgba(154, 221, 123, .34);
 }
 .compact-head { margin-bottom: 8px; }
+
+/* v027: project validation and backup controls */
+.validation-box.error {
+  border-color: rgba(255, 92, 92, .88);
+  color: #ffdada;
+  background: rgba(255, 92, 92, .10);
+}
+.validation-box strong {
+  display: block;
+  margin: 6px 0 4px;
+  color: var(--accent);
+}
+.validation-box {
+  max-height: 260px;
+  overflow: auto;
+}
