@@ -1,0 +1,13 @@
+id	mapId	label	x	y	w	h	range	visibleDays	visibleWhenJson	title	text	foundText	log	statsJson	optionsJson	note
+hidden_4u_counter_note	room_4u	カウンターの小さなメモ	38	50	18	10	12	all	"{""type"":""statAtLeast"",""stat"":""talk"",""value"":3}"	カウンターの小さなメモ	"カウンターの端に、小さなメモが置かれている。
+
+『うまく話せなくても、ここに座った時点で会話は始まっている。』"	"メモの言葉を、もう一度読み返した。
+少しだけ、ここに座る理由が分かった気がする。"	語り場4Uでカウンターの小さなメモを見つけた	"{""talk"":1}"		
+hidden_kusanone_mic_light	room_kusanone	ステージの灯り	43	24	16	10	12	all	"{""type"":""statAtLeast"",""stat"":""karaoke"",""value"":1}"	ステージの灯り	"ステージのマイク近くに、ほんの少しだけ灯りが残っている。
+
+さっきまで誰かが歌っていたような、これから誰かが始めるような、そんな気配がある。"	"ステージの灯りを眺めた。
+何も始まっていない時間にも、表現の余白がある。"	くさのね劇場でステージの灯りを見つけた	"{""event"":1}"		
+hidden_branch_window_note	room_branch	窓辺のひとこと	24	26	18	12	12	all	"{""type"":""statAtLeast"",""stat"":""relax"",""value"":2}"	窓辺のひとこと	"窓辺に置かれた小さなカードに、手書きの言葉がある。
+
+『急がない時間にだけ、見えてくるものがある。』"	"窓辺の言葉を眺めた。
+この街には、立ち止まることで見つかるものもあるらしい。"	ブランチカフェで窓辺のひとことを見つけた	"{""relax"":1}"		

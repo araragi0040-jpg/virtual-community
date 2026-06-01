@@ -1,0 +1,14 @@
+parentId	id	order	label	type	url	targetId	note	enabled	visibleDays	visibleWhenJson
+community_hub	community_hub_link_1	1	語り場4U 公式サイト	link	https://katariba4u.com/		語り場4Uの情報を見る	True	all	
+community_hub	community_hub_link_2	2	くさのね劇場 店舗情報	link	https://kusanone-gekijyo.foodre.jp/		くさのね劇場の店舗情報を見る	True	all	
+community_hub	community_hub_link_3	3	ブランチカフェ Instagram	link	https://www.instagram.com/branch_cafe/		ブランチカフェの雰囲気を見る	True	all	
+community_hub	community_hub_link_4	4	コミュニティニュース	link			作成中のニュースサイトURLをここに入れる	False	all	
+community_hub	community_hub_link_5	5	みんなの活動リンク	linkBoard		member_activities	人物・仕事・活動のリンク集サンプル	True	all	
+community_hub	community_hub_link_6	6	語り場ガチャ	link			後で語り場ガチャURLを設定	False	all	
+shops	shops_link_1	1	語り場4U	link	https://katariba4u.com/		中心拠点	True	all	
+shops	shops_link_2	2	くさのね劇場	link	https://kusanone-gekijyo.foodre.jp/		表現・イベントの空間	True	all	
+shops	shops_link_3	3	ブランチカフェ	link	https://www.instagram.com/branch_cafe/		カフェ・交流の空間	True	all	
+member_activities	member_activities_link_1	1	活動サンプルA：イベント主催	link			例：LIFE ARTS LIVE / 企画ページなど	False	all	
+member_activities	member_activities_link_2	2	活動サンプルB：制作・デザイン	link			例：ポートフォリオ / Instagramなど	False	all	
+member_activities	member_activities_link_3	3	活動サンプルC：仕事・サービス	link			例：HP / 予約フォームなど	False	all	
+member_activities	member_activities_link_4	4	3店舗リンクへ戻る	linkBoard		shops	店舗リンク一覧を開く	True	all	

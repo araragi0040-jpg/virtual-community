@@ -1,0 +1,63 @@
+parentType	parentId	order	label	type	targetId	targetMapId	url	message	className	visibleDays	conditionJson	branchesJson	fallbackId	note
+dialogue	talk_4u_inside_01	1	話す	dialogue	talk_4u_inside_talk					all				
+dialogue	talk_4u_inside_01	2	金曜のにぎわいを聞く	dialogue	talk_4u_friday_mood				achievement	fri				
+dialogue	talk_4u_inside_01	3	少し深い話をする	dialogue	talk_4u_deep_talk				link	all	"{""type"":""statAtLeast"",""stat"":""talk"",""value"":3}"			
+dialogue	talk_4u_inside_01	4	メニューを見る	menu	menu_4u					all				
+dialogue	talk_4u_inside_01	5	掲示板を見る	board	board_4u					all				
+dialogue	talk_4u_inside_talk	1	閉じる	close						all				
+dialogue	talk_4u_outside_01	1	ありがとう	close						all				
+dialogue	talk_kusanone_inside_01	1	話す	dialogue	talk_kusanone_inside_talk					all				
+dialogue	talk_kusanone_inside_01	2	ステージの余韻について聞く	dialogue	talk_kusanone_stage_after_karaoke				link	all	"{""type"":""statAtLeast"",""stat"":""karaoke"",""value"":1}"			
+dialogue	talk_kusanone_inside_01	3	メニューを見る	menu	menu_kusanone					all				
+dialogue	talk_kusanone_inside_01	4	掲示板を見る	board	board_kusanone					all				
+dialogue	talk_kusanone_inside_talk	1	閉じる	close						all				
+dialogue	talk_kusanone_outside_01	1	ありがとう	close						all				
+dialogue	talk_branch_inside_01	1	話す	dialogue	talk_branch_inside_talk					all				
+dialogue	talk_branch_inside_01	2	日曜のカフェ時間について聞く	dialogue	talk_branch_sunday				achievement	sun				
+dialogue	talk_branch_inside_01	3	メニューを見る	menu	menu_branch					all				
+dialogue	talk_branch_inside_01	4	掲示板を見る	board	board_branch					all				
+dialogue	talk_branch_inside_talk	1	閉じる	close						all				
+dialogue	talk_branch_outside_01	1	ありがとう	close						all				
+dialogue	talk_town_01	1	立ち去る	close						all				
+dialogue	talk_town_02	1	立ち去る	close						all				
+dialogue	talk_town_03	1	へえ	close						all				
+dialogue	sign_to_kusanone	1	閉じる	close						all				
+dialogue	sign_to_branch	1	閉じる	close						all				
+dialogue	sign_to_4u_from_kusanone	1	閉じる	close						all				
+dialogue	sign_to_4u_from_branch	1	閉じる	close						all				
+dialogue	talk_town_01_fri	1	楽しそう	close						all				
+dialogue	talk_town_01_sat	1	掲示板を見る	board	board_town_news					all				
+dialogue	talk_town_01_sat	2	閉じる	close						all				
+dialogue	talk_town_02_sat	1	へえ	close						all				
+dialogue	talk_town_02_sun	1	なるほど	close						all				
+dialogue	talk_town_03_sun	1	隠し要素、いいね	close						all				
+dialogue	talk_4u_inside_fri	1	メニューを見る	menu	menu_4u					all				
+dialogue	talk_4u_inside_fri	2	掲示板を見る	board	board_4u					all				
+dialogue	talk_4u_inside_fri	3	閉じる	close						all				
+dialogue	talk_4u_inside_sat	1	カラオケの気配を見る	dialogue	event_4u_sat_karaoke					all				
+dialogue	talk_4u_inside_sat	2	掲示板を見る	board	board_4u					all				
+dialogue	talk_4u_inside_sat	3	閉じる	close						all				
+dialogue	talk_4u_inside_sun	1	話す	dialogue	talk_4u_inside_talk					all				
+dialogue	talk_4u_inside_sun	2	閉じる	close						all				
+dialogue	talk_4u_outside_fri	1	掲示板を見る	board	board_town_news					all				
+dialogue	talk_4u_outside_fri	2	閉じる	close						all				
+dialogue	talk_kusanone_inside_sat	1	メニューを見る	menu	menu_kusanone					all				
+dialogue	talk_kusanone_inside_sat	2	掲示板を見る	board	board_kusanone					all				
+dialogue	talk_kusanone_inside_sat	3	閉じる	close						all				
+dialogue	talk_branch_inside_sun	1	メニューを見る	menu	menu_branch					all				
+dialogue	talk_branch_inside_sun	2	閉じる	close						all				
+dialogue	talk_branch_outside_sun	1	カフェに入ってみる	close						all				
+dialogue	talk_branch_outside_sun	2	閉じる	close						all				
+dialogue	event_4u_friday_lively	1	掲示板を見る	board	board_town_news					all				
+dialogue	event_4u_friday_lively	2	閉じる	close						all				
+dialogue	event_kusanone_saturday_stage	1	くさのね情報を見る	board	board_kusanone					all				
+dialogue	event_kusanone_saturday_stage	2	閉じる	close						all				
+dialogue	event_branch_sunday_cafe	1	カフェ情報を見る	board	board_branch					all				
+dialogue	event_branch_sunday_cafe	2	閉じる	close						all				
+dialogue	event_4u_sat_karaoke	1	いいね	close						all				
+dialogue	event_kusanone_fri_rehearsal	1	閉じる	close						all				
+dialogue	event_branch_sun_window	1	閉じる	close						all				
+dialogue	talk_4u_friday_mood	1	閉じる	close						all				
+dialogue	talk_4u_deep_talk	1	閉じる	close						all				
+dialogue	talk_branch_sunday	1	閉じる	close						all				
+dialogue	talk_kusanone_stage_after_karaoke	1	閉じる	close						all				

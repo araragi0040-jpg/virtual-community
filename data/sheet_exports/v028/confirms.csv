@@ -1,0 +1,4 @@
+﻿id,title,text,yesLabel,noLabel,visibleDays,visibleWhenJson,optionsJson,note
+enter_4u,語り場4U,語り場4Uに入りますか？,入る,やめる,all,,,
+enter_kusanone,くさのね劇場,くさのね劇場に入りますか？,入る,やめる,all,,,
+enter_branch,ブランチカフェ,ブランチカフェに入りますか？,入る,やめる,all,,,

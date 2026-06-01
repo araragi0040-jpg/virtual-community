@@ -1,0 +1,10 @@
+id	name	mapId	x	y	sprite	dialogueId	dialogueByDayJson	visibleDays	visibleWhenJson	range	optionsJson	note
+npc_4u_inside	4U店内の人	room_4u	49	25	assets/characters/npc_4u_inside.png	talk_4u_inside_01	"{""fri"":""talk_4u_inside_fri"",""sat"":""talk_4u_inside_sat"",""sun"":""talk_4u_inside_sun"",""default"":""talk_4u_inside_01""}"	all		14		
+npc_4u_outside	4U前の人	outside_4u	50	43	assets/characters/npc_4u_outside.png	talk_4u_outside_01	"{""fri"":""talk_4u_outside_fri"",""default"":""talk_4u_outside_01""}"	all		14		
+npc_kusanone_inside	くさのね店内の人	room_kusanone	83	41	assets/characters/npc_kusanone_inside.png	talk_kusanone_inside_01	"{""sat"":""talk_kusanone_inside_sat"",""default"":""talk_kusanone_inside_01""}"	all		14		
+npc_kusanone_outside	くさのね前の人	outside_kusanone	37	77	assets/characters/npc_kusanone_outside.png	talk_kusanone_outside_01		all		14		
+npc_branch_inside	ブランチカフェ店内の人	room_branch	34	26	assets/characters/npc_branch_inside.png	talk_branch_inside_01	"{""sun"":""talk_branch_inside_sun"",""default"":""talk_branch_inside_01""}"	all		14		
+npc_branch_outside	ブランチカフェ前の人	outside_branch	63	38	assets/characters/npc_branch_outside.png	talk_branch_outside_01	"{""sun"":""talk_branch_outside_sun"",""default"":""talk_branch_outside_01""}"	all		14		
+npc_town_01	街の人A	outside_4u	56	68	assets/characters/npc_town_01.png	talk_town_01	"{""fri"":""talk_town_01_fri"",""sat"":""talk_town_01_sat"",""default"":""talk_town_01""}"	all		14		
+npc_town_02	街の人B	outside_kusanone	64	34	assets/characters/npc_town_02.png	talk_town_02	"{""sat"":""talk_town_02_sat"",""sun"":""talk_town_02_sun"",""default"":""talk_town_02""}"	all		14		
+npc_town_03	街の人C	outside_branch	62	60	assets/characters/npc_town_03.png	talk_town_03	"{""sun"":""talk_town_03_sun"",""default"":""talk_town_03""}"	all		14		

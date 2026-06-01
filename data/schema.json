@@ -1,6 +1,6 @@
 {
-  "version": "v026",
-  "purpose": "Googleスプレッドシート移行と配置エディタ用のデータ設計メモ",
+  "version": "v028",
+  "purpose": "Googleスプレッドシート移行・CSV/TSV出力・配置エディタ用のデータ設計メモ",
   "coordinateSystem": {
     "x": "0-100",
     "y": "0-100",
@@ -79,5 +79,25 @@
       "key": "linkBoardId+order",
       "description": "リンク集内の各リンク"
     }
-  ]
+  ],
+  "spreadsheetExportV028": {
+    "recommendedFormat": "tsv",
+    "sheets": [
+      "maps",
+      "interactables",
+      "blocks",
+      "npcs",
+      "hidden_spots",
+      "dialogues",
+      "confirms",
+      "boards",
+      "menus",
+      "actions",
+      "achievements",
+      "link_boards",
+      "link_items",
+      "options"
+    ],
+    "note": "v028でJSONからスプレッドシート貼り付け用のCSV/TSVを出力できるようにした。"
+  }
 }

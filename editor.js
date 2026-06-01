@@ -117,6 +117,9 @@ const buttons = {
   importBackup: document.getElementById('importBackupButton'),
   importBackupInput: document.getElementById('importBackupInput'),
   downloadProject: document.getElementById('downloadProjectButton'),
+  exportTsv: document.getElementById('exportTsvButton'),
+  exportCsv: document.getElementById('exportCsvButton'),
+  previewSheets: document.getElementById('previewSheetsButton'),
   applyContent: document.getElementById('applyContentButton'),
   copyContent: document.getElementById('copyContentButton')
 };
@@ -174,8 +177,8 @@ const RESIZE_CURSORS = {
   w: 'ew-resize'
 };
 
-const DRAFT_KEY = 'vc4u_editor_draft_v027';
-const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v027';
+const DRAFT_KEY = 'vc4u_editor_draft_v028';
+const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v028';
 const HISTORY_LIMIT = 60;
 
 function deepClone(obj) {
@@ -260,7 +263,7 @@ function updateEntityButtons() {
 
 function makeDraft() {
   return {
-    version: 'v026',
+    version: 'v028',
     savedAt: new Date().toISOString(),
     mapsData: state.mapsData,
     npcsData: state.npcsData,
@@ -1869,7 +1872,7 @@ Object.values(editorOptions).forEach(el => {
 
 function projectPackage() {
   return {
-    schemaVersion: 'v027',
+    schemaVersion: 'v028',
     exportedAt: new Date().toISOString(),
     mapsData: state.mapsData,
     npcsData: state.npcsData,
@@ -2190,13 +2193,13 @@ function validateProject() {
 
 function downloadProjectBundle() {
   normalizeAllData({ silent: true });
-  downloadJson('vc4u_project_bundle_v027.json', projectPackage());
+  downloadJson('vc4u_project_bundle_v028.json', projectPackage());
 }
 
 function exportBackup() {
   normalizeAllData({ silent: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-  downloadJson(`vc4u_backup_v027_${stamp}.json`, projectPackage());
+  downloadJson(`vc4u_backup_v028_${stamp}.json`, projectPackage());
   helpText.textContent = '全データバックアップを書き出しました。復元する場合は「バックアップ復元」からこのJSONを選択してください。';
 }
 
@@ -2234,6 +2237,184 @@ function escapeHtml(str) {
 }
 
 
+
+function normalizeForSheet(value) {
+  if (value === undefined || value === null) return '';
+  if (Array.isArray(value)) return value.join(',');
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+}
+
+function compactJson(value) {
+  if (value === undefined || value === null || value === '') return '';
+  if (Array.isArray(value) && !value.length) return '';
+  if (typeof value === 'object' && !Array.isArray(value) && !Object.keys(value).length) return '';
+  return JSON.stringify(value);
+}
+
+function rowsToDelimited(rows, delimiter = '\t') {
+  const headers = rows.headers || [];
+  const data = rows.rows || [];
+  const escapeCell = value => {
+    const str = normalizeForSheet(value);
+    if (delimiter === ',') {
+      if (/[",\n\r]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+      return str;
+    }
+    return str.replace(/\t/g, ' ').replace(/\r?\n/g, '\\n');
+  };
+  return [headers.map(escapeCell).join(delimiter), ...data.map(row => headers.map(h => escapeCell(row[h])).join(delimiter))].join('\n');
+}
+
+function buildSheetRows() {
+  normalizeAllData({ silent: true });
+  const maps = state.mapsData?.maps || {};
+  const sheets = {};
+  const add = (name, headers, rows) => { sheets[name] = { headers, rows }; };
+
+  const commonTarget = item => ({
+    visibleDays: item.visibleDays || ['all'],
+    visibleWhenJson: compactJson(item.visibleWhen || item.condition || ''),
+    optionsJson: compactJson(item.options || item.choices || []),
+    note: item.note || ''
+  });
+
+  add('maps', ['id','name','type','shopId','image','startX','startY','startDir','collisionRadius','walkZonesJson','transitionsJson','label','note'],
+    Object.values(maps).map(map => ({
+      id: map.id || '', name: map.name || '', type: map.type || '', shopId: map.shopId || '', image: map.image || '',
+      startX: map.start?.x ?? '', startY: map.start?.y ?? '', startDir: map.start?.dir || '', collisionRadius: map.collisionRadius ?? '',
+      walkZonesJson: compactJson(map.walkZones || []), transitionsJson: compactJson(map.transitions || []), label: map.label || '', note: map.note || ''
+    }))
+  );
+
+  add('interactables', ['id','mapId','type','label','x','y','w','h','range','targetMapId','spawnJson','confirmId','boardId','signId','menuId','dialogueId','visibleDays','visibleWhenJson','optionsJson','note'],
+    Object.values(maps).flatMap(map => (map.interactables || []).map(item => ({
+      id: item.id || '', mapId: map.id || '', type: item.type || '', label: item.label || '', x: item.x ?? '', y: item.y ?? '', w: item.w ?? '', h: item.h ?? '', range: item.range ?? '',
+      targetMapId: item.targetMapId || '', spawnJson: compactJson(item.spawn || ''), confirmId: item.confirmId || '', boardId: item.boardId || '', signId: item.signId || '', menuId: item.menuId || '', dialogueId: item.dialogueId || '',
+      ...commonTarget(item)
+    })))
+  );
+
+  add('blocks', ['id','mapId','type','label','x','y','w','h','visibleDays','visibleWhenJson','note'],
+    Object.values(maps).flatMap(map => (map.blocks || []).map(item => ({
+      id: item.id || '', mapId: map.id || '', type: item.type || 'block', label: item.label || '', x: item.x ?? '', y: item.y ?? '', w: item.w ?? '', h: item.h ?? '',
+      visibleDays: item.visibleDays || ['all'], visibleWhenJson: compactJson(item.visibleWhen || ''), note: item.note || ''
+    })))
+  );
+
+  add('npcs', ['id','name','mapId','x','y','sprite','dialogueId','dialogueByDayJson','visibleDays','visibleWhenJson','range','optionsJson','note'],
+    (state.npcsData?.npcs || []).map(item => ({
+      id: item.id || '', name: item.name || '', mapId: item.mapId || '', x: item.x ?? '', y: item.y ?? '', sprite: item.sprite || '', dialogueId: item.dialogueId || '', dialogueByDayJson: compactJson(item.dialogueByDay || ''),
+      visibleDays: item.visibleDays || ['all'], visibleWhenJson: compactJson(item.visibleWhen || item.condition || ''), range: item.range ?? '', optionsJson: compactJson(item.options || []), note: item.note || ''
+    }))
+  );
+
+  add('hidden_spots', ['id','mapId','label','x','y','w','h','range','visibleDays','visibleWhenJson','title','text','foundText','log','statsJson','optionsJson','note'],
+    (state.hiddenData?.hiddenSpots || []).map(item => ({
+      id: item.id || '', mapId: item.mapId || '', label: item.label || '', x: item.x ?? '', y: item.y ?? '', w: item.w ?? '', h: item.h ?? '', range: item.range ?? '',
+      visibleDays: item.visibleDays || ['all'], visibleWhenJson: compactJson(item.visibleWhen || item.condition || ''), title: item.title || '', text: item.text || '', foundText: item.foundText || '', log: item.log || '', statsJson: compactJson(item.stats || ''), optionsJson: compactJson(item.options || []), note: item.note || ''
+    }))
+  );
+
+  add('dialogues', ['id','speaker','label','text','visibleDays','visibleWhenJson','textByDayJson','optionsJson','note'],
+    Object.entries(state.dialoguesData?.dialogues || {}).map(([id, item]) => ({
+      id, speaker: item.speaker || '', label: item.label || item.speaker || '', text: item.text || '', visibleDays: item.visibleDays || ['all'], visibleWhenJson: compactJson(item.visibleWhen || item.condition || ''), textByDayJson: compactJson(item.textByDay || item.bodyByDay || ''), optionsJson: compactJson(item.options || []), note: item.note || ''
+    }))
+  );
+
+  add('confirms', ['id','title','text','yesLabel','noLabel','visibleDays','visibleWhenJson','optionsJson','note'],
+    Object.entries(state.dialoguesData?.confirms || {}).map(([id, item]) => ({
+      id, title: item.title || '', text: item.text || '', yesLabel: item.yesLabel || '', noLabel: item.noLabel || '', visibleDays: item.visibleDays || ['all'], visibleWhenJson: compactJson(item.visibleWhen || item.condition || ''), optionsJson: compactJson(item.options || []), note: item.note || ''
+    }))
+  );
+
+  add('boards', ['id','title','body','bodyByDayJson','linkLabel','linkUrl','linkBoardId','extraLinkLabel','visibleDays','visibleWhenJson','optionsJson','note'],
+    Object.entries(state.boardsData?.boards || {}).map(([id, item]) => ({
+      id, title: item.title || '', body: item.body || '', bodyByDayJson: compactJson(item.bodyByDay || ''), linkLabel: item.linkLabel || '', linkUrl: item.linkUrl || '', linkBoardId: item.linkBoardId || '', extraLinkLabel: item.extraLinkLabel || '', visibleDays: item.visibleDays || ['all'], visibleWhenJson: compactJson(item.visibleWhen || item.condition || ''), optionsJson: compactJson(item.options || []), note: item.note || ''
+    }))
+  );
+
+  add('menus', ['id','title','note','itemsJson','noteByDayJson','itemsByDayJson','actionIds','actionNote','visibleDays','visibleWhenJson','optionsJson'],
+    Object.entries(state.menusData?.menus || {}).map(([id, item]) => ({
+      id, title: item.title || '', note: item.note || '', itemsJson: compactJson(item.items || []), noteByDayJson: compactJson(item.noteByDay || ''), itemsByDayJson: compactJson(item.itemsByDay || ''), actionIds: item.actionIds || [], actionNote: item.actionNote || '', visibleDays: item.visibleDays || ['all'], visibleWhenJson: compactJson(item.visibleWhen || item.condition || ''), optionsJson: compactJson(item.options || [])
+    }))
+  );
+
+  add('actions', ['id','title','category','resultTitle','resultText','log','statsJson','note'],
+    Object.entries(state.actionsData?.actions || {}).map(([id, item]) => ({
+      id, title: item.title || '', category: item.category || '', resultTitle: item.resultTitle || '', resultText: item.resultText || '', log: item.log || '', statsJson: compactJson(item.stats || ''), note: item.note || ''
+    }))
+  );
+
+  add('achievements', ['id','title','kind','description','lockedHint','conditionJson','rewardText','note'],
+    (state.achievementsData?.achievements || []).map(item => ({
+      id: item.id || '', title: item.title || '', kind: item.kind || '', description: item.description || '', lockedHint: item.lockedHint || '', conditionJson: compactJson(item.condition || ''), rewardText: item.rewardText || '', note: item.note || ''
+    }))
+  );
+
+  add('link_boards', ['id','title','body','visibleDays','visibleWhenJson','note'],
+    Object.entries(state.linkBoardsData?.linkBoards || {}).map(([id, item]) => ({
+      id, title: item.title || '', body: item.body || '', visibleDays: item.visibleDays || ['all'], visibleWhenJson: compactJson(item.visibleWhen || item.condition || ''), note: item.note || ''
+    }))
+  );
+
+  add('link_items', ['parentId','id','order','label','type','url','targetId','note','enabled','visibleDays','visibleWhenJson'],
+    Object.entries(state.linkBoardsData?.linkBoards || {}).flatMap(([parentId, board]) => (board.links || []).map((item, idx) => ({
+      parentId, id: item.id || `${parentId}_link_${idx + 1}`, order: idx + 1, label: item.label || '', type: item.type || 'link', url: item.url || '', targetId: item.targetId || '', note: item.note || '', enabled: item.enabled !== false, visibleDays: item.visibleDays || ['all'], visibleWhenJson: compactJson(item.visibleWhen || item.condition || '')
+    })))
+  );
+
+  const optionRows = [];
+  const collectOptions = (parentType, parentId, options) => {
+    (options || []).forEach((option, idx) => optionRows.push({
+      parentType, parentId, order: idx + 1, label: option.label || '', type: option.type || 'close', targetId: option.targetId || '', targetMapId: option.targetMapId || '', url: option.url || '', message: option.message || '', className: option.className || '', visibleDays: option.visibleDays || ['all'], conditionJson: compactJson(option.visibleWhen || option.condition || ''), branchesJson: compactJson(option.branches || ''), fallbackId: option.fallbackId || '', note: option.note || ''
+    }));
+  };
+  Object.entries(state.dialoguesData?.dialogues || {}).forEach(([id, item]) => collectOptions('dialogue', id, item.options || []));
+  Object.entries(state.dialoguesData?.confirms || {}).forEach(([id, item]) => collectOptions('confirm', id, item.options || []));
+  Object.entries(state.boardsData?.boards || {}).forEach(([id, item]) => collectOptions('board', id, item.options || []));
+  Object.entries(state.menusData?.menus || {}).forEach(([id, item]) => collectOptions('menu', id, item.options || []));
+  (state.hiddenData?.hiddenSpots || []).forEach(item => collectOptions('hidden', item.id, item.options || []));
+  Object.values(maps).forEach(map => (map.interactables || []).forEach(item => collectOptions(`interactable:${map.id}`, item.id, item.options || [])));
+  (state.npcsData?.npcs || []).forEach(item => collectOptions('npc', item.id, item.options || []));
+  add('options', ['parentType','parentId','order','label','type','targetId','targetMapId','url','message','className','visibleDays','conditionJson','branchesJson','fallbackId','note'], optionRows);
+
+  return sheets;
+}
+
+function downloadText(filename, text, mime = 'text/plain') {
+  const blob = new Blob([text], { type: `${mime};charset=utf-8` });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportSheetFiles(format = 'tsv') {
+  const sheets = buildSheetRows();
+  const delimiter = format === 'csv' ? ',' : '\t';
+  const ext = format === 'csv' ? 'csv' : 'tsv';
+  Object.entries(sheets).forEach(([name, rows], idx) => {
+    setTimeout(() => downloadText(`${String(idx + 1).padStart(2, '0')}_${name}.${ext}`, rowsToDelimited(rows, delimiter), format === 'csv' ? 'text/csv' : 'text/tab-separated-values'), idx * 120);
+  });
+  outputBox.value = Object.entries(sheets).map(([name, rows]) => `【${name}】 ${rows.rows.length} rows`).join('\n');
+  helpText.textContent = `${ext.toUpperCase()}を${Object.keys(sheets).length}シート分書き出しました。ブラウザによっては複数ダウンロード許可が必要です。`;
+}
+
+function previewSheetOutput() {
+  const sheets = buildSheetRows();
+  const lines = [];
+  Object.entries(sheets).forEach(([name, rows]) => {
+    lines.push(`===== ${name} (${rows.rows.length} rows) =====`);
+    lines.push(rowsToDelimited({ headers: rows.headers, rows: rows.rows.slice(0, 5) }, '\t'));
+    lines.push('');
+  });
+  outputBox.value = lines.join('\n');
+  helpText.textContent = 'シート出力プレビューを表示しました。各シートの先頭5行を確認できます。';
+}
+
 function downloadJson(filename, obj) {
   const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -2266,6 +2447,9 @@ buttons.exportBackup?.addEventListener('click', exportBackup);
 buttons.importBackup?.addEventListener('click', () => buttons.importBackupInput?.click());
 buttons.importBackupInput?.addEventListener('change', ev => importBackupFile(ev.target.files?.[0]));
 buttons.downloadProject?.addEventListener('click', downloadProjectBundle);
+buttons.exportTsv?.addEventListener('click', () => exportSheetFiles('tsv'));
+buttons.exportCsv?.addEventListener('click', () => exportSheetFiles('csv'));
+buttons.previewSheets?.addEventListener('click', previewSheetOutput);
 buttons.applyContent?.addEventListener('click', applyContentChanges);
 buttons.copyContent?.addEventListener('click', copyContentJson);
 choiceEditor.addButton?.addEventListener('click', () => {
