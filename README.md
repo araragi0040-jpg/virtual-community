@@ -1,11 +1,11 @@
-# 歩ける語り場 v028
+# 歩ける語り場 v029
 
-v028では、v027の **データ正規化・バックアップ** を維持したまま、次のスプレッドシート移行に備えて **CSV/TSV出力** を追加しました。
+v029では、v028の **スプシ移行用CSV/TSV出力** を維持したまま、次段階として **Googleスプレッドシート → GAS → アプリ読み込み** の読み込み専用APIに対応しました。
 
 ## 起動方法
 
 ```bash
-cd virtual-community-4u-v028
+cd virtual-community-4u-v029
 python -m http.server 8000
 ```
 
@@ -21,41 +21,48 @@ http://localhost:8000
 http://localhost:8000/editor.html
 ```
 
-## v028で追加したこと
+## v029で追加したこと
 
-- 配置エディタからスプシ貼り付け用TSVを一括出力
-- 配置エディタからCSVを一括出力
-- シート出力プレビューを追加
-- JSON内の配列・条件・選択肢をシート用に展開
-- `data/sheet_exports/v028/` に現在データから生成したTSV/CSVサンプルを同梱
-- `docs/spreadsheet_export_v028.md` を追加
+- `gas/Code.gs` を追加
+- GAS WebアプリURLを設定できる「データ設定」ボタンを追加
+- ローカルJSON / GAS API の読み込み切替に対応
+- 画面上部にデータ取得元バッジを追加
+  - `データ Local`
+  - `データ GAS`
+- GAS読み込み失敗時はローカルJSONへフォールバック
+- `docs/gas_read_api_v029.md` を追加
 
-## 推奨手順
+## GAS読み込みの確認手順
 
-1. `editor.html` を開く
-2. 「データ正規化」を押す
-3. 「全体チェック」を押す
-4. 問題がなければ「スプシ用TSV一括DL」または「CSV一括DL」を押す
-5. Googleスプレッドシートにシート名を作成し、該当TSV/CSVを貼り付ける
+1. v028/v029で出力したTSVをGoogleスプレッドシートに貼り付ける
+2. Apps Scriptに `gas/Code.gs` を貼り付ける
+3. Webアプリとしてデプロイ
+4. ゲーム画面の「メニュー」→「データ設定」
+5. GAS URLを登録
+6. 「GASで読み込む」→「再読み込み」
+7. 画面上部に `データ GAS` と出るか確認
 
-## 生成される主なシート
+詳しい手順は以下を参照してください。
 
-- maps
-- interactables
-- blocks
-- npcs
-- hidden_spots
-- dialogues
-- confirms
-- boards
-- menus
-- actions
-- achievements
-- link_boards
-- link_items
-- options
+```text
+docs/gas_read_api_v029.md
+```
 
-## 補足
+## URLパラメータでも指定可能
 
-v028はまだ「スプシへ自動保存」ではありません。
-まずは、JSON管理の内容をスプシに移しやすい形で出力する段階です。
+```text
+index.html?source=gas&api=GAS_WEB_APP_URL
+```
+
+ローカルJSONで起動：
+
+```text
+index.html?source=local
+```
+
+## v029の範囲
+
+v029は **読み込み専用** です。
+
+まだスプレッドシートへの保存は行いません。
+次は、GASから読み込んだデータで表示・移動・会話・掲示板が崩れないかを確認します。
