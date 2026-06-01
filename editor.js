@@ -177,8 +177,8 @@ const RESIZE_CURSORS = {
   w: 'ew-resize'
 };
 
-const DRAFT_KEY = 'vc4u_editor_draft_v028';
-const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v028';
+const DRAFT_KEY = 'vc4u_editor_draft_v029';
+const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v029';
 const HISTORY_LIMIT = 60;
 
 function deepClone(obj) {
@@ -263,7 +263,7 @@ function updateEntityButtons() {
 
 function makeDraft() {
   return {
-    version: 'v028',
+    version: 'v029',
     savedAt: new Date().toISOString(),
     mapsData: state.mapsData,
     npcsData: state.npcsData,
@@ -1872,7 +1872,7 @@ Object.values(editorOptions).forEach(el => {
 
 function projectPackage() {
   return {
-    schemaVersion: 'v028',
+    schemaVersion: 'v029',
     exportedAt: new Date().toISOString(),
     mapsData: state.mapsData,
     npcsData: state.npcsData,
@@ -2193,13 +2193,13 @@ function validateProject() {
 
 function downloadProjectBundle() {
   normalizeAllData({ silent: true });
-  downloadJson('vc4u_project_bundle_v028.json', projectPackage());
+  downloadJson('vc4u_project_bundle_v029.json', projectPackage());
 }
 
 function exportBackup() {
   normalizeAllData({ silent: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-  downloadJson(`vc4u_backup_v028_${stamp}.json`, projectPackage());
+  downloadJson(`vc4u_backup_v029_${stamp}.json`, projectPackage());
   helpText.textContent = '全データバックアップを書き出しました。復元する場合は「バックアップ復元」からこのJSONを選択してください。';
 }
 

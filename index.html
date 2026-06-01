@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>歩ける語り場 v028</title>
-  <link rel="stylesheet" href="style.css?v=026" />
+  <title>歩ける語り場 v029</title>
+  <link rel="stylesheet" href="style.css?v=029" />
 </head>
 <body>
   <main class="app-shell">
@@ -12,7 +12,7 @@
       <div class="title-card">
         <p class="eyebrow">Virtual Community Map</p>
         <h1>歩ける語り場</h1>
-        <p class="lead">v028では、スプシ移行用CSV/TSV出力を追加し、JSONデータをシートへ展開しやすくしました。</p>
+        <p class="lead">v029では、スプシ→GAS→アプリ読み込みの読み込み専用APIに対応しました。</p>
         <button id="startButton" class="primary-button">スタート</button>
         <p class="small-note">操作：十字キー / WASD / 画面下の移動ボタン。近くで「調べる」。</p>
       </div>
@@ -28,6 +28,7 @@
               <span id="dayBadge" class="day-badge">今日</span>
               <span id="experienceBadge" class="experience-badge">体験 0</span>
               <span id="achievementBadge" class="achievement-badge">実績 0/0</span>
+              <span id="dataSourceBadge" class="source-badge">データ Local</span>
             </div>
           </div>
           <button id="menuButton" class="ghost-button menu-button" aria-expanded="false" aria-controls="topActions">メニュー</button>
@@ -39,6 +40,7 @@
           <button id="achievementButton" class="ghost-button">実績</button>
           <button id="linkHubButton" class="ghost-button">リンク</button>
           <button id="editorButton" class="ghost-button">編集</button>
+          <button id="dataSourceButton" class="ghost-button">データ設定</button>
           <button id="resetButton" class="ghost-button">最初から</button>
         </div>
       </header>
@@ -72,6 +74,6 @@
     </section>
   </main>
 
-  <script src="script.js?v=026"></script>
+  <script src="script.js?v=029"></script>
 </body>
 </html>

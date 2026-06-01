@@ -833,6 +833,11 @@ function handleChoice(choice) {
   if (choice.type === 'achievements') return openAchievements();
   if (choice.type === 'linkBoard') return openLinkBoard(choice.targetId);
   if (choice.type === 'info') return showMessage('準備中', choice.message || 'このリンクは後から設定します。', [{ label: '閉じる', type: 'close', className: 'secondary' }]);
+  if (choice.type === 'dataSettings') return openDataSourceSettings();
+  if (choice.type === 'setGasUrl') return setGasUrlFromPrompt();
+  if (choice.type === 'useGasData') return setDataSource('gas');
+  if (choice.type === 'useLocalData') return setDataSource('local');
+  if (choice.type === 'reload') { window.location.reload(); return; }
   if (choice.type === 'resetExperience') { resetExperience(); return openMemo(); }
   if (choice.type === 'map') { closeModal(); setMap(choice.targetMapId, choice.spawn); return; }
   if (choice.type === 'link') { const url = choice.url; addExperienceStat('link', 1, `外部リンクを開いた：${choice.label.replace(/^開く：/, '')}`); closeModal(); if (url) window.open(url, '_blank', 'noopener,noreferrer'); return; }
@@ -1067,7 +1072,8 @@ function setupControls() {
   bindTap(memoButton, openMemo);
   bindTap(achievementButton, openAchievements);
   bindTap(linkHubButton, () => openLinkBoard('community_hub'));
-  bindTap(editorButton, () => { closeActionDrawer(); window.location.href = 'editor.html?v=019'; });
+  bindTap(editorButton, () => { closeActionDrawer(); window.location.href = 'editor.html?v=029'; });
+  bindTap(dataSourceButton, openDataSourceSettings);
   bindTap(dayButton, () => { cycleDay(); closeActionDrawer(); });
   bindTap(debugButton, () => { toggleDebug(); closeActionDrawer(); });
   bindTap(actionButton, doAction);

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>歩ける語り場 v028｜配置エディタ</title>
+  <title>歩ける語り場 v029｜配置エディタ</title>
   <link rel="stylesheet" href="editor.css?v=028" />
 </head>
 <body>
@@ -11,8 +11,8 @@
     <header class="editor-header">
       <div>
         <p class="eyebrow">Prototype Map Editor</p>
-        <h1>配置エディタ v028</h1>
-        <p class="lead">NPC・掲示板・入口・隠し要素・通行不可ブロックの座標をドラッグで仮調整するための編集デモです。四角い範囲は角・辺をドラッグしてサイズ調整できます。v028では、スプレッドシート移行用のCSV/TSV出力を追加しています。JSONデータをシート単位へ展開し、スプシに貼り付けやすい形で確認できます。</p>
+        <h1>配置エディタ v029</h1>
+        <p class="lead">NPC・掲示板・入口・隠し要素・通行不可ブロックの座標をドラッグで仮調整するための編集デモです。四角い範囲は角・辺をドラッグしてサイズ調整できます。v029では、CSV/TSV出力に加えて、スプシ→GAS→アプリ読み込みへ進むための読み込み専用API準備を追加しています。</p>
       </div>
       <a class="back-link" href="index.html">ゲームへ戻る</a>
     </header>
@@ -62,7 +62,7 @@
           <p class="eyebrow">Editor Actions</p>
           <h2>保存・履歴操作</h2>
         </div>
-        <p class="small-note">v028：スプシ移行用CSV/TSV出力を追加。正規化・全体チェック後に、各シートへ貼り付けやすい形式で書き出します。</p>
+        <p class="small-note">v029：スプシ移行用CSV/TSV出力を維持しつつ、GAS読み込みAPI用のシート構成確認に対応。</p>
       </div>
       <div class="action-grid">
         <button id="undoButton" type="button">戻す</button>
