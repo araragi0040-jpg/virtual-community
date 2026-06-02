@@ -124,6 +124,8 @@ const buttons = {
   gasTest: document.getElementById('gasTestButton'),
   loadGas: document.getElementById('loadGasButton'),
   compareGas: document.getElementById('compareGasButton'),
+  gasBackup: document.getElementById('gasBackupButton'),
+  gasBackupList: document.getElementById('gasBackupListButton'),
   applyContent: document.getElementById('applyContentButton'),
   copyContent: document.getElementById('copyContentButton')
 };
@@ -184,12 +186,16 @@ const RESIZE_CURSORS = {
   w: 'ew-resize'
 };
 
-const DRAFT_KEY = 'vc4u_editor_draft_v033';
-const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v033';
-const LEGACY_DRAFT_KEY = 'vc4u_editor_draft_v029';
-const LEGACY_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v029';
-const DATA_SOURCE_KEY = 'vc4u_data_source_v033';
-const GAS_URL_KEY = 'vc4u_gas_api_url_v033';
+const DRAFT_KEY = 'vc4u_editor_draft_v034';
+const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v034';
+const LEGACY_DRAFT_KEY = 'vc4u_editor_draft_v033';
+const LEGACY_DRAFT_KEY_V031 = 'vc4u_editor_draft_v031';
+const LEGACY_DRAFT_KEY_V029 = 'vc4u_editor_draft_v029';
+const LEGACY_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v033';
+const LEGACY_PREVIEW_FLAG_KEY_V031 = 'vc4u_use_editor_draft_v031';
+const LEGACY_PREVIEW_FLAG_KEY_V029 = 'vc4u_use_editor_draft_v029';
+const DATA_SOURCE_KEY = 'vc4u_data_source_v034';
+const GAS_URL_KEY = 'vc4u_gas_api_url_v034';
 const LEGACY_DATA_SOURCE_KEY = 'vc4u_data_source_v032';
 const LEGACY_DATA_SOURCE_KEY_V031 = 'vc4u_data_source_v031';
 const LEGACY_GAS_URL_KEY = 'vc4u_gas_api_url_v032';
@@ -279,7 +285,7 @@ function updateEntityButtons() {
 
 function makeDraft() {
   return {
-    version: 'v031',
+    version: 'v034',
     savedAt: new Date().toISOString(),
     mapsData: state.mapsData,
     npcsData: state.npcsData,
@@ -306,7 +312,7 @@ function saveDraft() {
 
 function loadDraft() {
   try {
-    const raw = localStorage.getItem(DRAFT_KEY) || localStorage.getItem(LEGACY_DRAFT_KEY) || localStorage.getItem(LEGACY_DRAFT_KEY_V031);
+    const raw = localStorage.getItem(DRAFT_KEY) || localStorage.getItem(LEGACY_DRAFT_KEY) || localStorage.getItem(LEGACY_DRAFT_KEY_V029) || localStorage.getItem(LEGACY_DRAFT_KEY_V031);
     if (!raw) { helpText.textContent = '保存済みの下書きがありません。'; return; }
     pushHistory();
     const draft = JSON.parse(raw);
@@ -383,12 +389,13 @@ function loadImage(src) {
 }
 
 function getStoredGasUrl() {
-  return localStorage.getItem(GAS_URL_KEY) || localStorage.getItem(LEGACY_GAS_URL_KEY) || localStorage.getItem(LEGACY_GAS_URL_KEY_V031) || localStorage.getItem('vc4u_gas_api_url_v030') || '';
+  return localStorage.getItem(GAS_URL_KEY) || localStorage.getItem('vc4u_gas_api_url_v033') || localStorage.getItem(LEGACY_GAS_URL_KEY) || localStorage.getItem(LEGACY_GAS_URL_KEY_V031) || localStorage.getItem('vc4u_gas_api_url_v030') || '';
 }
 
 function saveStoredGasUrl(url) {
   localStorage.setItem(GAS_URL_KEY, url || '');
-  // ゲーム側v030との互換用。v031以降はGAS_URL_KEYを優先する。
+  localStorage.setItem('vc4u_gas_api_url_v033', url || '');
+  // ゲーム側v030との互換用。v034以降はGAS_URL_KEYを優先する。
   localStorage.setItem(LEGACY_GAS_URL_KEY, url || '');
   localStorage.setItem(LEGACY_GAS_URL_KEY_V031, url || '');
   localStorage.setItem('vc4u_gas_api_url_v030', url || '');
@@ -406,6 +413,24 @@ async function fetchJsonWithTimeout(url, timeoutMs = GAS_TIMEOUT_MS) {
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function postJsonWithTimeout(url, payload, timeoutMs = GAS_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      signal: controller.signal,
+      cache: 'no-store',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload || {})
+    });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } finally {
@@ -599,6 +624,52 @@ async function compareGasWithCurrent() {
 }
 
 
+async function saveGasBackup() {
+  const gasUrl = getStoredGasUrl();
+  if (!gasUrl) { helpText.textContent = 'GAS URLが未設定です。「GAS URL設定」から登録してください。'; return; }
+  let label = window.prompt('GASへ保存するバックアップ名を入力してください。', `editor-backup-${new Date().toISOString().slice(0, 19)}`);
+  if (label === null) return;
+  label = label.trim() || 'editor-backup';
+  const bundle = makeDraft();
+  try { assertValidBundle(bundle, 'バックアップ対象'); } catch (err) { helpText.textContent = `GASバックアップ保存を中止しました：${err.message || err}`; return; }
+  const summary = summarizeBundle(bundle);
+  helpText.textContent = 'GASへバックアップ保存中...';
+  try {
+    const json = await postJsonWithTimeout(gasUrlWithMode(gasUrl, 'backupProject'), {
+      mode: 'backupProject',
+      label,
+      source: 'editor-v034',
+      summary,
+      data: bundle
+    }, 20000);
+    if (!json || json.ok === false) throw new Error(json?.error || 'GASバックアップ保存の応答が不正です。');
+    outputBox.value = JSON.stringify(json, null, 2);
+    helpText.textContent = `GASバックアップ保存OK：${json.backupId || ''} / chunks=${json.chunkCount || 1}`;
+  } catch (err) {
+    helpText.textContent = `GASバックアップ保存に失敗しました：${err.message || err}`;
+    console.error(err);
+  }
+}
+
+async function listGasBackups() {
+  const gasUrl = getStoredGasUrl();
+  if (!gasUrl) { helpText.textContent = 'GAS URLが未設定です。「GAS URL設定」から登録してください。'; return; }
+  helpText.textContent = 'GASバックアップ一覧を取得中...';
+  try {
+    const json = await fetchJsonWithTimeout(gasUrlWithMode(gasUrl, 'backups'), 12000);
+    if (!json || json.ok === false) throw new Error(json?.error || 'GASバックアップ一覧の応答が不正です。');
+    const backups = json.backups || [];
+    const lines = ['createdAt\tbackupId\tlabel\tsource\tchunks\tsummary'];
+    backups.forEach(b => lines.push(`${b.createdAt || ''}\t${b.backupId || ''}\t${b.label || ''}\t${b.source || ''}\t${b.chunkCount || ''}\t${JSON.stringify(b.summary || {})}`));
+    outputBox.value = lines.join('\n');
+    helpText.textContent = `GASバックアップ一覧を取得しました：${backups.length}件`;
+  } catch (err) {
+    helpText.textContent = `GASバックアップ一覧の取得に失敗しました：${err.message || err}`;
+    console.error(err);
+  }
+}
+
+
 async function boot() {
   const bundle = await loadLocalDataBundle();
   applyBundleToEditor(bundle, 'local');
@@ -612,7 +683,7 @@ async function boot() {
     helpText.textContent = `編集ボタンの読み込みに失敗しました: ${missingButtons.join(', ')}`;
     console.warn('Missing editor buttons:', missingButtons);
   }
-  const hasDraft = !!(localStorage.getItem(DRAFT_KEY) || localStorage.getItem(LEGACY_DRAFT_KEY));
+  const hasDraft = !!(localStorage.getItem(DRAFT_KEY) || localStorage.getItem(LEGACY_DRAFT_KEY) || localStorage.getItem(LEGACY_DRAFT_KEY_V031) || localStorage.getItem(LEGACY_DRAFT_KEY_V029));
   if (hasDraft) helpText.textContent = '保存済みの下書きがあります。必要なら「下書き読込」を押してください。';
   if (state.gasUrl && !hasDraft) helpText.textContent = 'GAS URLが設定済みです。「GAS接続テスト」または「GASから読込」を押せます。';
   renderAll();
@@ -2673,6 +2744,8 @@ buttons.gasSettings?.addEventListener('click', openGasSettings);
 buttons.gasTest?.addEventListener('click', testGasConnection);
 buttons.loadGas?.addEventListener('click', loadFromGasIntoEditor);
 buttons.compareGas?.addEventListener('click', compareGasWithCurrent);
+buttons.gasBackup?.addEventListener('click', saveGasBackup);
+buttons.gasBackupList?.addEventListener('click', listGasBackups);
 buttons.applyContent?.addEventListener('click', applyContentChanges);
 buttons.copyContent?.addEventListener('click', copyContentJson);
 choiceEditor.addButton?.addEventListener('click', () => {

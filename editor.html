@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>歩ける語り場 v031｜配置エディタ</title>
-  <link rel="stylesheet" href="editor.css?v=031" />
+  <title>歩ける語り場 v034｜配置エディタ</title>
+  <link rel="stylesheet" href="editor.css?v=034" />
 </head>
 <body>
   <main class="editor-shell">
     <header class="editor-header">
       <div>
         <p class="eyebrow">Prototype Map Editor</p>
-        <h1>配置エディタ v031</h1>
-        <p class="lead">NPC・掲示板・入口・隠し要素・通行不可ブロックの座標をドラッグで仮調整するための編集デモです。四角い範囲は角・辺をドラッグしてサイズ調整できます。v031では、エディタ側からもGAS APIのデータを読み込み、ローカル下書きとして編集・ゲーム確認できるようにしています。</p>
+        <h1>配置エディタ v034</h1>
+        <p class="lead">NPC・掲示板・入口・隠し要素・通行不可ブロックの座標をドラッグで仮調整するための編集デモです。四角い範囲は角・辺をドラッグしてサイズ調整できます。v034では、GAS読み込みに加えて、エディタ上の全データをGAS経由でバックアップ保存できる土台を追加しています。</p>
       </div>
       <a class="back-link" href="index.html">ゲームへ戻る</a>
     </header>
@@ -62,7 +62,7 @@
           <p class="eyebrow">Editor Actions</p>
           <h2>保存・履歴操作</h2>
         </div>
-        <p class="small-note">v031：GAS読み込み・接続テスト・ローカル/GAS差分確認に対応。</p>
+        <p class="small-note">v034：GAS読み込み・差分確認・バックアップ保存に対応。</p>
       </div>
       <div class="action-grid">
         <button id="undoButton" type="button">戻す</button>
@@ -81,6 +81,8 @@
         <button id="gasTestButton" type="button">GAS接続テスト</button>
         <button id="loadGasButton" type="button">GASから読込</button>
         <button id="compareGasButton" type="button">GAS差分確認</button>
+        <button id="gasBackupButton" type="button">GASバックアップ保存</button>
+        <button id="gasBackupListButton" type="button">GASバックアップ一覧</button>
         <button id="exportBackupButton" type="button">全データバックアップ</button>
         <button id="importBackupButton" type="button">バックアップ復元</button>
         <input id="importBackupInput" type="file" accept="application/json,.json" class="hidden" />
@@ -186,6 +188,6 @@
     </section>
   </main>
 
-  <script src="editor.js?v=031"></script>
+  <script src="editor.js?v=034"></script>
 </body>
 </html>

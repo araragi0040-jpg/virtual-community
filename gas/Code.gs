@@ -1,5 +1,5 @@
 /**
- * 歩ける語り場 v033 GAS 読み込み専用API
+ * 歩ける語り場 v034 GAS 読み込み＋バックアップAPI
  *
  * 使い方：
  * 1. Googleスプレッドシートに v028/v029 のTSVを貼り付ける
@@ -25,6 +25,10 @@ function doGet(e) {
       return jsonOutput({ ok: true, message: 'vc4u gas api is ready', generatedAt: new Date().toISOString() });
     }
 
+    if (mode === 'backups') {
+      return jsonOutput({ ok: true, version: 'v034', generatedAt: new Date().toISOString(), backups: listBackups_() });
+    }
+
     if (mode !== 'project') {
       return jsonOutput({ ok: false, error: 'Unknown mode: ' + mode });
     }
@@ -34,11 +38,31 @@ function doGet(e) {
     if (!summary.maps) {
       return jsonOutput({ ok: false, error: 'maps シートのデータが0件です。スプレッドシートに maps シートを作成し、v028のTSVをヘッダー付きで貼り付けてください。', summary: summary, sheetNames: getSheetNames_(), generatedAt: new Date().toISOString() });
     }
-    return jsonOutput({ ok: true, version: 'v033', generatedAt: new Date().toISOString(), summary: summary, data: project });
+    return jsonOutput({ ok: true, version: 'v034', generatedAt: new Date().toISOString(), summary: summary, data: project });
   } catch (err) {
     return jsonOutput({ ok: false, error: String(err && err.message ? err.message : err), stack: String(err && err.stack ? err.stack : '') });
   }
 }
+
+function doPost(e) {
+  try {
+    const params = (e && e.parameter) || {};
+    const bodyText = e && e.postData && e.postData.contents ? e.postData.contents : '{}';
+    const payload = JSON.parse(bodyText || '{}');
+    if (API_KEY && params.key !== API_KEY && payload.key !== API_KEY) {
+      return jsonOutput({ ok: false, error: 'API key is invalid.' });
+    }
+    const mode = params.mode || payload.mode || 'backupProject';
+    if (mode === 'backupProject') {
+      const result = saveProjectBackup_(payload);
+      return jsonOutput(Object.assign({ ok: true, version: 'v034', generatedAt: new Date().toISOString() }, result));
+    }
+    return jsonOutput({ ok: false, error: 'Unknown POST mode: ' + mode });
+  } catch (err) {
+    return jsonOutput({ ok: false, error: String(err && err.message ? err.message : err), stack: String(err && err.stack ? err.stack : '') });
+  }
+}
+
 
 
 
@@ -74,9 +98,20 @@ function getSpreadsheet_() {
   return ss;
 }
 
-function rows_(sheetName) {
+function normalizeSheetName_(name) {
+  return String(name || '').trim().replace(/^\d+[_\-\s]+/, '');
+}
+
+function getSheetByFlexibleName_(sheetName) {
   const ss = getSpreadsheet_();
-  const sheet = ss.getSheetByName(sheetName);
+  const direct = ss.getSheetByName(sheetName);
+  if (direct) return direct;
+  const normalizedTarget = normalizeSheetName_(sheetName);
+  return ss.getSheets().find(function(sheet) { return normalizeSheetName_(sheet.getName()) === normalizedTarget; }) || null;
+}
+
+function rows_(sheetName) {
+  const sheet = getSheetByFlexibleName_(sheetName);
   if (!sheet) return [];
   const values = sheet.getDataRange().getValues();
   if (!values || values.length < 2) return [];
@@ -132,6 +167,71 @@ function splitIds_(v) {
   if (v === null || v === undefined || v === '') return [];
   if (Array.isArray(v)) return v;
   return String(v).split(',').map(x => x.trim()).filter(Boolean);
+}
+
+
+function getOrCreateSheet_(name, headers) {
+  const ss = getSpreadsheet_();
+  let sheet = getSheetByFlexibleName_(name);
+  if (!sheet) sheet = ss.insertSheet(name);
+  if (headers && headers.length) {
+    const range = sheet.getRange(1, 1, 1, headers.length);
+    const current = range.getValues()[0].map(function(v) { return String(v || ''); });
+    const needsHeader = current.every(function(v) { return !v; }) || headers.some(function(h, i) { return current[i] !== h; });
+    if (needsHeader) range.setValues([headers]);
+  }
+  return sheet;
+}
+
+function makeBackupId_() {
+  return 'bk_' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd_HHmmss') + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+function chunkString_(text, size) {
+  const chunks = [];
+  for (let i = 0; i < text.length; i += size) chunks.push(text.slice(i, i + size));
+  return chunks.length ? chunks : [''];
+}
+
+function saveProjectBackup_(payload) {
+  const data = payload.data || payload.project || payload.bundle;
+  if (!data || !data.mapsData || !data.mapsData.maps || !Object.keys(data.mapsData.maps).length) {
+    throw new Error('保存対象の mapsData.maps が空です。');
+  }
+  const backupId = payload.backupId || makeBackupId_();
+  const createdAt = new Date().toISOString();
+  const label = String(payload.label || 'editor backup');
+  const source = String(payload.source || 'editor');
+  const summary = payload.summary || summarizeProject_(data);
+  const dataJson = JSON.stringify(data);
+  const summaryJson = JSON.stringify(summary);
+  const chunks = chunkString_(dataJson, 45000);
+  const sheet = getOrCreateSheet_('backups', ['backupId', 'createdAt', 'label', 'source', 'summaryJson', 'chunkIndex', 'chunkCount', 'dataChunk']);
+  const rows = chunks.map(function(chunk, i) {
+    return [backupId, createdAt, label, source, summaryJson, i + 1, chunks.length, chunk];
+  });
+  sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+  return { backupId: backupId, label: label, source: source, summary: summary, chunkCount: chunks.length };
+}
+
+function listBackups_() {
+  const rows = rows_('backups');
+  const map = {};
+  rows.forEach(function(row) {
+    const id = str_(row.backupId);
+    if (!id) return;
+    if (!map[id]) {
+      map[id] = {
+        backupId: id,
+        createdAt: str_(row.createdAt),
+        label: str_(row.label),
+        source: str_(row.source),
+        summary: json_(row.summaryJson, {}),
+        chunkCount: num_(row.chunkCount, 1)
+      };
+    }
+  });
+  return Object.keys(map).map(function(id) { return map[id]; }).sort(function(a, b) { return String(b.createdAt).localeCompare(String(a.createdAt)); });
 }
 
 function addCommon_(obj, row) {
