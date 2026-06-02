@@ -1,5 +1,5 @@
 /**
- * 歩ける語り場 v035 GAS 読み込み＋バックアップAPI
+ * 歩ける語り場 v036 GAS 読み込み＋バックアップAPI
  *
  * 使い方：
  * 1. Googleスプレッドシートに v028/v029 のTSVを貼り付ける
@@ -26,7 +26,7 @@ function doGet(e) {
     }
 
     if (mode === 'backups') {
-      return jsonOutput({ ok: true, version: 'v035', generatedAt: new Date().toISOString(), backups: listBackups_() });
+      return jsonOutput({ ok: true, version: 'v036', generatedAt: new Date().toISOString(), backups: listBackups_() });
     }
 
     if (mode === 'backup') {
@@ -34,7 +34,7 @@ function doGet(e) {
       const loaded = loadBackup_(backupId, !!params.latest);
       return jsonOutput({
         ok: true,
-        version: 'v035',
+        version: 'v036',
         generatedAt: new Date().toISOString(),
         backupId: loaded.backupId,
         meta: loaded.meta,
@@ -52,7 +52,7 @@ function doGet(e) {
     if (!summary.maps) {
       return jsonOutput({ ok: false, error: 'maps シートのデータが0件です。スプレッドシートに maps シートを作成し、v028のTSVをヘッダー付きで貼り付けてください。', summary: summary, sheetNames: getSheetNames_(), generatedAt: new Date().toISOString() });
     }
-    return jsonOutput({ ok: true, version: 'v035', generatedAt: new Date().toISOString(), summary: summary, data: project });
+    return jsonOutput({ ok: true, version: 'v036', generatedAt: new Date().toISOString(), summary: summary, data: project });
   } catch (err) {
     return jsonOutput({ ok: false, error: String(err && err.message ? err.message : err), stack: String(err && err.stack ? err.stack : '') });
   }
@@ -69,7 +69,7 @@ function doPost(e) {
     const mode = params.mode || payload.mode || 'backupProject';
     if (mode === 'backupProject') {
       const result = saveProjectBackup_(payload);
-      return jsonOutput(Object.assign({ ok: true, version: 'v035', generatedAt: new Date().toISOString() }, result));
+      return jsonOutput(Object.assign({ ok: true, version: 'v036', generatedAt: new Date().toISOString() }, result));
     }
     return jsonOutput({ ok: false, error: 'Unknown POST mode: ' + mode });
   } catch (err) {

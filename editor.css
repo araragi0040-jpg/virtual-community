@@ -450,3 +450,80 @@ button:disabled {
   max-height: 260px;
   overflow: auto;
 }
+
+/* v036: save/load status visibility */
+.status-panel {
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 3px solid var(--border);
+  border-radius: 16px;
+  background: #21160f;
+  box-shadow: 0 10px 28px var(--shadow);
+}
+.status-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.status-panel-head h2 { margin: 0; }
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 92px;
+  padding: 7px 10px;
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  font-weight: 900;
+  font-size: .82rem;
+  background: #1f160f;
+  color: var(--muted);
+}
+.status-badge.ok { border-color: rgba(134, 211, 106, .9); color: #e7ffdf; background: rgba(134, 211, 106, .14); }
+.status-badge.warn { border-color: rgba(255, 180, 90, .95); color: #ffe6b7; background: rgba(255, 180, 90, .12); }
+.status-badge.error { border-color: rgba(255, 138, 116, .95); color: #ffd7cf; background: rgba(255, 138, 116, .14); }
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.status-card {
+  padding: 10px;
+  border: 2px solid rgba(139, 98, 51, .8);
+  border-radius: 12px;
+  background: #1f160f;
+  min-height: 82px;
+}
+.status-label {
+  display: block;
+  color: var(--muted);
+  font-size: .75rem;
+  font-weight: 900;
+  margin-bottom: 4px;
+}
+.status-card strong {
+  display: block;
+  color: var(--text);
+  font-size: .98rem;
+  line-height: 1.25;
+}
+.status-card small {
+  display: block;
+  color: var(--muted);
+  font-size: .75rem;
+  line-height: 1.45;
+  margin-top: 4px;
+  word-break: break-word;
+}
+.status-card.ok { border-color: rgba(134, 211, 106, .68); }
+.status-card.warn { border-color: rgba(255, 180, 90, .72); }
+.status-card.error { border-color: rgba(255, 138, 116, .72); }
+@media (max-width: 860px) {
+  .status-panel-head { display: flex; }
+  .status-grid { grid-template-columns: 1fr 1fr; }
+  .status-card { min-height: 74px; padding: 8px; }
+  .status-card strong { font-size: .88rem; }
+  .status-card small { font-size: .7rem; }
+}

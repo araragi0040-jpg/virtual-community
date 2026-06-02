@@ -147,6 +147,19 @@ const editorOptions = {
   lockHidden: document.getElementById('lockHiddenToggle')
 };
 
+
+const statusEls = {
+  badge: document.getElementById('statusBadge'),
+  currentSource: document.getElementById('statusCurrentSource'),
+  currentDetail: document.getElementById('statusCurrentDetail'),
+  draftState: document.getElementById('statusDraftState'),
+  draftDetail: document.getElementById('statusDraftDetail'),
+  gasBackupState: document.getElementById('statusGasBackupState'),
+  gasBackupDetail: document.getElementById('statusGasBackupDetail'),
+  lastAction: document.getElementById('statusLastAction'),
+  lastActionDetail: document.getElementById('statusLastActionDetail')
+};
+
 const state = {
   mapsData: null,
   npcsData: null,
@@ -172,7 +185,9 @@ const state = {
   locks: { blocks: false, interactables: false, npcs: false, hidden: false },
   dataSource: 'local',
   gasUrl: '',
-  gasLastLoadedAt: ''
+  gasLastLoadedAt: '',
+  currentLoadedAt: '',
+  currentLoadLabel: '未読込'
 };
 
 const HANDLE_SIZE_PCT = 2.2;
@@ -197,13 +212,16 @@ const LEGACY_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v033';
 const LEGACY_PREVIEW_FLAG_KEY_V031 = 'vc4u_use_editor_draft_v031';
 const LEGACY_PREVIEW_FLAG_KEY_V029 = 'vc4u_use_editor_draft_v029';
 const DATA_SOURCE_KEY = 'vc4u_data_source_v034';
-const GAS_URL_KEY = 'vc4u_gas_api_url_v035';
+const GAS_URL_KEY = 'vc4u_gas_api_url_v036';
 const LEGACY_DATA_SOURCE_KEY = 'vc4u_data_source_v032';
 const LEGACY_DATA_SOURCE_KEY_V031 = 'vc4u_data_source_v031';
 const LEGACY_GAS_URL_KEY = 'vc4u_gas_api_url_v032';
 const LEGACY_GAS_URL_KEY_V031 = 'vc4u_gas_api_url_v031';
 const GAS_TIMEOUT_MS = 12000;
 const HISTORY_LIMIT = 60;
+const DRAFT_META_KEY = 'vc4u_editor_draft_meta_v036';
+const GAS_BACKUP_META_KEY = 'vc4u_gas_backup_meta_v036';
+const LAST_ACTION_META_KEY = 'vc4u_editor_last_action_v036';
 
 function deepClone(obj) {
   return JSON.parse(JSON.stringify(obj));
@@ -285,9 +303,104 @@ function updateEntityButtons() {
   if (buttons.copySelected) buttons.copySelected.disabled = !currentMap();
 }
 
+
+function formatLocalTime(iso) {
+  if (!iso) return '';
+  try {
+    return new Date(iso).toLocaleString('ja-JP', {
+      month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+    });
+  } catch (_) {
+    return String(iso);
+  }
+}
+
+function summaryText(bundle) {
+  try {
+    const s = summarizeBundle(bundle || makeDraft());
+    return `maps ${s.maps} / npc ${s.npcs} / dialogues ${s.dialogues} / boards ${s.boards}`;
+  } catch (_) {
+    return '件数未取得';
+  }
+}
+
+function readJsonStorage(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function writeJsonStorage(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) {}
+}
+
+function setStatusBadge(text, kind = 'neutral') {
+  if (!statusEls.badge) return;
+  statusEls.badge.textContent = text;
+  statusEls.badge.className = `status-badge ${kind}`;
+}
+
+function setLastAction(title, detail = '', kind = 'ok') {
+  const savedAt = new Date().toISOString();
+  const meta = { title, detail, kind, savedAt };
+  writeJsonStorage(LAST_ACTION_META_KEY, meta);
+  if (statusEls.lastAction) statusEls.lastAction.textContent = title;
+  if (statusEls.lastActionDetail) statusEls.lastActionDetail.textContent = `${detail}${detail ? ' / ' : ''}${formatLocalTime(savedAt)}`;
+  setStatusBadge(kind === 'error' ? 'エラー' : kind === 'warn' ? '確認' : 'OK', kind);
+}
+
+function writeDraftMeta(summary) {
+  writeJsonStorage(DRAFT_META_KEY, { savedAt: new Date().toISOString(), summary });
+}
+
+function clearDraftMeta() {
+  localStorage.removeItem(DRAFT_META_KEY);
+}
+
+function writeGasBackupMeta(meta) {
+  writeJsonStorage(GAS_BACKUP_META_KEY, { ...meta, savedAt: new Date().toISOString() });
+}
+
+function updateStatusPanel() {
+  const bundle = (() => { try { return makeDraft(); } catch (_) { return null; } })();
+  const loadedAt = state.currentLoadedAt || '';
+  const sourceLabel = state.currentLoadLabel || state.dataSource || 'Local';
+  if (statusEls.currentSource) statusEls.currentSource.textContent = sourceLabel;
+  if (statusEls.currentDetail) statusEls.currentDetail.textContent = `${summaryText(bundle)}${loadedAt ? ' / ' + formatLocalTime(loadedAt) : ''}`;
+
+  const draftMeta = readJsonStorage(DRAFT_META_KEY);
+  const hasDraft = !!(localStorage.getItem(DRAFT_KEY) || localStorage.getItem(LEGACY_DRAFT_KEY) || localStorage.getItem(LEGACY_DRAFT_KEY_V031) || localStorage.getItem(LEGACY_DRAFT_KEY_V029));
+  if (statusEls.draftState) statusEls.draftState.textContent = hasDraft ? '保存済み' : '未保存';
+  if (statusEls.draftDetail) statusEls.draftDetail.textContent = hasDraft
+    ? `${draftMeta?.summary || '下書きあり'}${draftMeta?.savedAt ? ' / ' + formatLocalTime(draftMeta.savedAt) : ''}`
+    : '「下書き保存」でゲーム確認用データを保存します。';
+
+  const gasMeta = readJsonStorage(GAS_BACKUP_META_KEY);
+  if (statusEls.gasBackupState) statusEls.gasBackupState.textContent = gasMeta ? (gasMeta.backupId || '保存/読込あり') : '未確認';
+  if (statusEls.gasBackupDetail) statusEls.gasBackupDetail.textContent = gasMeta
+    ? `${gasMeta.action || ''}${gasMeta.label ? ' / ' + gasMeta.label : ''}${gasMeta.savedAt ? ' / ' + formatLocalTime(gasMeta.savedAt) : ''}`
+    : 'GASバックアップ操作後に表示します。';
+
+  const lastMeta = readJsonStorage(LAST_ACTION_META_KEY);
+  if (lastMeta) {
+    if (statusEls.lastAction) statusEls.lastAction.textContent = lastMeta.title || 'なし';
+    if (statusEls.lastActionDetail) statusEls.lastActionDetail.textContent = `${lastMeta.detail || ''}${lastMeta.savedAt ? ' / ' + formatLocalTime(lastMeta.savedAt) : ''}`;
+    setStatusBadge(lastMeta.kind === 'error' ? 'エラー' : lastMeta.kind === 'warn' ? '確認' : 'OK', lastMeta.kind || 'ok');
+  }
+}
+
+function markCurrentData(label, bundle) {
+  state.currentLoadLabel = label;
+  state.currentLoadedAt = new Date().toISOString();
+  updateStatusPanel();
+}
+
 function makeDraft() {
   return {
-    version: 'v034',
+    version: 'v036',
     savedAt: new Date().toISOString(),
     mapsData: state.mapsData,
     npcsData: state.npcsData,
@@ -306,9 +419,14 @@ function saveDraft() {
     const draft = makeDraft();
     if (!isValidProjectBundle(draft)) { helpText.textContent = '下書き保存を中止しました。マップデータが空です。GAS読み込み結果やスプシの maps シートを確認してください。'; return; }
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    writeDraftMeta(summaryText(draft));
     helpText.textContent = '下書きをこのブラウザに保存しました。「ゲームで確認」でこの配置を反映できます。';
+    setLastAction('下書き保存OK', summaryText(draft), 'ok');
+    updateStatusPanel();
   } catch (err) {
     helpText.textContent = '下書き保存に失敗しました。ブラウザ容量やプライベートモードを確認してください。';
+    setLastAction('下書き保存失敗', 'ブラウザ容量やプライベートモードを確認してください。', 'error');
+    updateStatusPanel();
   }
 }
 
@@ -328,9 +446,14 @@ function loadDraft() {
     state.linkBoardsData = draft.linkBoardsData || state.linkBoardsData;
     state.selectedKey = '';
     renderAll();
+    markCurrentData('Draft', makeDraft());
     helpText.textContent = '保存済みの下書きを読み込みました。';
+    setLastAction('下書き読込OK', summaryText(makeDraft()), 'ok');
+    updateStatusPanel();
   } catch (err) {
     helpText.textContent = '下書きの読み込みに失敗しました。';
+    setLastAction('下書き読込失敗', '', 'error');
+    updateStatusPanel();
   }
 }
 
@@ -341,7 +464,10 @@ function clearDraft() {
   localStorage.removeItem(LEGACY_DRAFT_KEY_V031);
   localStorage.removeItem(LEGACY_PREVIEW_FLAG_KEY);
   localStorage.removeItem(LEGACY_PREVIEW_FLAG_KEY_V031);
+  clearDraftMeta();
   helpText.textContent = '下書きとゲーム確認用フラグを削除しました。';
+  setLastAction('下書き削除', 'ゲーム確認用フラグも削除しました。', 'warn');
+  updateStatusPanel();
 }
 
 function previewGame() {
@@ -350,6 +476,8 @@ function previewGame() {
   localStorage.setItem(PREVIEW_FLAG_KEY, '1');
   localStorage.setItem(LEGACY_PREVIEW_FLAG_KEY, '1');
   localStorage.setItem(LEGACY_PREVIEW_FLAG_KEY_V031, '1');
+  setLastAction('ゲーム確認へ移動', '下書きデータを使用します。', 'ok');
+  updateStatusPanel();
   window.location.href = 'index.html?preview=1';
 }
 
@@ -391,11 +519,12 @@ function loadImage(src) {
 }
 
 function getStoredGasUrl() {
-  return localStorage.getItem(GAS_URL_KEY) || localStorage.getItem('vc4u_gas_api_url_v034') || localStorage.getItem('vc4u_gas_api_url_v033') || localStorage.getItem(LEGACY_GAS_URL_KEY) || localStorage.getItem(LEGACY_GAS_URL_KEY_V031) || localStorage.getItem('vc4u_gas_api_url_v030') || '';
+  return localStorage.getItem(GAS_URL_KEY) || localStorage.getItem('vc4u_gas_api_url_v035') || localStorage.getItem('vc4u_gas_api_url_v034') || localStorage.getItem('vc4u_gas_api_url_v033') || localStorage.getItem(LEGACY_GAS_URL_KEY) || localStorage.getItem(LEGACY_GAS_URL_KEY_V031) || localStorage.getItem('vc4u_gas_api_url_v030') || '';
 }
 
 function saveStoredGasUrl(url) {
   localStorage.setItem(GAS_URL_KEY, url || '');
+  localStorage.setItem('vc4u_gas_api_url_v035', url || '');
   localStorage.setItem('vc4u_gas_api_url_v034', url || '');
   localStorage.setItem('vc4u_gas_api_url_v033', url || '');
   // ゲーム側v030との互換用。v034以降はGAS_URL_KEYを優先する。
@@ -560,6 +689,8 @@ function openGasSettings() {
   saveStoredGasUrl(url.trim());
   state.gasUrl = url.trim();
   helpText.textContent = state.gasUrl ? 'GAS URLを保存しました。必要なら「GAS接続テスト」または「GASから読込」を押してください。' : 'GAS URLを空にしました。';
+  setLastAction(state.gasUrl ? 'GAS URL保存' : 'GAS URL削除', state.gasUrl ? 'URL設定済み' : 'URL未設定', state.gasUrl ? 'ok' : 'warn');
+  updateStatusPanel();
 }
 
 async function testGasConnection() {
@@ -570,8 +701,12 @@ async function testGasConnection() {
     const json = await fetchJsonWithTimeout(gasUrlWithMode(gasUrl, 'ping'), 8000);
     if (!json || json.ok === false) throw new Error(json?.error || 'pingの応答が不正です。');
     helpText.textContent = `GAS接続OK：${json.message || 'ready'} / ${json.generatedAt || ''}`;
+    setLastAction('GAS接続OK', json.generatedAt || '', 'ok');
+    updateStatusPanel();
   } catch (err) {
     helpText.textContent = `GAS接続に失敗しました：${err.message || err}`;
+    setLastAction('GAS接続失敗', err.message || String(err), 'error');
+    updateStatusPanel();
   }
 }
 
@@ -590,10 +725,15 @@ async function loadFromGasIntoEditor() {
     renderAll();
     validateProject();
     state.gasLastLoadedAt = new Date().toISOString();
+    markCurrentData('GAS', makeDraft());
     const s = bundleSummary(bundle);
     helpText.textContent = `GASからデータを読み込みました。maps=${s.maps}, npcs=${s.npcs}, dialogues=${s.dialogues}。編集内容はまだスプシには保存されません。必要なら「下書き保存」してください。`;
+    setLastAction('GAS読込OK', `maps=${s.maps}, npcs=${s.npcs}, dialogues=${s.dialogues}`, 'ok');
+    updateStatusPanel();
   } catch (err) {
     helpText.textContent = `GAS読み込みに失敗しました：${err.message || err}`;
+    setLastAction('GAS読込失敗', err.message || String(err), 'error');
+    updateStatusPanel();
     console.error(err);
   }
 }
@@ -649,15 +789,20 @@ async function saveGasBackup() {
     const json = await postJsonWithTimeout(gasUrlWithMode(gasUrl, 'backupProject'), {
       mode: 'backupProject',
       label,
-      source: 'editor-v035',
+      source: 'editor-v036',
       summary,
       data: bundle
     }, 20000);
     if (!json || json.ok === false) throw new Error(json?.error || 'GASバックアップ保存の応答が不正です。');
     outputBox.value = JSON.stringify(json, null, 2);
+    writeGasBackupMeta({ action: '保存OK', backupId: json.backupId || '', label, chunkCount: json.chunkCount || 1 });
     helpText.textContent = `GASバックアップ保存OK：${json.backupId || ''} / chunks=${json.chunkCount || 1}`;
+    setLastAction('GASバックアップ保存OK', `${json.backupId || ''} / chunks=${json.chunkCount || 1}`, 'ok');
+    updateStatusPanel();
   } catch (err) {
     helpText.textContent = `GASバックアップ保存に失敗しました：${err.message || err}`;
+    setLastAction('GASバックアップ保存失敗', err.message || String(err), 'error');
+    updateStatusPanel();
     console.error(err);
   }
 }
@@ -674,8 +819,12 @@ async function listGasBackups() {
     backups.forEach(b => lines.push(`${b.createdAt || ''}\t${b.backupId || ''}\t${b.label || ''}\t${b.source || ''}\t${b.chunkCount || ''}\t${JSON.stringify(b.summary || {})}`));
     outputBox.value = lines.join('\n');
     helpText.textContent = `GASバックアップ一覧を取得しました：${backups.length}件。読込する場合は backupId をコピーして「GASバックアップ読込」を押してください。`;
+    setLastAction('GASバックアップ一覧OK', `${backups.length}件`, 'ok');
+    updateStatusPanel();
   } catch (err) {
     helpText.textContent = `GASバックアップ一覧の取得に失敗しました：${err.message || err}`;
+    setLastAction('GASバックアップ一覧失敗', err.message || String(err), 'error');
+    updateStatusPanel();
     console.error(err);
   }
 }
@@ -686,8 +835,11 @@ function applyGasBackupBundle(bundle, message) {
   applyBundleToEditor(bundle, 'gas-backup');
   normalizeAllData({ silent: true });
   renderAll();
+  markCurrentData('GAS Backup', makeDraft());
   outputBox.value = JSON.stringify({ message, summary: summarizeBundle(makeDraft()) }, null, 2);
   helpText.textContent = message;
+  setLastAction('GASバックアップ読込OK', summaryText(makeDraft()), 'ok');
+  updateStatusPanel();
 }
 
 async function loadGasBackupById() {
@@ -700,9 +852,12 @@ async function loadGasBackupById() {
     const json = await fetchJsonWithTimeout(gasUrlWithParams(gasUrl, { mode: 'backup', backupId: backupId.trim() }), 20000);
     if (!json || json.ok === false) throw new Error(json?.error || 'GASバックアップ読込の応答が不正です。');
     const bundle = json.data || json.project || json.bundle;
+    writeGasBackupMeta({ action: '読込OK', backupId: json.backupId || backupId.trim(), label: json.label || '' });
     applyGasBackupBundle(bundle, `GASバックアップを読み込みました：${json.backupId || backupId.trim()}。必要なら「下書き保存」→「ゲームで確認」を押してください。`);
   } catch (err) {
     helpText.textContent = `GASバックアップ読込に失敗しました：${err.message || err}`;
+    setLastAction('GASバックアップ読込失敗', err.message || String(err), 'error');
+    updateStatusPanel();
     console.error(err);
   }
 }
@@ -716,9 +871,12 @@ async function loadLatestGasBackup() {
     const json = await fetchJsonWithTimeout(gasUrlWithParams(gasUrl, { mode: 'backup', latest: '1' }), 20000);
     if (!json || json.ok === false) throw new Error(json?.error || '最新GASバックアップ読込の応答が不正です。');
     const bundle = json.data || json.project || json.bundle;
+    writeGasBackupMeta({ action: '最新読込OK', backupId: json.backupId || '', label: json.label || '' });
     applyGasBackupBundle(bundle, `最新GASバックアップを読み込みました：${json.backupId || ''}。必要なら「下書き保存」→「ゲームで確認」を押してください。`);
   } catch (err) {
     helpText.textContent = `最新GASバックアップ読込に失敗しました：${err.message || err}`;
+    setLastAction('最新GASバックアップ読込失敗', err.message || String(err), 'error');
+    updateStatusPanel();
     console.error(err);
   }
 }
@@ -727,6 +885,7 @@ async function loadLatestGasBackup() {
 async function boot() {
   const bundle = await loadLocalDataBundle();
   applyBundleToEditor(bundle, 'local');
+  markCurrentData('Local', bundle);
   state.gasUrl = getStoredGasUrl();
   state.mapId = state.mapsData.initialMapId;
   await rebuildMapSelectAndImages();
@@ -741,6 +900,7 @@ async function boot() {
   if (hasDraft) helpText.textContent = '保存済みの下書きがあります。必要なら「下書き読込」を押してください。';
   if (state.gasUrl && !hasDraft) helpText.textContent = 'GAS URLが設定済みです。「GAS接続テスト」または「GASから読込」を押せます。';
   renderAll();
+  updateStatusPanel();
 }
 
 function entities() {
@@ -2537,13 +2697,13 @@ function validateProject() {
 
 function downloadProjectBundle() {
   normalizeAllData({ silent: true });
-  downloadJson('vc4u_project_bundle_v035.json', projectPackage());
+  downloadJson('vc4u_project_bundle_v036.json', projectPackage());
 }
 
 function exportBackup() {
   normalizeAllData({ silent: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-  downloadJson(`vc4u_backup_v035_${stamp}.json`, projectPackage());
+  downloadJson(`vc4u_backup_v036_${stamp}.json`, projectPackage());
   helpText.textContent = '全データバックアップを書き出しました。復元する場合は「バックアップ復元」からこのJSONを選択してください。';
 }
 
@@ -2565,7 +2725,10 @@ function importBackupFile(file) {
       state.achievementsData = deepClone(data.achievementsData || data.achievements || state.achievementsData);
       normalizeAllData({ silent: true });
       renderAll();
+      markCurrentData('Backup File', makeDraft());
       helpText.textContent = 'バックアップJSONを復元しました。必要に応じて「下書き保存」または各JSON保存を行ってください。';
+      setLastAction('バックアップJSON復元OK', summaryText(makeDraft()), 'ok');
+      updateStatusPanel();
     } catch (err) {
       validationBox.className = 'validation-box warn';
       validationBox.textContent = `バックアップ復元に失敗しました: ${err.message}`;
