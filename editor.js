@@ -126,6 +126,8 @@ const buttons = {
   compareGas: document.getElementById('compareGasButton'),
   gasBackup: document.getElementById('gasBackupButton'),
   gasBackupList: document.getElementById('gasBackupListButton'),
+  gasBackupLoad: document.getElementById('gasBackupLoadButton'),
+  gasBackupLatest: document.getElementById('gasBackupLatestButton'),
   applyContent: document.getElementById('applyContentButton'),
   copyContent: document.getElementById('copyContentButton')
 };
@@ -195,7 +197,7 @@ const LEGACY_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v033';
 const LEGACY_PREVIEW_FLAG_KEY_V031 = 'vc4u_use_editor_draft_v031';
 const LEGACY_PREVIEW_FLAG_KEY_V029 = 'vc4u_use_editor_draft_v029';
 const DATA_SOURCE_KEY = 'vc4u_data_source_v034';
-const GAS_URL_KEY = 'vc4u_gas_api_url_v034';
+const GAS_URL_KEY = 'vc4u_gas_api_url_v035';
 const LEGACY_DATA_SOURCE_KEY = 'vc4u_data_source_v032';
 const LEGACY_DATA_SOURCE_KEY_V031 = 'vc4u_data_source_v031';
 const LEGACY_GAS_URL_KEY = 'vc4u_gas_api_url_v032';
@@ -389,11 +391,12 @@ function loadImage(src) {
 }
 
 function getStoredGasUrl() {
-  return localStorage.getItem(GAS_URL_KEY) || localStorage.getItem('vc4u_gas_api_url_v033') || localStorage.getItem(LEGACY_GAS_URL_KEY) || localStorage.getItem(LEGACY_GAS_URL_KEY_V031) || localStorage.getItem('vc4u_gas_api_url_v030') || '';
+  return localStorage.getItem(GAS_URL_KEY) || localStorage.getItem('vc4u_gas_api_url_v034') || localStorage.getItem('vc4u_gas_api_url_v033') || localStorage.getItem(LEGACY_GAS_URL_KEY) || localStorage.getItem(LEGACY_GAS_URL_KEY_V031) || localStorage.getItem('vc4u_gas_api_url_v030') || '';
 }
 
 function saveStoredGasUrl(url) {
   localStorage.setItem(GAS_URL_KEY, url || '');
+  localStorage.setItem('vc4u_gas_api_url_v034', url || '');
   localStorage.setItem('vc4u_gas_api_url_v033', url || '');
   // ゲーム側v030との互換用。v034以降はGAS_URL_KEYを優先する。
   localStorage.setItem(LEGACY_GAS_URL_KEY, url || '');
@@ -439,8 +442,16 @@ async function postJsonWithTimeout(url, payload, timeoutMs = GAS_TIMEOUT_MS) {
 }
 
 function gasUrlWithMode(baseUrl, mode) {
-  const sep = baseUrl.includes('?') ? '&' : '?';
-  return `${baseUrl}${sep}mode=${encodeURIComponent(mode)}&t=${Date.now()}`;
+  return gasUrlWithParams(baseUrl, { mode });
+}
+
+function gasUrlWithParams(baseUrl, params = {}) {
+  const url = new URL(baseUrl, window.location.href);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, String(value));
+  });
+  url.searchParams.set('t', String(Date.now()));
+  return url.toString();
 }
 
 
@@ -638,7 +649,7 @@ async function saveGasBackup() {
     const json = await postJsonWithTimeout(gasUrlWithMode(gasUrl, 'backupProject'), {
       mode: 'backupProject',
       label,
-      source: 'editor-v034',
+      source: 'editor-v035',
       summary,
       data: bundle
     }, 20000);
@@ -662,9 +673,52 @@ async function listGasBackups() {
     const lines = ['createdAt\tbackupId\tlabel\tsource\tchunks\tsummary'];
     backups.forEach(b => lines.push(`${b.createdAt || ''}\t${b.backupId || ''}\t${b.label || ''}\t${b.source || ''}\t${b.chunkCount || ''}\t${JSON.stringify(b.summary || {})}`));
     outputBox.value = lines.join('\n');
-    helpText.textContent = `GASバックアップ一覧を取得しました：${backups.length}件`;
+    helpText.textContent = `GASバックアップ一覧を取得しました：${backups.length}件。読込する場合は backupId をコピーして「GASバックアップ読込」を押してください。`;
   } catch (err) {
     helpText.textContent = `GASバックアップ一覧の取得に失敗しました：${err.message || err}`;
+    console.error(err);
+  }
+}
+
+function applyGasBackupBundle(bundle, message) {
+  assertValidBundle(bundle, 'GASバックアップ');
+  pushHistory();
+  applyBundleToEditor(bundle, 'gas-backup');
+  normalizeAllData({ silent: true });
+  renderAll();
+  outputBox.value = JSON.stringify({ message, summary: summarizeBundle(makeDraft()) }, null, 2);
+  helpText.textContent = message;
+}
+
+async function loadGasBackupById() {
+  const gasUrl = getStoredGasUrl();
+  if (!gasUrl) { helpText.textContent = 'GAS URLが未設定です。「GAS URL設定」から登録してください。'; return; }
+  const backupId = window.prompt('読み込むGASバックアップの backupId を入力してください。\n「GASバックアップ一覧」で表示される bk_... のIDです。', '');
+  if (!backupId) return;
+  helpText.textContent = 'GASバックアップを読み込み中...';
+  try {
+    const json = await fetchJsonWithTimeout(gasUrlWithParams(gasUrl, { mode: 'backup', backupId: backupId.trim() }), 20000);
+    if (!json || json.ok === false) throw new Error(json?.error || 'GASバックアップ読込の応答が不正です。');
+    const bundle = json.data || json.project || json.bundle;
+    applyGasBackupBundle(bundle, `GASバックアップを読み込みました：${json.backupId || backupId.trim()}。必要なら「下書き保存」→「ゲームで確認」を押してください。`);
+  } catch (err) {
+    helpText.textContent = `GASバックアップ読込に失敗しました：${err.message || err}`;
+    console.error(err);
+  }
+}
+
+async function loadLatestGasBackup() {
+  const gasUrl = getStoredGasUrl();
+  if (!gasUrl) { helpText.textContent = 'GAS URLが未設定です。「GAS URL設定」から登録してください。'; return; }
+  if (!window.confirm('最新のGASバックアップをエディタへ読み込みます。現在の未保存編集は上書きされます。続けますか？')) return;
+  helpText.textContent = '最新GASバックアップを読み込み中...';
+  try {
+    const json = await fetchJsonWithTimeout(gasUrlWithParams(gasUrl, { mode: 'backup', latest: '1' }), 20000);
+    if (!json || json.ok === false) throw new Error(json?.error || '最新GASバックアップ読込の応答が不正です。');
+    const bundle = json.data || json.project || json.bundle;
+    applyGasBackupBundle(bundle, `最新GASバックアップを読み込みました：${json.backupId || ''}。必要なら「下書き保存」→「ゲームで確認」を押してください。`);
+  } catch (err) {
+    helpText.textContent = `最新GASバックアップ読込に失敗しました：${err.message || err}`;
     console.error(err);
   }
 }
@@ -2483,13 +2537,13 @@ function validateProject() {
 
 function downloadProjectBundle() {
   normalizeAllData({ silent: true });
-  downloadJson('vc4u_project_bundle_v031.json', projectPackage());
+  downloadJson('vc4u_project_bundle_v035.json', projectPackage());
 }
 
 function exportBackup() {
   normalizeAllData({ silent: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-  downloadJson(`vc4u_backup_v031_${stamp}.json`, projectPackage());
+  downloadJson(`vc4u_backup_v035_${stamp}.json`, projectPackage());
   helpText.textContent = '全データバックアップを書き出しました。復元する場合は「バックアップ復元」からこのJSONを選択してください。';
 }
 
@@ -2746,6 +2800,8 @@ buttons.loadGas?.addEventListener('click', loadFromGasIntoEditor);
 buttons.compareGas?.addEventListener('click', compareGasWithCurrent);
 buttons.gasBackup?.addEventListener('click', saveGasBackup);
 buttons.gasBackupList?.addEventListener('click', listGasBackups);
+buttons.gasBackupLoad?.addEventListener('click', loadGasBackupById);
+buttons.gasBackupLatest?.addEventListener('click', loadLatestGasBackup);
 buttons.applyContent?.addEventListener('click', applyContentChanges);
 buttons.copyContent?.addEventListener('click', copyContentJson);
 choiceEditor.addButton?.addEventListener('click', () => {
