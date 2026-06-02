@@ -184,12 +184,12 @@ const RESIZE_CURSORS = {
   w: 'ew-resize'
 };
 
-const DRAFT_KEY = 'vc4u_editor_draft_v031';
-const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v031';
+const DRAFT_KEY = 'vc4u_editor_draft_v032';
+const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v032';
 const LEGACY_DRAFT_KEY = 'vc4u_editor_draft_v029';
 const LEGACY_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v029';
-const DATA_SOURCE_KEY = 'vc4u_data_source_v031';
-const GAS_URL_KEY = 'vc4u_gas_api_url_v031';
+const DATA_SOURCE_KEY = 'vc4u_data_source_v032';
+const GAS_URL_KEY = 'vc4u_gas_api_url_v032';
 const LEGACY_DATA_SOURCE_KEY = 'vc4u_data_source_v030';
 const LEGACY_GAS_URL_KEY = 'vc4u_gas_api_url_v030';
 const GAS_TIMEOUT_MS = 12000;
@@ -332,6 +332,7 @@ function clearDraft() {
 function previewGame() {
   saveDraft();
   localStorage.setItem(PREVIEW_FLAG_KEY, '1');
+  localStorage.setItem('vc4u_use_editor_draft_v031', '1');
   localStorage.setItem(LEGACY_PREVIEW_FLAG_KEY, '1');
   window.location.href = 'index.html?preview=1';
 }
@@ -381,11 +382,13 @@ function saveStoredGasUrl(url) {
   localStorage.setItem(GAS_URL_KEY, url || '');
   // ゲーム側v030との互換用。v031以降はGAS_URL_KEYを優先する。
   localStorage.setItem(LEGACY_GAS_URL_KEY, url || '');
+  localStorage.setItem('vc4u_gas_api_url_v031', url || '');
 }
 
 function saveDataSource(source) {
   localStorage.setItem(DATA_SOURCE_KEY, source || 'local');
   localStorage.setItem(LEGACY_DATA_SOURCE_KEY, source || 'local');
+  localStorage.setItem('vc4u_data_source_v031', source || 'local');
 }
 
 async function fetchJsonWithTimeout(url, timeoutMs = GAS_TIMEOUT_MS) {

@@ -43,15 +43,17 @@ const DATA_URLS = {
   linkBoards: 'data/linkBoards.json'
 };
 
-const DATA_SOURCE_KEY = 'vc4u_data_source_v031';
-const GAS_URL_KEY = 'vc4u_gas_api_url_v031';
+const DATA_SOURCE_KEY = 'vc4u_data_source_v032';
+const GAS_URL_KEY = 'vc4u_gas_api_url_v032';
 const GAS_TIMEOUT_MS = 10000;
 
 // v004: 背景画像に人物が描き込まれているため、NPCスプライトは重ねず、近づいた時の！マーカーで会話可能地点を示す。
-const EDITOR_DRAFT_KEY = 'vc4u_editor_draft_v031';
-const EDITOR_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v031';
-const LEGACY_EDITOR_DRAFT_KEY = 'vc4u_editor_draft_v028';
-const LEGACY_EDITOR_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v028';
+const EDITOR_DRAFT_KEY = 'vc4u_editor_draft_v032';
+const EDITOR_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v032';
+const LEGACY_EDITOR_DRAFT_KEY = 'vc4u_editor_draft_v031';
+const LEGACY2_EDITOR_DRAFT_KEY = 'vc4u_editor_draft_v028';
+const LEGACY_EDITOR_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v031';
+const LEGACY2_EDITOR_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v028';
 
 const SHOW_NPC_SPRITES = false;
 
@@ -251,6 +253,22 @@ async function loadJson(url) {
   return res.json();
 }
 
+function fallbackDataBundle() {
+  return window.__VC4U_FALLBACK_BUNDLE__ ? structuredClone(window.__VC4U_FALLBACK_BUNDLE__) : null;
+}
+
+function hasEditorPreviewDraft() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('preview') === '1' ||
+      localStorage.getItem(EDITOR_PREVIEW_FLAG_KEY) === '1' ||
+      localStorage.getItem(LEGACY_EDITOR_PREVIEW_FLAG_KEY) === '1' ||
+      localStorage.getItem(LEGACY2_EDITOR_PREVIEW_FLAG_KEY) === '1';
+  } catch (_) {
+    return false;
+  }
+}
+
 function loadImage(src) {
   return new Promise((resolve, reject) => {
     if (!src) return reject(new Error('画像パスが空です'));
@@ -286,20 +304,30 @@ function getRuntimeDataSettings() {
   const params = new URLSearchParams(window.location.search);
   const sourceParam = (params.get('source') || '').toLowerCase();
   const apiParam = params.get('api') || '';
-  const storedSource = localStorage.getItem(DATA_SOURCE_KEY) || localStorage.getItem('vc4u_data_source_v030') || 'local';
+  const storedSource = localStorage.getItem(DATA_SOURCE_KEY) || localStorage.getItem('vc4u_data_source_v031') || localStorage.getItem('vc4u_data_source_v030') || 'local';
   const source = sourceParam === 'gas' || sourceParam === 'local' ? sourceParam : storedSource;
-  const gasUrl = apiParam || localStorage.getItem(GAS_URL_KEY) || localStorage.getItem('vc4u_gas_api_url_v030') || '';
+  const gasUrl = apiParam || localStorage.getItem(GAS_URL_KEY) || localStorage.getItem('vc4u_gas_api_url_v031') || localStorage.getItem('vc4u_gas_api_url_v030') || '';
   if (apiParam) localStorage.setItem(GAS_URL_KEY, apiParam);
   if (sourceParam) localStorage.setItem(DATA_SOURCE_KEY, source);
   return { source, gasUrl };
 }
 
 async function loadLocalDataBundle() {
-  const [mapsData, npcsData, dialoguesData, boardsData, menusData, actionsData, achievementsData, hiddenData, linkBoardsData] = await Promise.all([
-    loadJson(DATA_URLS.maps), loadJson(DATA_URLS.npcs), loadJson(DATA_URLS.dialogues), loadJson(DATA_URLS.boards), loadJson(DATA_URLS.menus), loadJson(DATA_URLS.actions),
-    loadJson(DATA_URLS.achievements), loadJson(DATA_URLS.hidden), loadJson(DATA_URLS.linkBoards)
-  ]);
-  return { mapsData, npcsData, dialoguesData, boardsData, menusData, actionsData, achievementsData, hiddenData, linkBoardsData };
+  try {
+    const [mapsData, npcsData, dialoguesData, boardsData, menusData, actionsData, achievementsData, hiddenData, linkBoardsData] = await Promise.all([
+      loadJson(DATA_URLS.maps), loadJson(DATA_URLS.npcs), loadJson(DATA_URLS.dialogues), loadJson(DATA_URLS.boards), loadJson(DATA_URLS.menus), loadJson(DATA_URLS.actions),
+      loadJson(DATA_URLS.achievements), loadJson(DATA_URLS.hidden), loadJson(DATA_URLS.linkBoards)
+    ]);
+    return { mapsData, npcsData, dialoguesData, boardsData, menusData, actionsData, achievementsData, hiddenData, linkBoardsData };
+  } catch (err) {
+    const fallback = fallbackDataBundle();
+    if (fallback) {
+      console.warn('ローカルJSON取得に失敗したため、同梱フォールバックデータで起動します。', err);
+      state.dataLoadError = `ローカルJSON取得失敗。フォールバックデータで起動：${err.message || err}`;
+      return fallback;
+    }
+    throw err;
+  }
 }
 
 async function loadGasDataBundle(gasUrl) {
@@ -389,10 +417,8 @@ function updateDataSourceBadge() {
 
 function loadEditorPreviewDraft() {
   try {
-    const params = new URLSearchParams(window.location.search);
-    const wantsPreview = params.get('preview') === '1' || localStorage.getItem(EDITOR_PREVIEW_FLAG_KEY) === '1' || localStorage.getItem(LEGACY_EDITOR_PREVIEW_FLAG_KEY) === '1';
-    if (!wantsPreview) return null;
-    const raw = localStorage.getItem(EDITOR_DRAFT_KEY) || localStorage.getItem(LEGACY_EDITOR_DRAFT_KEY);
+    if (!hasEditorPreviewDraft()) return null;
+    const raw = localStorage.getItem(EDITOR_DRAFT_KEY) || localStorage.getItem(LEGACY_EDITOR_DRAFT_KEY) || localStorage.getItem(LEGACY2_EDITOR_DRAFT_KEY);
     if (!raw) return null;
     return JSON.parse(raw);
   } catch (_) {
@@ -404,7 +430,31 @@ async function boot() {
   loading.classList.remove('hidden');
   loading.textContent = 'データ読み込み中...';
 
-  const { bundle, source } = await loadProjectData();
+  const previewDraft = loadEditorPreviewDraft();
+  let bundle;
+  let source = 'local';
+
+  if (previewDraft) {
+    state.usingEditorDraft = true;
+    bundle = {
+      mapsData: previewDraft.mapsData,
+      npcsData: previewDraft.npcsData,
+      hiddenData: previewDraft.hiddenData,
+      dialoguesData: previewDraft.dialoguesData,
+      boardsData: previewDraft.boardsData,
+      menusData: previewDraft.menusData,
+      linkBoardsData: previewDraft.linkBoardsData,
+      actionsData: previewDraft.actionsData || fallbackDataBundle()?.actionsData,
+      achievementsData: previewDraft.achievementsData || fallbackDataBundle()?.achievementsData
+    };
+    source = 'preview';
+    const previewStamp = previewDraft.savedAt ? new Date(previewDraft.savedAt).toLocaleString('ja-JP') : '';
+    if (hintText) hintText.textContent = `配置エディタの下書きを反映中です。${previewStamp ? '保存日時：' + previewStamp : ''}`;
+  } else {
+    const loaded = await loadProjectData();
+    bundle = loaded.bundle;
+    source = loaded.source;
+  }
 
   let mapsData = bundle.mapsData;
   let npcsData = bundle.npcsData;
@@ -416,23 +466,10 @@ async function boot() {
   let actionsData = bundle.actionsData;
   let achievementsData = bundle.achievementsData;
 
-  const previewDraft = loadEditorPreviewDraft();
-  if (previewDraft) {
-    state.usingEditorDraft = true;
-    mapsData = previewDraft.mapsData || mapsData;
-    npcsData = previewDraft.npcsData || npcsData;
-    hiddenData = previewDraft.hiddenData || hiddenData;
-    dialoguesData = previewDraft.dialoguesData || dialoguesData;
-    boardsData = previewDraft.boardsData || boardsData;
-    menusData = previewDraft.menusData || menusData;
-    linkBoardsData = previewDraft.linkBoardsData || linkBoardsData;
-    const previewStamp = previewDraft.savedAt ? new Date(previewDraft.savedAt).toLocaleString('ja-JP') : '';
-    if (hintText) hintText.textContent = `配置エディタの下書きを反映中です。${previewStamp ? '保存日時：' + previewStamp : ''}`;
-  }
-
   applyDataBundle({ mapsData, npcsData, hiddenData, dialoguesData, boardsData, menusData, linkBoardsData, actionsData, achievementsData });
-  state.dataSource = source;
+  state.dataSource = source === 'preview' ? 'local' : source;
   updateDataSourceBadge();
+  if (source === 'preview' && dataSourceBadge) dataSourceBadge.textContent = 'データ Preview';
 
   loading.textContent = '画像読み込み中...';
   const imagePaths = new Set();
@@ -1359,5 +1396,5 @@ function setupControls() {
 setupControls();
 boot().catch(err => {
   console.error(err);
-  loading.textContent = '読み込みに失敗しました。ローカルで開く場合はLive Server等で起動してください。';
+  loading.textContent = `読み込みに失敗しました。${err.message || err}\nGAS URL設定後にGASで読み込むか、Live Server等で起動してください。`;
 });
