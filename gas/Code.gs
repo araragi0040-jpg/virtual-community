@@ -1,5 +1,5 @@
 /**
- * 歩ける語り場 v034 GAS 読み込み＋バックアップAPI
+ * 歩ける語り場 v035 GAS 読み込み＋バックアップAPI
  *
  * 使い方：
  * 1. Googleスプレッドシートに v028/v029 のTSVを貼り付ける
@@ -26,7 +26,21 @@ function doGet(e) {
     }
 
     if (mode === 'backups') {
-      return jsonOutput({ ok: true, version: 'v034', generatedAt: new Date().toISOString(), backups: listBackups_() });
+      return jsonOutput({ ok: true, version: 'v035', generatedAt: new Date().toISOString(), backups: listBackups_() });
+    }
+
+    if (mode === 'backup') {
+      const backupId = params.latest ? '' : String(params.backupId || '');
+      const loaded = loadBackup_(backupId, !!params.latest);
+      return jsonOutput({
+        ok: true,
+        version: 'v035',
+        generatedAt: new Date().toISOString(),
+        backupId: loaded.backupId,
+        meta: loaded.meta,
+        summary: summarizeProject_(loaded.data),
+        data: loaded.data
+      });
     }
 
     if (mode !== 'project') {
@@ -38,7 +52,7 @@ function doGet(e) {
     if (!summary.maps) {
       return jsonOutput({ ok: false, error: 'maps シートのデータが0件です。スプレッドシートに maps シートを作成し、v028のTSVをヘッダー付きで貼り付けてください。', summary: summary, sheetNames: getSheetNames_(), generatedAt: new Date().toISOString() });
     }
-    return jsonOutput({ ok: true, version: 'v034', generatedAt: new Date().toISOString(), summary: summary, data: project });
+    return jsonOutput({ ok: true, version: 'v035', generatedAt: new Date().toISOString(), summary: summary, data: project });
   } catch (err) {
     return jsonOutput({ ok: false, error: String(err && err.message ? err.message : err), stack: String(err && err.stack ? err.stack : '') });
   }
@@ -55,7 +69,7 @@ function doPost(e) {
     const mode = params.mode || payload.mode || 'backupProject';
     if (mode === 'backupProject') {
       const result = saveProjectBackup_(payload);
-      return jsonOutput(Object.assign({ ok: true, version: 'v034', generatedAt: new Date().toISOString() }, result));
+      return jsonOutput(Object.assign({ ok: true, version: 'v035', generatedAt: new Date().toISOString() }, result));
     }
     return jsonOutput({ ok: false, error: 'Unknown POST mode: ' + mode });
   } catch (err) {
@@ -232,6 +246,30 @@ function listBackups_() {
     }
   });
   return Object.keys(map).map(function(id) { return map[id]; }).sort(function(a, b) { return String(b.createdAt).localeCompare(String(a.createdAt)); });
+}
+
+function loadBackup_(backupId, latest) {
+  const list = listBackups_();
+  if (!list.length) throw new Error('backups シートにバックアップがありません。先にエディタからGASバックアップ保存を行ってください。');
+  const meta = latest ? list[0] : list.find(function(b) { return String(b.backupId) === String(backupId); });
+  if (!meta) throw new Error('指定されたバックアップが見つかりません: ' + backupId);
+  const rows = rows_('backups')
+    .filter(function(row) { return str_(row.backupId) === meta.backupId; })
+    .sort(function(a, b) { return num_(a.chunkIndex, 0) - num_(b.chunkIndex, 0); });
+  if (!rows.length) throw new Error('バックアップ本体の行が見つかりません: ' + meta.backupId);
+  const expected = num_(rows[0].chunkCount, rows.length);
+  if (rows.length < expected) throw new Error('バックアップの分割データが不足しています: ' + rows.length + '/' + expected);
+  const text = rows.map(function(row) { return str_(row.dataChunk); }).join('');
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (err) {
+    throw new Error('バックアップJSONの復元に失敗しました: ' + err.message);
+  }
+  if (!data || !data.mapsData || !data.mapsData.maps || !Object.keys(data.mapsData.maps).length) {
+    throw new Error('復元対象の mapsData.maps が空です。');
+  }
+  return { backupId: meta.backupId, meta: meta, data: data };
 }
 
 function addCommon_(obj, row) {
