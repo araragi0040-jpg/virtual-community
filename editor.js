@@ -184,14 +184,16 @@ const RESIZE_CURSORS = {
   w: 'ew-resize'
 };
 
-const DRAFT_KEY = 'vc4u_editor_draft_v032';
-const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v032';
+const DRAFT_KEY = 'vc4u_editor_draft_v033';
+const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v033';
 const LEGACY_DRAFT_KEY = 'vc4u_editor_draft_v029';
 const LEGACY_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v029';
-const DATA_SOURCE_KEY = 'vc4u_data_source_v032';
-const GAS_URL_KEY = 'vc4u_gas_api_url_v032';
-const LEGACY_DATA_SOURCE_KEY = 'vc4u_data_source_v030';
-const LEGACY_GAS_URL_KEY = 'vc4u_gas_api_url_v030';
+const DATA_SOURCE_KEY = 'vc4u_data_source_v033';
+const GAS_URL_KEY = 'vc4u_gas_api_url_v033';
+const LEGACY_DATA_SOURCE_KEY = 'vc4u_data_source_v032';
+const LEGACY_DATA_SOURCE_KEY_V031 = 'vc4u_data_source_v031';
+const LEGACY_GAS_URL_KEY = 'vc4u_gas_api_url_v032';
+const LEGACY_GAS_URL_KEY_V031 = 'vc4u_gas_api_url_v031';
 const GAS_TIMEOUT_MS = 12000;
 const HISTORY_LIMIT = 60;
 
@@ -293,7 +295,9 @@ function makeDraft() {
 
 function saveDraft() {
   try {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(makeDraft()));
+    const draft = makeDraft();
+    if (!isValidProjectBundle(draft)) { helpText.textContent = '下書き保存を中止しました。マップデータが空です。GAS読み込み結果やスプシの maps シートを確認してください。'; return; }
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
     helpText.textContent = '下書きをこのブラウザに保存しました。「ゲームで確認」でこの配置を反映できます。';
   } catch (err) {
     helpText.textContent = '下書き保存に失敗しました。ブラウザ容量やプライベートモードを確認してください。';
@@ -302,10 +306,11 @@ function saveDraft() {
 
 function loadDraft() {
   try {
-    const raw = localStorage.getItem(DRAFT_KEY) || localStorage.getItem(LEGACY_DRAFT_KEY);
+    const raw = localStorage.getItem(DRAFT_KEY) || localStorage.getItem(LEGACY_DRAFT_KEY) || localStorage.getItem(LEGACY_DRAFT_KEY_V031);
     if (!raw) { helpText.textContent = '保存済みの下書きがありません。'; return; }
     pushHistory();
     const draft = JSON.parse(raw);
+    if (!isValidProjectBundle(draft)) { helpText.textContent = '保存済み下書きのマップデータが空のため、読み込みを中止しました。'; return; }
     state.mapsData = draft.mapsData || state.mapsData;
     state.npcsData = draft.npcsData || state.npcsData;
     state.hiddenData = draft.hiddenData || state.hiddenData;
@@ -325,15 +330,18 @@ function clearDraft() {
   localStorage.removeItem(DRAFT_KEY);
   localStorage.removeItem(PREVIEW_FLAG_KEY);
   localStorage.removeItem(LEGACY_DRAFT_KEY);
+  localStorage.removeItem(LEGACY_DRAFT_KEY_V031);
   localStorage.removeItem(LEGACY_PREVIEW_FLAG_KEY);
+  localStorage.removeItem(LEGACY_PREVIEW_FLAG_KEY_V031);
   helpText.textContent = '下書きとゲーム確認用フラグを削除しました。';
 }
 
 function previewGame() {
+  if (!isValidProjectBundle(makeDraft())) { helpText.textContent = 'ゲーム確認を中止しました。マップデータが空です。'; return; }
   saveDraft();
   localStorage.setItem(PREVIEW_FLAG_KEY, '1');
-  localStorage.setItem('vc4u_use_editor_draft_v031', '1');
   localStorage.setItem(LEGACY_PREVIEW_FLAG_KEY, '1');
+  localStorage.setItem(LEGACY_PREVIEW_FLAG_KEY_V031, '1');
   window.location.href = 'index.html?preview=1';
 }
 
@@ -375,20 +383,22 @@ function loadImage(src) {
 }
 
 function getStoredGasUrl() {
-  return localStorage.getItem(GAS_URL_KEY) || localStorage.getItem(LEGACY_GAS_URL_KEY) || '';
+  return localStorage.getItem(GAS_URL_KEY) || localStorage.getItem(LEGACY_GAS_URL_KEY) || localStorage.getItem(LEGACY_GAS_URL_KEY_V031) || localStorage.getItem('vc4u_gas_api_url_v030') || '';
 }
 
 function saveStoredGasUrl(url) {
   localStorage.setItem(GAS_URL_KEY, url || '');
   // ゲーム側v030との互換用。v031以降はGAS_URL_KEYを優先する。
   localStorage.setItem(LEGACY_GAS_URL_KEY, url || '');
-  localStorage.setItem('vc4u_gas_api_url_v031', url || '');
+  localStorage.setItem(LEGACY_GAS_URL_KEY_V031, url || '');
+  localStorage.setItem('vc4u_gas_api_url_v030', url || '');
 }
 
 function saveDataSource(source) {
   localStorage.setItem(DATA_SOURCE_KEY, source || 'local');
   localStorage.setItem(LEGACY_DATA_SOURCE_KEY, source || 'local');
-  localStorage.setItem('vc4u_data_source_v031', source || 'local');
+  localStorage.setItem(LEGACY_DATA_SOURCE_KEY_V031, source || 'local');
+  localStorage.setItem('vc4u_data_source_v030', source || 'local');
 }
 
 async function fetchJsonWithTimeout(url, timeoutMs = GAS_TIMEOUT_MS) {
@@ -406,6 +416,38 @@ async function fetchJsonWithTimeout(url, timeoutMs = GAS_TIMEOUT_MS) {
 function gasUrlWithMode(baseUrl, mode) {
   const sep = baseUrl.includes('?') ? '&' : '?';
   return `${baseUrl}${sep}mode=${encodeURIComponent(mode)}&t=${Date.now()}`;
+}
+
+
+
+function bundleMapCount(bundle) {
+  return Object.keys(bundle?.mapsData?.maps || {}).length;
+}
+
+function isValidProjectBundle(bundle) {
+  return !!(bundle && bundle.mapsData && bundle.mapsData.maps && bundleMapCount(bundle) > 0);
+}
+
+function bundleSummary(bundle) {
+  const maps = bundle?.mapsData?.maps || {};
+  return {
+    maps: Object.keys(maps).length,
+    interactables: Object.values(maps).reduce((n, m) => n + ((m.interactables || []).length), 0),
+    blocks: Object.values(maps).reduce((n, m) => n + ((m.blocks || []).length), 0),
+    npcs: (bundle?.npcsData?.npcs || []).length,
+    hidden: (bundle?.hiddenData?.hiddenSpots || []).length,
+    dialogues: Object.keys(bundle?.dialoguesData?.dialogues || {}).length,
+    boards: Object.keys(bundle?.boardsData?.boards || {}).length,
+    menus: Object.keys(bundle?.menusData?.menus || {}).length,
+    linkBoards: Object.keys(bundle?.linkBoardsData?.linkBoards || {}).length
+  };
+}
+
+function assertValidBundle(bundle, label = 'データ') {
+  if (!isValidProjectBundle(bundle)) {
+    const s = bundleSummary(bundle);
+    throw new Error(`${label}のマップデータが空です。maps=${s.maps}, npcs=${s.npcs}, dialogues=${s.dialogues}。スプレッドシートの maps シートにヘッダーとデータ行があるか確認してください。`);
+  }
 }
 
 async function loadGasDataBundle(gasUrl) {
@@ -426,6 +468,7 @@ async function loadGasDataBundle(gasUrl) {
       linkBoardsData: { linkBoards: data.linkBoards || {} }
     };
   }
+  assertValidBundle(data, 'GAS');
   return data;
 }
 
@@ -445,6 +488,7 @@ async function loadLocalDataBundle() {
 }
 
 function applyBundleToEditor(bundle, sourceLabel = 'local') {
+  assertValidBundle(bundle, sourceLabel === 'gas' ? 'GAS' : '読み込み');
   state.mapsData = bundle.mapsData || { initialMapId: 'outside_4u', maps: {} };
   state.npcsData = bundle.npcsData || { npcs: [] };
   state.hiddenData = bundle.hiddenData || { hiddenSpots: [] };
@@ -510,7 +554,8 @@ async function loadFromGasIntoEditor() {
     renderAll();
     validateProject();
     state.gasLastLoadedAt = new Date().toISOString();
-    helpText.textContent = 'GASからデータを読み込みました。編集内容はまだスプシには保存されません。必要なら「下書き保存」してください。';
+    const s = bundleSummary(bundle);
+    helpText.textContent = `GASからデータを読み込みました。maps=${s.maps}, npcs=${s.npcs}, dialogues=${s.dialogues}。編集内容はまだスプシには保存されません。必要なら「下書き保存」してください。`;
   } catch (err) {
     helpText.textContent = `GAS読み込みに失敗しました：${err.message || err}`;
     console.error(err);

@@ -43,16 +43,18 @@ const DATA_URLS = {
   linkBoards: 'data/linkBoards.json'
 };
 
-const DATA_SOURCE_KEY = 'vc4u_data_source_v032';
-const GAS_URL_KEY = 'vc4u_gas_api_url_v032';
+const DATA_SOURCE_KEY = 'vc4u_data_source_v033';
+const GAS_URL_KEY = 'vc4u_gas_api_url_v033';
 const GAS_TIMEOUT_MS = 10000;
 
 // v004: 背景画像に人物が描き込まれているため、NPCスプライトは重ねず、近づいた時の！マーカーで会話可能地点を示す。
-const EDITOR_DRAFT_KEY = 'vc4u_editor_draft_v032';
-const EDITOR_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v032';
-const LEGACY_EDITOR_DRAFT_KEY = 'vc4u_editor_draft_v031';
+const EDITOR_DRAFT_KEY = 'vc4u_editor_draft_v033';
+const EDITOR_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v033';
+const LEGACY_EDITOR_DRAFT_KEY = 'vc4u_editor_draft_v032';
+const LEGACY_EDITOR_DRAFT_KEY_V031 = 'vc4u_editor_draft_v031';
 const LEGACY2_EDITOR_DRAFT_KEY = 'vc4u_editor_draft_v028';
-const LEGACY_EDITOR_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v031';
+const LEGACY_EDITOR_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v032';
+const LEGACY_EDITOR_PREVIEW_FLAG_KEY_V031 = 'vc4u_use_editor_draft_v031';
 const LEGACY2_EDITOR_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v028';
 
 const SHOW_NPC_SPRITES = false;
@@ -254,7 +256,41 @@ async function loadJson(url) {
 }
 
 function fallbackDataBundle() {
-  return window.__VC4U_FALLBACK_BUNDLE__ ? structuredClone(window.__VC4U_FALLBACK_BUNDLE__) : null;
+  if (!window.__VC4U_FALLBACK_BUNDLE__) return null;
+  try {
+    return typeof structuredClone === 'function' ? structuredClone(window.__VC4U_FALLBACK_BUNDLE__) : JSON.parse(JSON.stringify(window.__VC4U_FALLBACK_BUNDLE__));
+  } catch (_) {
+    return window.__VC4U_FALLBACK_BUNDLE__;
+  }
+}
+
+
+
+function bundleMapCount(bundle) {
+  return Object.keys(bundle?.mapsData?.maps || {}).length;
+}
+
+function isValidProjectBundle(bundle) {
+  return !!(bundle && bundle.mapsData && bundle.mapsData.maps && bundleMapCount(bundle) > 0);
+}
+
+function bundleSummary(bundle) {
+  const maps = bundle?.mapsData?.maps || {};
+  return {
+    maps: Object.keys(maps).length,
+    interactables: Object.values(maps).reduce((n, m) => n + ((m.interactables || []).length), 0),
+    blocks: Object.values(maps).reduce((n, m) => n + ((m.blocks || []).length), 0),
+    npcs: (bundle?.npcsData?.npcs || []).length,
+    dialogues: Object.keys(bundle?.dialoguesData?.dialogues || {}).length,
+    boards: Object.keys(bundle?.boardsData?.boards || {}).length,
+    menus: Object.keys(bundle?.menusData?.menus || {}).length
+  };
+}
+
+function clearEditorPreviewFlags() {
+  try {
+    [EDITOR_PREVIEW_FLAG_KEY, LEGACY_EDITOR_PREVIEW_FLAG_KEY, LEGACY_EDITOR_PREVIEW_FLAG_KEY_V031, LEGACY2_EDITOR_PREVIEW_FLAG_KEY].forEach(k => localStorage.removeItem(k));
+  } catch (_) {}
 }
 
 function hasEditorPreviewDraft() {
@@ -263,6 +299,7 @@ function hasEditorPreviewDraft() {
     return params.get('preview') === '1' ||
       localStorage.getItem(EDITOR_PREVIEW_FLAG_KEY) === '1' ||
       localStorage.getItem(LEGACY_EDITOR_PREVIEW_FLAG_KEY) === '1' ||
+      localStorage.getItem(LEGACY_EDITOR_PREVIEW_FLAG_KEY_V031) === '1' ||
       localStorage.getItem(LEGACY2_EDITOR_PREVIEW_FLAG_KEY) === '1';
   } catch (_) {
     return false;
@@ -304,9 +341,9 @@ function getRuntimeDataSettings() {
   const params = new URLSearchParams(window.location.search);
   const sourceParam = (params.get('source') || '').toLowerCase();
   const apiParam = params.get('api') || '';
-  const storedSource = localStorage.getItem(DATA_SOURCE_KEY) || localStorage.getItem('vc4u_data_source_v031') || localStorage.getItem('vc4u_data_source_v030') || 'local';
+  const storedSource = localStorage.getItem(DATA_SOURCE_KEY) || localStorage.getItem('vc4u_data_source_v032') || localStorage.getItem('vc4u_data_source_v031') || localStorage.getItem('vc4u_data_source_v030') || 'local';
   const source = sourceParam === 'gas' || sourceParam === 'local' ? sourceParam : storedSource;
-  const gasUrl = apiParam || localStorage.getItem(GAS_URL_KEY) || localStorage.getItem('vc4u_gas_api_url_v031') || localStorage.getItem('vc4u_gas_api_url_v030') || '';
+  const gasUrl = apiParam || localStorage.getItem(GAS_URL_KEY) || localStorage.getItem('vc4u_gas_api_url_v032') || localStorage.getItem('vc4u_gas_api_url_v031') || localStorage.getItem('vc4u_gas_api_url_v030') || '';
   if (apiParam) localStorage.setItem(GAS_URL_KEY, apiParam);
   if (sourceParam) localStorage.setItem(DATA_SOURCE_KEY, source);
   return { source, gasUrl };
@@ -352,6 +389,10 @@ async function loadGasDataBundle(gasUrl) {
       linkBoardsData: { linkBoards: data.linkBoards || {} }
     };
   }
+  if (!isValidProjectBundle(data)) {
+    const summary = bundleSummary(data);
+    throw new Error(`GASから取得したマップデータが空です。スプレッドシートに maps シートがあり、ヘッダー行とデータ行が入っているか確認してください。取得件数: maps=${summary.maps}, npcs=${summary.npcs}, dialogues=${summary.dialogues}`);
+  }
   return data;
 }
 
@@ -367,7 +408,8 @@ function applyDataBundle(bundle) {
   const linkBoardsData = bundle.linkBoardsData || { linkBoards: {} };
 
   if (!mapsData.maps || !Object.keys(mapsData.maps).length) {
-    throw new Error('マップデータが空です。');
+    const summary = bundleSummary(bundle);
+    throw new Error(`マップデータが空です。maps=${summary.maps}, npcs=${summary.npcs}, dialogues=${summary.dialogues}`);
   }
 
   state.data = {
@@ -418,7 +460,7 @@ function updateDataSourceBadge() {
 function loadEditorPreviewDraft() {
   try {
     if (!hasEditorPreviewDraft()) return null;
-    const raw = localStorage.getItem(EDITOR_DRAFT_KEY) || localStorage.getItem(LEGACY_EDITOR_DRAFT_KEY) || localStorage.getItem(LEGACY2_EDITOR_DRAFT_KEY);
+    const raw = localStorage.getItem(EDITOR_DRAFT_KEY) || localStorage.getItem(LEGACY_EDITOR_DRAFT_KEY) || localStorage.getItem(LEGACY_EDITOR_DRAFT_KEY_V031) || localStorage.getItem(LEGACY2_EDITOR_DRAFT_KEY);
     if (!raw) return null;
     return JSON.parse(raw);
   } catch (_) {
@@ -435,8 +477,7 @@ async function boot() {
   let source = 'local';
 
   if (previewDraft) {
-    state.usingEditorDraft = true;
-    bundle = {
+    const candidate = {
       mapsData: previewDraft.mapsData,
       npcsData: previewDraft.npcsData,
       hiddenData: previewDraft.hiddenData,
@@ -447,9 +488,21 @@ async function boot() {
       actionsData: previewDraft.actionsData || fallbackDataBundle()?.actionsData,
       achievementsData: previewDraft.achievementsData || fallbackDataBundle()?.achievementsData
     };
-    source = 'preview';
-    const previewStamp = previewDraft.savedAt ? new Date(previewDraft.savedAt).toLocaleString('ja-JP') : '';
-    if (hintText) hintText.textContent = `配置エディタの下書きを反映中です。${previewStamp ? '保存日時：' + previewStamp : ''}`;
+    if (isValidProjectBundle(candidate)) {
+      state.usingEditorDraft = true;
+      bundle = candidate;
+      source = 'preview';
+      const previewStamp = previewDraft.savedAt ? new Date(previewDraft.savedAt).toLocaleString('ja-JP') : '';
+      if (hintText) hintText.textContent = `配置エディタの下書きを反映中です。${previewStamp ? '保存日時：' + previewStamp : ''}`;
+    } else {
+      console.warn('下書きプレビューデータが空のため無視します。', bundleSummary(candidate));
+      clearEditorPreviewFlags();
+      state.usingEditorDraft = false;
+      state.dataLoadError = '下書きプレビューのマップデータが空だったため、通常データで起動しました。';
+      const loaded = await loadProjectData();
+      bundle = loaded.bundle;
+      source = loaded.source;
+    }
   } else {
     const loaded = await loadProjectData();
     bundle = loaded.bundle;
@@ -466,10 +519,21 @@ async function boot() {
   let actionsData = bundle.actionsData;
   let achievementsData = bundle.achievementsData;
 
-  applyDataBundle({ mapsData, npcsData, hiddenData, dialoguesData, boardsData, menusData, linkBoardsData, actionsData, achievementsData });
-  state.dataSource = source === 'preview' ? 'local' : source;
+  let finalBundle = { mapsData, npcsData, hiddenData, dialoguesData, boardsData, menusData, linkBoardsData, actionsData, achievementsData };
+  if (!isValidProjectBundle(finalBundle)) {
+    console.warn('読み込んだデータが空のため、同梱フォールバックデータに切り替えます。', bundleSummary(finalBundle));
+    state.dataLoadError = state.dataLoadError || '読み込んだマップデータが空でした。';
+    const fb = fallbackDataBundle();
+    if (isValidProjectBundle(fb)) {
+      finalBundle = fb;
+      source = 'fallback';
+    }
+  }
+  applyDataBundle(finalBundle);
+  state.dataSource = (source === 'preview' || source === 'fallback') ? 'local' : source;
   updateDataSourceBadge();
   if (source === 'preview' && dataSourceBadge) dataSourceBadge.textContent = 'データ Preview';
+  if (source === 'fallback' && dataSourceBadge) dataSourceBadge.textContent = 'データ Fallback';
 
   loading.textContent = '画像読み込み中...';
   const imagePaths = new Set();
@@ -997,6 +1061,7 @@ GAS URL：${gasUrl || '未設定'}${err}`, [
     { label: 'GAS URLを設定', type: 'setGasUrl', className: 'link' },
     { label: 'GASで読み込む', type: 'useGasData', className: 'link' },
     { label: 'ローカルJSONで読み込む', type: 'useLocalData', className: 'secondary' },
+    { label: '下書きプレビュー解除', type: 'clearPreviewDraft', className: 'secondary' },
     { label: '再読み込み', type: 'reload' },
     { label: '閉じる', type: 'close', className: 'secondary' }
   ], { long: true });
@@ -1034,6 +1099,7 @@ function setDataSource(source) {
       ]);
     }
   }
+  clearEditorPreviewFlags();
   localStorage.setItem(DATA_SOURCE_KEY, next);
   showModal('データ取得元を変更', `${next === 'gas' ? 'GAS API' : 'ローカルJSON'}で読み込む設定にしました。再読み込みします。`, [
     { label: '再読み込み', type: 'reload', className: 'link' }
@@ -1071,6 +1137,7 @@ function handleChoice(choice) {
   if (choice.type === 'linkBoard') return openLinkBoard(choice.targetId);
   if (choice.type === 'info') return showMessage('準備中', choice.message || 'このリンクは後から設定します。', [{ label: '閉じる', type: 'close', className: 'secondary' }]);
   if (choice.type === 'dataSettings') return openDataSourceSettings();
+  if (choice.type === 'clearPreviewDraft') { clearEditorPreviewFlags(); try { localStorage.removeItem(EDITOR_DRAFT_KEY); } catch (_) {} return showModal('下書きプレビュー解除', '下書きプレビュー状態を解除しました。再読み込みしてください。', [{ label: '再読み込み', type: 'reload', className: 'link' }]); }
   if (choice.type === 'setGasUrl') return setGasUrlFromPrompt();
   if (choice.type === 'useGasData') return setDataSource('gas');
   if (choice.type === 'useLocalData') return setDataSource('local');
@@ -1309,7 +1376,7 @@ function setupControls() {
   bindTap(memoButton, openMemo);
   bindTap(achievementButton, openAchievements);
   bindTap(linkHubButton, () => openLinkBoard('community_hub'));
-  bindTap(editorButton, () => { closeActionDrawer(); window.location.href = 'editor.html?v=029'; });
+  bindTap(editorButton, () => { closeActionDrawer(); window.location.href = 'editor.html?v=033'; });
   bindTap(dataSourceButton, openDataSourceSettings);
   bindTap(dayButton, () => { cycleDay(); closeActionDrawer(); });
   bindTap(debugButton, () => { toggleDebug(); closeActionDrawer(); });

@@ -1,5 +1,5 @@
 /**
- * 歩ける語り場 v031 GAS 読み込み専用API
+ * 歩ける語り場 v033 GAS 読み込み専用API
  *
  * 使い方：
  * 1. Googleスプレッドシートに v028/v029 のTSVを貼り付ける
@@ -30,10 +30,35 @@ function doGet(e) {
     }
 
     const project = buildProjectFromSheets();
-    return jsonOutput({ ok: true, version: 'v031', generatedAt: new Date().toISOString(), data: project });
+    const summary = summarizeProject_(project);
+    if (!summary.maps) {
+      return jsonOutput({ ok: false, error: 'maps シートのデータが0件です。スプレッドシートに maps シートを作成し、v028のTSVをヘッダー付きで貼り付けてください。', summary: summary, sheetNames: getSheetNames_(), generatedAt: new Date().toISOString() });
+    }
+    return jsonOutput({ ok: true, version: 'v033', generatedAt: new Date().toISOString(), summary: summary, data: project });
   } catch (err) {
     return jsonOutput({ ok: false, error: String(err && err.message ? err.message : err), stack: String(err && err.stack ? err.stack : '') });
   }
+}
+
+
+
+function getSheetNames_() {
+  return getSpreadsheet_().getSheets().map(function(s) { return s.getName(); });
+}
+
+function summarizeProject_(project) {
+  const maps = project && project.mapsData && project.mapsData.maps ? project.mapsData.maps : {};
+  return {
+    maps: Object.keys(maps).length,
+    interactables: Object.keys(maps).reduce(function(n, id) { return n + ((maps[id].interactables || []).length); }, 0),
+    blocks: Object.keys(maps).reduce(function(n, id) { return n + ((maps[id].blocks || []).length); }, 0),
+    npcs: ((project.npcsData || {}).npcs || []).length,
+    hidden: ((project.hiddenData || {}).hiddenSpots || []).length,
+    dialogues: Object.keys(((project.dialoguesData || {}).dialogues || {})).length,
+    boards: Object.keys(((project.boardsData || {}).boards || {})).length,
+    menus: Object.keys(((project.menusData || {}).menus || {})).length,
+    linkBoards: Object.keys(((project.linkBoardsData || {}).linkBoards || {})).length
+  };
 }
 
 function jsonOutput(obj) {
