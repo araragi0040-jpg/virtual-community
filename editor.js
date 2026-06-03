@@ -128,6 +128,7 @@ const buttons = {
   gasBackupList: document.getElementById('gasBackupListButton'),
   gasBackupLoad: document.getElementById('gasBackupLoadButton'),
   gasBackupLatest: document.getElementById('gasBackupLatestButton'),
+  gasSaveSheets: document.getElementById('gasSaveSheetsButton'),
   applyContent: document.getElementById('applyContentButton'),
   copyContent: document.getElementById('copyContentButton')
 };
@@ -203,25 +204,25 @@ const RESIZE_CURSORS = {
   w: 'ew-resize'
 };
 
-const DRAFT_KEY = 'vc4u_editor_draft_v034';
-const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v034';
+const DRAFT_KEY = 'vc4u_editor_draft_v037';
+const PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v037';
 const LEGACY_DRAFT_KEY = 'vc4u_editor_draft_v033';
 const LEGACY_DRAFT_KEY_V031 = 'vc4u_editor_draft_v031';
 const LEGACY_DRAFT_KEY_V029 = 'vc4u_editor_draft_v029';
 const LEGACY_PREVIEW_FLAG_KEY = 'vc4u_use_editor_draft_v033';
 const LEGACY_PREVIEW_FLAG_KEY_V031 = 'vc4u_use_editor_draft_v031';
 const LEGACY_PREVIEW_FLAG_KEY_V029 = 'vc4u_use_editor_draft_v029';
-const DATA_SOURCE_KEY = 'vc4u_data_source_v034';
-const GAS_URL_KEY = 'vc4u_gas_api_url_v036';
+const DATA_SOURCE_KEY = 'vc4u_data_source_v037';
+const GAS_URL_KEY = 'vc4u_gas_api_url_v037';
 const LEGACY_DATA_SOURCE_KEY = 'vc4u_data_source_v032';
 const LEGACY_DATA_SOURCE_KEY_V031 = 'vc4u_data_source_v031';
 const LEGACY_GAS_URL_KEY = 'vc4u_gas_api_url_v032';
 const LEGACY_GAS_URL_KEY_V031 = 'vc4u_gas_api_url_v031';
 const GAS_TIMEOUT_MS = 12000;
 const HISTORY_LIMIT = 60;
-const DRAFT_META_KEY = 'vc4u_editor_draft_meta_v036';
-const GAS_BACKUP_META_KEY = 'vc4u_gas_backup_meta_v036';
-const LAST_ACTION_META_KEY = 'vc4u_editor_last_action_v036';
+const DRAFT_META_KEY = 'vc4u_editor_draft_meta_v037';
+const GAS_BACKUP_META_KEY = 'vc4u_gas_backup_meta_v037';
+const LAST_ACTION_META_KEY = 'vc4u_editor_last_action_v037';
 
 function deepClone(obj) {
   return JSON.parse(JSON.stringify(obj));
@@ -789,7 +790,7 @@ async function saveGasBackup() {
     const json = await postJsonWithTimeout(gasUrlWithMode(gasUrl, 'backupProject'), {
       mode: 'backupProject',
       label,
-      source: 'editor-v036',
+      source: 'editor-v037',
       summary,
       data: bundle
     }, 20000);
@@ -802,6 +803,77 @@ async function saveGasBackup() {
   } catch (err) {
     helpText.textContent = `GASバックアップ保存に失敗しました：${err.message || err}`;
     setLastAction('GASバックアップ保存失敗', err.message || String(err), 'error');
+    updateStatusPanel();
+    console.error(err);
+  }
+}
+
+
+function sheetsSummary(sheets) {
+  const summary = {};
+  Object.entries(sheets || {}).forEach(([name, sheet]) => {
+    summary[name] = (sheet.rows || []).length;
+  });
+  return summary;
+}
+
+async function saveGasSheets() {
+  const gasUrl = getStoredGasUrl();
+  if (!gasUrl) {
+    helpText.textContent = 'GAS URLが未設定です。「GAS URL設定」から登録してください。';
+    return;
+  }
+  normalizeAllData({ silent: true });
+  const bundle = makeDraft();
+  try {
+    assertValidBundle(bundle, 'GASシート保存対象');
+  } catch (err) {
+    helpText.textContent = `GASシート保存を中止しました：${err.message || err}`;
+    setLastAction('GASシート保存中止', err.message || String(err), 'error');
+    updateStatusPanel();
+    return;
+  }
+  const sheets = buildSheetRows();
+  const summary = summarizeBundle(bundle);
+  const sheetSummary = sheetsSummary(sheets);
+  const confirmText = [
+    '現在のエディタ内容をGAS経由でスプレッドシート本体へ保存します。',
+    '',
+    '安全のため、保存前に現在のスプシ内容を backups シートへ自動バックアップします。',
+    'その後、maps / npcs / dialogues などの各シートを上書きします。',
+    '',
+    `maps: ${summary.maps}, npcs: ${summary.npcs}, dialogues: ${summary.dialogues}, boards: ${summary.boards}`,
+    '',
+    '続けますか？'
+  ].join('\n');
+  if (!window.confirm(confirmText)) return;
+
+  const label = window.prompt('保存前バックアップ名を入力してください。', `before-sheet-save-${new Date().toISOString().slice(0, 19)}`);
+  if (label === null) return;
+
+  helpText.textContent = 'GASへシート保存中... 保存前バックアップ作成後、各シートを上書きします。';
+  setLastAction('GASシート保存中', '保存処理を実行中です。', 'neutral');
+  updateStatusPanel();
+
+  try {
+    const json = await postJsonWithTimeout(gasUrlWithMode(gasUrl, 'saveSheets'), {
+      mode: 'saveSheets',
+      label: (label || 'before-sheet-save').trim() || 'before-sheet-save',
+      source: 'editor-v037',
+      summary,
+      sheetSummary,
+      sheets
+    }, 45000);
+    if (!json || json.ok === false) throw new Error(json?.error || 'GASシート保存の応答が不正です。');
+    outputBox.value = JSON.stringify(json, null, 2);
+    const detail = `保存OK / backupId=${json.backupId || ''} / sheets=${Object.keys(json.savedSheets || {}).length}`;
+    writeGasBackupMeta({ action: 'シート保存OK', backupId: json.backupId || '', label: label || '', savedSheets: json.savedSheets || {} });
+    helpText.textContent = `GASシート保存OK。保存前バックアップ：${json.backupId || 'なし'}。必要なら「GASから読込」で再確認してください。`;
+    setLastAction('GASシート保存OK', detail, 'ok');
+    updateStatusPanel();
+  } catch (err) {
+    helpText.textContent = `GASシート保存に失敗しました：${err.message || err}`;
+    setLastAction('GASシート保存失敗', err.message || String(err), 'error');
     updateStatusPanel();
     console.error(err);
   }
@@ -2703,7 +2775,7 @@ function downloadProjectBundle() {
 function exportBackup() {
   normalizeAllData({ silent: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-  downloadJson(`vc4u_backup_v036_${stamp}.json`, projectPackage());
+  downloadJson(`vc4u_backup_v037_${stamp}.json`, projectPackage());
   helpText.textContent = '全データバックアップを書き出しました。復元する場合は「バックアップ復元」からこのJSONを選択してください。';
 }
 
@@ -2965,6 +3037,7 @@ buttons.gasBackup?.addEventListener('click', saveGasBackup);
 buttons.gasBackupList?.addEventListener('click', listGasBackups);
 buttons.gasBackupLoad?.addEventListener('click', loadGasBackupById);
 buttons.gasBackupLatest?.addEventListener('click', loadLatestGasBackup);
+buttons.gasSaveSheets?.addEventListener('click', saveGasSheets);
 buttons.applyContent?.addEventListener('click', applyContentChanges);
 buttons.copyContent?.addEventListener('click', copyContentJson);
 choiceEditor.addButton?.addEventListener('click', () => {

@@ -1,5 +1,5 @@
 /**
- * 歩ける語り場 v036 GAS 読み込み＋バックアップAPI
+ * 歩ける語り場 v037 GAS 読み込み＋バックアップ＋シート保存API
  *
  * 使い方：
  * 1. Googleスプレッドシートに v028/v029 のTSVを貼り付ける
@@ -26,7 +26,7 @@ function doGet(e) {
     }
 
     if (mode === 'backups') {
-      return jsonOutput({ ok: true, version: 'v036', generatedAt: new Date().toISOString(), backups: listBackups_() });
+      return jsonOutput({ ok: true, version: 'v037', generatedAt: new Date().toISOString(), backups: listBackups_() });
     }
 
     if (mode === 'backup') {
@@ -34,7 +34,7 @@ function doGet(e) {
       const loaded = loadBackup_(backupId, !!params.latest);
       return jsonOutput({
         ok: true,
-        version: 'v036',
+        version: 'v037',
         generatedAt: new Date().toISOString(),
         backupId: loaded.backupId,
         meta: loaded.meta,
@@ -52,7 +52,7 @@ function doGet(e) {
     if (!summary.maps) {
       return jsonOutput({ ok: false, error: 'maps シートのデータが0件です。スプレッドシートに maps シートを作成し、v028のTSVをヘッダー付きで貼り付けてください。', summary: summary, sheetNames: getSheetNames_(), generatedAt: new Date().toISOString() });
     }
-    return jsonOutput({ ok: true, version: 'v036', generatedAt: new Date().toISOString(), summary: summary, data: project });
+    return jsonOutput({ ok: true, version: 'v037', generatedAt: new Date().toISOString(), summary: summary, data: project });
   } catch (err) {
     return jsonOutput({ ok: false, error: String(err && err.message ? err.message : err), stack: String(err && err.stack ? err.stack : '') });
   }
@@ -69,7 +69,11 @@ function doPost(e) {
     const mode = params.mode || payload.mode || 'backupProject';
     if (mode === 'backupProject') {
       const result = saveProjectBackup_(payload);
-      return jsonOutput(Object.assign({ ok: true, version: 'v036', generatedAt: new Date().toISOString() }, result));
+      return jsonOutput(Object.assign({ ok: true, version: 'v037', generatedAt: new Date().toISOString() }, result));
+    }
+    if (mode === 'saveSheets') {
+      const result = saveSheetsFromPayload_(payload);
+      return jsonOutput(Object.assign({ ok: true, version: 'v037', generatedAt: new Date().toISOString() }, result));
     }
     return jsonOutput({ ok: false, error: 'Unknown POST mode: ' + mode });
   } catch (err) {
@@ -196,6 +200,70 @@ function getOrCreateSheet_(name, headers) {
   }
   return sheet;
 }
+
+function sheetCell_(value) {
+  if (value === null || value === undefined) return '';
+  if (value instanceof Date) return value;
+  if (Array.isArray(value) || (typeof value === 'object')) return JSON.stringify(value);
+  return value;
+}
+
+function setSheetRows_(name, headers, rows) {
+  if (!headers || !headers.length) throw new Error('headers が空です: ' + name);
+  const sheet = getOrCreateSheet_(name, headers);
+  sheet.clearContents();
+  const values = [headers].concat((rows || []).map(function(row) {
+    return headers.map(function(h) { return sheetCell_(row[h]); });
+  }));
+  sheet.getRange(1, 1, values.length, headers.length).setValues(values);
+  sheet.setFrozenRows(1);
+  return { rows: Math.max(values.length - 1, 0), columns: headers.length, sheetName: sheet.getName() };
+}
+
+function saveSheetsFromPayload_(payload) {
+  const sheets = payload.sheets || {};
+  if (!sheets || !Object.keys(sheets).length) throw new Error('保存対象の sheets が空です。');
+  if (!sheets.maps || !sheets.maps.rows || !sheets.maps.rows.length) throw new Error('maps シートに保存するデータが0件です。');
+
+  let backupId = '';
+  let backupError = '';
+  try {
+    const currentProject = buildProjectFromSheets();
+    const summary = summarizeProject_(currentProject);
+    if (summary.maps) {
+      const backup = saveProjectBackup_({
+        label: payload.label || 'before-sheet-save',
+        source: 'before-saveSheets',
+        summary: summary,
+        data: currentProject
+      });
+      backupId = backup.backupId || '';
+    }
+  } catch (err) {
+    // 初回保存などで現在のスプシが空の場合は、バックアップなしで続行する。
+    backupError = String(err && err.message ? err.message : err);
+  }
+
+  const preferredOrder = ['maps','interactables','blocks','npcs','hidden_spots','dialogues','confirms','boards','menus','actions','achievements','link_boards','link_items','options'];
+  const keys = preferredOrder.filter(function(k) { return sheets[k]; }).concat(Object.keys(sheets).filter(function(k) { return preferredOrder.indexOf(k) < 0; }));
+  const savedSheets = {};
+  keys.forEach(function(name) {
+    if (name === 'backups') return;
+    const def = sheets[name] || {};
+    const headers = def.headers || [];
+    const rows = def.rows || [];
+    savedSheets[name] = setSheetRows_(name, headers, rows);
+  });
+
+  return {
+    backupId: backupId,
+    backupWarning: backupError,
+    savedSheets: savedSheets,
+    sheetCount: Object.keys(savedSheets).length,
+    message: 'Sheets saved. If backupId is present, previous spreadsheet data was backed up before overwrite.'
+  };
+}
+
 
 function makeBackupId_() {
   return 'bk_' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd_HHmmss') + '_' + Math.random().toString(36).slice(2, 8);

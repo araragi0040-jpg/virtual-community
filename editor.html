@@ -12,7 +12,7 @@
       <div>
         <p class="eyebrow">Prototype Map Editor</p>
         <h1>配置エディタ v036</h1>
-        <p class="lead">NPC・掲示板・入口・隠し要素・通行不可ブロックの座標をドラッグで仮調整するための編集デモです。四角い範囲は角・辺をドラッグしてサイズ調整できます。v036では、GAS読込・下書き保存・バックアップ読込の成功状態を見える化しています。</p>
+        <p class="lead">NPC・掲示板・入口・隠し要素・通行不可ブロックの座標をドラッグで仮調整するための編集デモです。四角い範囲は角・辺をドラッグしてサイズ調整できます。v037では、GASバックアップに加えて、スプレッドシート本体への保存（事前バックアップ付き）に対応しています。</p>
       </div>
       <a class="back-link" href="index.html">ゲームへ戻る</a>
     </header>
@@ -62,7 +62,7 @@
           <p class="eyebrow">Editor Actions</p>
           <h2>保存・履歴操作</h2>
         </div>
-        <p class="small-note">v036：読込・保存状態の見える化に対応。</p>
+        <p class="small-note">v037：GASシート保存（事前バックアップ付き）に対応。</p>
       </div>
       <div class="action-grid">
         <button id="undoButton" type="button">戻す</button>
@@ -85,6 +85,7 @@
         <button id="gasBackupListButton" type="button">GASバックアップ一覧</button>
         <button id="gasBackupLoadButton" type="button">GASバックアップ読込</button>
         <button id="gasBackupLatestButton" type="button">最新GASバックアップ読込</button>
+        <button id="gasSaveSheetsButton" type="button" class="primary-button">GASシート保存</button>
         <button id="exportBackupButton" type="button">全データバックアップ</button>
         <button id="importBackupButton" type="button">バックアップ復元</button>
         <input id="importBackupInput" type="file" accept="application/json,.json" class="hidden" />

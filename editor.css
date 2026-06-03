@@ -527,3 +527,14 @@ button:disabled {
   .status-card strong { font-size: .88rem; }
   .status-card small { font-size: .7rem; }
 }
+
+/* v037: important GAS save action */
+.primary-button {
+  background: #74d49a;
+  color: #10331c;
+  font-weight: 700;
+}
+.primary-button:disabled {
+  background: #54725f;
+  color: #d8eadd;
+}
